@@ -1,0 +1,240 @@
+﻿<Page x:Name="Root"
+      x:Class="AppInstallerFileBuilder.AppShell"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:local="using:AppInstallerFileBuilder"
+      xmlns:controls="using:AppInstallerFileBuilder.Controls"
+      xmlns:triggers="using:AppInstallerFileBuilder.Triggers"
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+      Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
+      KeyDown="AppShell_KeyDown"
+      TabNavigation="Cycle"
+      mc:Ignorable="d">
+
+    <!-- Using a Page as the root for the app provides a design time experience as well as ensures that
+         when it runs on Mobile the app content won't appear under the system's StatusBar which is visible
+         by default with a transparent background.  It will also take into account the presence of software
+         navigation buttons if they appear on a device.  An app can opt-out by switching to UseCoreWindow.
+    -->
+
+    <Page.Resources>
+        <DataTemplate x:Key="NavMenuItemTemplate" x:DataType="local:NavMenuItem">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="16" />
+                    <ColumnDefinition />
+                </Grid.ColumnDefinitions>
+                <Rectangle x:Name="SelectedPipe"
+                           Width="6"
+                           Height="24"
+                           Margin="-2,0,0,0"
+                           Fill="{ThemeResource SystemControlForegroundAccentBrush}"
+                           Visibility="{x:Bind SelectedVis, Mode=TwoWay}"
+                           VerticalAlignment="Center"
+                           HorizontalAlignment="Left"/>
+                <!-- Showing a ToolTip and the Label is redundant.  We put the ToolTip on the icon.
+                     It appears when the user hovers over the icon, but not the label which provides
+                     value when the SplitView is 'Compact' while reducing the likelihood of showing
+                     redundant information when the label is shown.-->
+                <FontIcon x:Name="Glyph" FontSize="14" Glyph="{x:Bind SymbolAsChar}" VerticalAlignment="Center" HorizontalAlignment="Center" ToolTipService.ToolTip="{x:Bind Label}"/>
+                <TextBlock x:Name="Text" Grid.Column="1" Text="{x:Bind Label}" Style="{StaticResource BodyTextBlockStyle}" TextWrapping="NoWrap" VerticalAlignment="Center"/>
+            </Grid>
+        </DataTemplate>
+
+        <DataTemplate x:Key="NavMenuItem10ftTemplate" x:DataType="local:NavMenuItem">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="48" />
+                    <ColumnDefinition />
+                </Grid.ColumnDefinitions>
+                <!-- Showing a ToolTip on Xbox is not desirable. The SelectedPipe is also deliberately omited. -->
+                <FontIcon x:Name="Glyph" FontSize="16" Glyph="{x:Bind SymbolAsChar}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                <TextBlock x:Name="Text" Grid.Column="1" Text="{x:Bind Label}" Style="{StaticResource BodyTextBlockStyle}" TextWrapping="NoWrap" Margin="0,0,16,0"/>
+            </Grid>
+        </DataTemplate>
+    </Page.Resources>
+
+    <Grid x:Name="LayoutRoot">
+        <!-- Adaptive triggers -->
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroup>
+                <VisualState>
+                    <VisualState.StateTriggers>
+                        <AdaptiveTrigger MinWindowWidth="{StaticResource LargeWindowSnapPoint}" />
+                    </VisualState.StateTriggers>
+                    <VisualState.Setters>
+                        <Setter Target="RootSplitView.DisplayMode" Value="Inline"/>
+                        <Setter Target="RootSplitView.IsPaneOpen" Value="True"/>
+                        
+                    </VisualState.Setters>
+                </VisualState>
+                <VisualState>
+                    <VisualState.StateTriggers>
+                        <AdaptiveTrigger MinWindowWidth="{StaticResource MediumWindowSnapPoint}" />
+                    </VisualState.StateTriggers>
+                    <VisualState.Setters>
+                        <Setter Target="RootSplitView.DisplayMode" Value="Inline"/>
+                        <Setter Target="RootSplitView.IsPaneOpen" Value="True"/>
+                       
+                    </VisualState.Setters>
+                </VisualState>
+                <VisualState>
+                    <VisualState.StateTriggers>
+                        <AdaptiveTrigger MinWindowWidth="{StaticResource MinWindowSnapPoint}" />
+                    </VisualState.StateTriggers>
+                    <VisualState.Setters>
+                        <Setter Target="RootSplitView.DisplayMode" Value="Inline"/>
+                        <Setter Target="RootSplitView.IsPandeOpen" Value="True"/>
+                        
+                    </VisualState.Setters>
+                </VisualState>
+            </VisualStateGroup>
+            <VisualStateGroup>
+                <VisualState>
+                    <!--<VisualState.StateTriggers>
+                        <triggers:IsTenFootTrigger/>
+                    </VisualState.StateTriggers>-->
+                    <VisualState.Setters>
+                        <Setter Target="RootSplitView.OpenPaneLength" Value="368"/>
+                        <Setter Target="RootSplitView.CompactPaneLength" Value="80"/>
+                        <Setter Target="PaneContentGrid.Margin" Value="0,0,0,27"/>
+                        <Setter Target="NavMenuList.Margin" Value="0,79,0,0"/>
+                        <Setter Target="frame.Margin" Value="0,27,48,27"/>
+                        <Setter Target="NavMenuList.ItemContainerStyle" Value="{StaticResource NavMenuItemContainer10ftStyle}"/>
+                        <Setter Target="NavMenuList.ItemTemplate" Value="{StaticResource NavMenuItem10ftTemplate}"/>
+                        
+                    </VisualState.Setters>
+                </VisualState>
+            </VisualStateGroup>
+        </VisualStateManager.VisualStateGroups>
+
+        <!-- Top-level navigation menu + app content -->
+
+        <SplitView x:Name="RootSplitView"
+                       DisplayMode="Inline"
+                       OpenPaneLength="285"
+                       PaneBackground="{ThemeResource SystemControlChromeMediumAcrylicWindowMediumBrush}"
+                       LightDismissOverlayMode="On"
+                       IsTabStop="False">
+
+            <SplitView.Pane>
+                <Grid x:Name="PaneContentGrid">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="6"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="48"/>
+                        <ColumnDefinition Width="48"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- A custom ListView to display the items in the pane.  The automation Name is set in the ContainerContentChanging event. -->
+
+                    <!--TODO: KEITH - Why necessary to set "Main" as negative margin? -->
+                    <TextBlock 
+                        x:Name="Header1"
+                        Text="AppInstaller File Builder"
+                        FontWeight="Bold"
+                        FontSize="20"
+                        Margin="16,40,0,-12"
+                        Grid.ColumnSpan="3"
+                        Grid.Row="0"
+                        >
+                    </TextBlock>
+                    <TextBlock
+                        x:Name="appVersion"
+                        x:Uid="appVersion"
+                        Margin="16,70,0,-12"
+                        Grid.ColumnSpan="3"
+                        Grid.Row="0"
+                        FontSize="11"
+                        />
+
+                    <controls:NavMenuListView 
+                        x:Name="NavMenuList"
+                        Grid.ColumnSpan="3"
+                        Grid.Row="2"
+                        TabIndex="3"
+                        Margin="0,10,0,20"
+                        ContainerContentChanging="NavMenuItemContainerContentChanging"
+                        ItemContainerStyle="{StaticResource NavMenuItemContainerStyle}"
+                        ItemTemplate="{StaticResource NavMenuItemTemplate}"
+                        ItemInvoked="NavMenuList_ItemInvoked"/>
+
+                    <TextBlock 
+                        x:Name="Header2"
+                        Text="Advanced"
+                        FontWeight="Bold"
+                        FontSize="20"
+                        Margin="16,0,0,0"
+                        Grid.ColumnSpan="3"
+                        Grid.Row="3"
+                        >
+                    </TextBlock>
+
+                    <controls:NavMenuListView 
+                        x:Name="NavMenuList2"
+                        Grid.ColumnSpan="3"
+                        TabIndex="3"
+                        Grid.Row="4"
+                        Margin="0,0,0,20"
+                        ContainerContentChanging="NavMenuItemContainerContentChanging"
+                        ItemContainerStyle="{StaticResource NavMenuItemContainerStyle}"
+                        ItemTemplate="{StaticResource NavMenuItemTemplate}"
+                        ItemInvoked="NavMenuList_ItemInvoked"/>
+
+                    <TextBlock 
+                        x:Name="Header3"
+                        Text="Generate"
+                        FontWeight="Bold"
+                        FontSize="20"
+                        Margin="16,0,0,0"
+                        Grid.ColumnSpan="3"
+                        Grid.Row="5"
+                        >
+                    </TextBlock>
+
+                    <controls:NavMenuListView
+                        x:Name="NavMenuList3"
+                        Grid.ColumnSpan="3"
+                        TabIndex="3"
+                        Grid.Row="6"
+                        Margin="0,0,0,0"
+                        ContainerContentChanging="NavMenuItemContainerContentChanging"
+                        ItemContainerStyle="{StaticResource NavMenuItemContainerStyle}"
+                        ItemTemplate="{StaticResource NavMenuItemTemplate}"
+                        ItemInvoked="NavMenuList_ItemInvoked"/>
+
+                    <!-- TODO: Keith - Create multiple NavMenulists and put headers to split them up. Can reference which page to go to them using Back/Next buttons-->
+                </Grid>
+            </SplitView.Pane>
+
+            <SplitView.Content>
+                <!-- OnNavigatingToPage we synchronize the selected item in the nav menu with the current page.-->
+                <Frame x:Name="frame"
+                       Margin="0,0,0,0"
+                       Navigating="OnNavigatingToPage">
+                    <Frame.ContentTransitions>
+                        <TransitionCollection>
+                            <NavigationThemeTransition>
+                                <NavigationThemeTransition.DefaultNavigationTransitionInfo>
+                                    <SuppressNavigationTransitionInfo/>
+                                    <!--KEITH - PAGE ANIMATION: <EntranceNavigationTransitionInfo/>-->
+                                </NavigationThemeTransition.DefaultNavigationTransitionInfo>
+                            </NavigationThemeTransition>
+                        </TransitionCollection>
+                    </Frame.ContentTransitions>
+                </Frame>
+            </SplitView.Content>
+        </SplitView>
+    </Grid>
+</Page>

@@ -1,0 +1,231 @@
+﻿<Page
+    x:Class="AppInstallerFileBuilder.Views.OptionalPackagesView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:converter="using:AppInstallerFileBuilder.Converters"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:Model="using:AppInstallerFileBuilder.Model"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <converter:PackageTypeVisibilityConverter x:Key="PackageTypeVisibilityConverter" />
+    </Page.Resources>
+
+    <Grid >
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <RelativePanel  Grid.Column="0" Grid.Row="0">
+            <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}" RelativePanel.AlignRightWithPanel="True" RelativePanel.AlignLeftWithPanel="True" RelativePanel.AlignBottomWithPanel="True" RelativePanel.AlignTopWithPanel="True" Margin="{StaticResource PageMargin}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Margin="{StaticResource SettingsSubheaderMargin}" Grid.Row="0" Grid.Column="0">
+                    <TextBlock
+                        x:Uid="Optional_Packages_Title"
+                        x:Name="TitlePage"
+                        FontWeight="Light"
+                        Style="{StaticResource PageTitleStyle}" FontSize="30" FontFamily="Segoe UI" Margin="0,0,12,5" 
+                    />
+
+                    <TextBlock
+                        Text="* Required"
+                        FontWeight="Light"
+                        Foreground="Red"
+                        FontSize="14" Padding="1,0,0,0" Margin="0,0,10,20" />
+
+                </StackPanel>
+                <ScrollViewer  Grid.Row="1" Grid.Column="0" ScrollViewer.VerticalScrollBarVisibility="Hidden" ScrollViewer.VerticalScrollMode="Enabled">
+                    <RelativePanel x:Name="Package_Relative_Panel">
+                        <ListView  x:Name="List_View" Margin="-12,0,0,0"  ItemContainerStyle="{StaticResource ListViewContainerStyle}" ItemsSource="{x:Bind OptionalPackages}" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollMode="Auto"  SelectionMode="None">
+                            <ListView.ItemTemplate>
+                                <DataTemplate x:DataType="Model:OptionalPackage">
+                                    <StackPanel>
+                                        <StackPanel Margin="{StaticResource SettingsSubheaderMargin}">
+                                       
+                            <StackPanel Orientation="Horizontal">
+                                <TextBox 
+                                    x:Uid="File_Path_Text_Box"
+                                    x:Name="File_Path_Text_Box"
+                                
+                                    PlaceholderText="Browse to app package"
+                                    ToolTipService.ToolTip="e.g. C:\Users\JaneDoe\Desktop\MyApp.msix"
+                                    HorizontalAlignment="Left"
+                                    Width="453"
+                                    Margin="0,0,15,0"
+                                />
+                                <Button x:Name="PackageInfoButton" Content="Get Package Info" Click="PackageInfoButton_Click">
+
+                                </Button>
+                            </StackPanel>
+
+                        </StackPanel>
+
+                        <StackPanel Margin="{StaticResource SettingsSubheaderMargin}" Orientation="Horizontal">
+                            <TextBlock
+                                ToolTipService.ToolTip="e.g. MyCompany.MySuite.MyApp"
+                                Style="{StaticResource SubtitleTextBlockStyle}" FontSize="15" Margin="5" VerticalAlignment="Center">  
+                                <Run Text="Name" />
+                                <Run Text="*" Foreground="Red" />
+                            </TextBlock>
+                            <TextBox 
+                                x:Uid="Name_Text_Box"
+                                x:Name="Name_Text_Box"
+                                Text="{x:Bind Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                ToolTipService.ToolTip="e.g. MyCompany.MySuite.MyApp"
+                                PlaceholderText="Package Name"
+                                HorizontalAlignment="Left"
+                                Width="400"
+                                Margin="141,0,0,0"
+                            />
+                        </StackPanel >
+
+                        <StackPanel Margin="{StaticResource SettingsSubheaderMargin}" Orientation="Horizontal">
+                            <TextBlock
+                                ToolTipService.ToolTip="e.g. 1.0.0.0"
+                                Style="{StaticResource SubtitleTextBlockStyle}" Margin="5" FontSize="15" VerticalAlignment="Center" >
+                                <Run Text="Version" />
+                                <Run Text="*" Foreground="Red" />
+                            </TextBlock>
+
+                            <TextBox 
+                            x:Uid="Version_Text_Box"
+                            x:Name="Version_Text_Box"
+                            Text="{x:Bind Version, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                            PlaceholderText="Version"
+                            ToolTipService.ToolTip="e.g. 1.0.0.0"
+                            HorizontalAlignment="Left"
+                            Width="400"
+                            Margin="132,0,0,0"
+                        />
+                                        </StackPanel>
+
+                        <StackPanel Margin="{StaticResource SettingsSubheaderMargin}" Orientation="Horizontal">
+                            <TextBlock
+                                ToolTipService.ToolTip="e.g. CN=janedoe"
+                                Style="{StaticResource SubtitleTextBlockStyle}" FontSize="15" Margin="5" VerticalAlignment="Center"> 
+                                <Run Text="Publisher" />
+                                <Run Text="*" Foreground="Red" />
+                            </TextBlock>
+                            <TextBox 
+                                x:Uid="Publisher_Text_Box"
+                                x:Name="Publisher_Text_Box"
+                                Text="{x:Bind Publisher, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                ToolTipService.ToolTip="e.g. CN=janedoe"
+                                PlaceholderText="Publisher"
+                                HorizontalAlignment="Left"
+                                Width="400"
+                                Margin="121,0,0,0"
+                            />
+                        </StackPanel>
+
+                        <StackPanel Margin="{StaticResource SettingsSubheaderMargin}" x:Name="Processor_Type_Stack_Panel" Orientation="Horizontal">
+                            <TextBlock                            
+                            Style="{StaticResource SubtitleTextBlockStyle}" Margin="5" VerticalAlignment="Center" FontSize="15">
+                            <Run Text="Processor Architecture Type" />
+                            </TextBlock>
+
+                            <TextBox 
+                                x:Uid="Processor_Arch_Text_box"
+                                x:Name="Processor_Arch_Text_Box"
+                                Text="{x:Bind ProcessorArchitecture, Mode=TwoWay}"
+                                ToolTipService.ToolTip="e.g. ARM, x64, x86"
+                                PlaceholderText="Processor Architecture"
+                                HorizontalAlignment="Left"
+                                Width="400"
+                                Margin="8,0,0,0"
+                            />
+                        </StackPanel>
+
+                        <StackPanel Margin="{StaticResource SettingsSubheaderMargin}" Orientation="Horizontal">
+                            <TextBlock
+                                ToolTipService.ToolTip="e.g. C:\Users\JaneDoe\Desktop\MyApp.msix"
+                                Style="{StaticResource SubtitleTextBlockStyle}" FontSize="15" Margin="5" VerticalAlignment="Center"
+                            >
+                                <Run  Text="File Path"  />
+                                <Run  Text="*" Foreground="Red"/>
+                            </TextBlock>
+                            <TextBox 
+                                x:Uid="Uri_Path_Text_Box"
+                                x:Name="Uri_Path_Text_Box"
+                                Text="{x:Bind FilePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                PlaceholderText="Enter the package URI"
+                                ToolTipService.ToolTip="e.g. C:\Users\JaneDoe\Desktop\MyApp.msix"
+                                HorizontalAlignment="Left"
+                                Width="518"
+                                Margin="8,0,0,0"
+                                                    
+                            />
+                        </StackPanel>
+
+
+                        <Rectangle Width="800" Margin="12,0,0,20" HorizontalAlignment="Right" Height="1" Fill="Gray" />
+                    </StackPanel>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+
+                        <TextBlock 
+                            RelativePanel.Below="List_View" Margin="12,0,0,80" Text="Add Optional Package" Foreground="{ThemeResource SystemControlForegroundAccentBrush}" x:Name="Add_New_Package_Text_Block" Tapped="Add_New_Package_Tapped" 
+                        />
+
+                        <TextBlock 
+                           RelativePanel.Below="List_View" RelativePanel.RightOf="Add_New_Package_Text_Block" Margin="12,0,0,80" Text="Remove Package" Foreground="Red" x:Name="Remove_Package_Text_Block" Tapped="Remove_Package_Text_Block_Tapped" 
+                        />
+                    </RelativePanel>
+                </ScrollViewer>
+            </Grid>
+            <RelativePanel
+                Background="#e6e3e3"
+                Height="60" 
+                RelativePanel.AlignBottomWithPanel="True"
+                RelativePanel.AlignRightWithPanel="True"
+                RelativePanel.AlignLeftWithPanel="True"
+                >
+
+                <Button 
+                x:Name="Back_Button"
+                Click="Back_Button_Click"
+                Content="Back" 
+                RelativePanel.AlignVerticalCenterWithPanel="True"
+                RelativePanel.LeftOf="Next_Button"
+                Width="80"
+                Margin="0,0,20,0"
+                IsEnabled="True"
+             />
+
+                <Button 
+                x:Name="Next_Button"
+                Click="Next_Button_Click"
+                Content="Next" 
+                RelativePanel.AlignVerticalCenterWithPanel="True"
+                RelativePanel.LeftOf="Review_Button"
+                Width="80"
+                Margin="0,0,20,0"
+                IsEnabled="False"
+             />
+
+                <Button 
+                x:Name="Review_Button"
+                Click="Review_Button_Click"
+                Content="Review" 
+                RelativePanel.AlignVerticalCenterWithPanel="True"
+                RelativePanel.AlignRightWithPanel="True"
+                Width="100"
+                Margin="0,0,20,0"
+             />
+                
+            </RelativePanel>
+        </RelativePanel>
+    </Grid>
+</Page>

@@ -1,0 +1,90 @@
+﻿<Page
+    x:Class="AppInstallerFileBuilder.Views.UpdateSettingsView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:AppInstallerFileBuilder.Views"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <RelativePanel>
+        <ScrollViewer VerticalScrollMode="Enabled" VerticalScrollBarVisibility="Disabled">
+            <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}" Margin="{StaticResource PageMargin}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <TextBlock
+                Grid.Row="0"
+                x:Uid="Update_Settings_Title"
+                x:Name="TitlePage"
+                FontWeight="Light"
+                Style="{StaticResource PageTitleStyle}" Margin="14,0,12,20" FontSize="30" />
+
+                <StackPanel Grid.Row="1">
+
+                    <StackPanel Margin="{StaticResource SettingsSubheaderMargin}">
+                        <TextBlock
+                    x:Uid="Check_For_Updates"
+                    Style="{StaticResource SubtitleTextBlockStyle}" Padding="1,0,0,0"  FontSize="15"
+                    />
+                        <ToggleSwitch
+                    x:Uid="Check_For_Updates_Switch"
+                    x:Name="Check_For_Updates_Switch"
+                    IsOn="{Binding IsCheckUpdates, Mode=TwoWay}"
+                    Toggled="ToggleSwitch_Toggled"
+                    >
+                        </ToggleSwitch>
+                    </StackPanel>
+
+                    <StackPanel Margin="{StaticResource SettingsSubheaderMargin}">
+                        <TextBlock
+                    x:Uid="Update_Frequency"
+                    x:Name="Update_Frequency_Text_Block"
+                    Style="{StaticResource SubtitleTextBlockStyle}" Padding="1,0,0,0" Margin="0,0,0,6" FontSize="15"
+                    />
+                        <ComboBox 
+                    x:Uid="Update_Frequency_Combo_Box"
+                    x:Name="Update_Frequency_Combo_Box"
+                    Margin="0,0,0,80"
+                    SelectionChanged="ComboBox_SelectionChanged"
+                    HorizontalAlignment="Left"
+                    Width="100"
+                    />
+                    </StackPanel>
+
+                </StackPanel>
+            </Grid>
+        </ScrollViewer>
+
+        <RelativePanel 
+            Background="#e6e3e3"
+            Height="60" 
+            RelativePanel.AlignBottomWithPanel="True"
+            RelativePanel.AlignRightWithPanel="True"
+            RelativePanel.AlignLeftWithPanel="True"
+            >
+
+            <Button 
+                x:Name="Next_Button"
+                Content="Next" 
+                Click="Next_Button_Click"
+                RelativePanel.AlignVerticalCenterWithPanel="True"
+                RelativePanel.AlignRightWithPanel="True"
+                Width="80"
+                Margin="0,0,20,0"
+             />
+
+            <Button 
+                x:Name="Back_Button"
+                Content="Back" 
+                Click="Back_Button_Click"
+                RelativePanel.AlignVerticalCenterWithPanel="True"
+                RelativePanel.LeftOf="Next_Button"
+                Width="80"
+                Margin="0,0,10,0"
+             />
+        </RelativePanel>
+    </RelativePanel>
+</Page>

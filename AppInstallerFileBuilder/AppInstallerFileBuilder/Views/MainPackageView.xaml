@@ -1,0 +1,300 @@
+﻿<Page
+    x:Class="AppInstallerFileBuilder.Views.MainPackageView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:AppInstallerFileBuilder.Views"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:Windows10FallCreatorsUpdate="http://schemas.microsoft.com/winfx/2006/xaml/presentation?IsApiContractPresent(Windows.Foundation.UniversalApiContract, 5)"
+    mc:Ignorable="d">
+
+    <RelativePanel>
+        <ScrollViewer VerticalScrollMode="Enabled" VerticalScrollBarVisibility="Visible">
+            <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}" Margin="{StaticResource PageMargin}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <TextBlock
+                Grid.Row="0"
+                x:Uid="Main_Package_Title"
+                x:Name="TitlePage"
+                FontWeight="Light"
+                Style="{StaticResource PageTitleStyle}" Margin="10,0,12,5" FontSize="30" />
+
+                <TextBlock
+                        Grid.Row="1"
+                        Text="* Required"
+                        FontWeight="Light"
+                        Foreground="Red"
+                        FontSize="14" Padding="1,0,0,0" Margin="12,0,10,20" />
+
+                <StackPanel Grid.Row="2" >
+
+                    <StackPanel Margin="{StaticResource SettingsSubheaderMargin}">
+                        <!--<TextBlock
+                    ToolTipService.ToolTip="e.g. C:\Users\JaneDoe\Desktop\MyApp.msix"
+                    Style="{StaticResource SubtitleTextBlockStyle}" Padding="1,0,0,0" FontSize="15" Margin="0,0,0,6"
+                     >
+                            <Run  Text="File Path"  />
+                            <Run  Text="*" Foreground="Red"/>
+                        </TextBlock>-->
+                        <StackPanel Orientation="Horizontal">
+                            <TextBox 
+                                x:Uid="File_Path_Text_Box"
+                                x:Name="File_Path_Text_Box"
+                                
+                                PlaceholderText="Browse to app package"
+                                ToolTipService.ToolTip="e.g. C:\Users\JaneDoe\Desktop\MyApp.msix"
+                                HorizontalAlignment="Left"
+                                Width="453"
+                                Margin="0,0,15,0"
+                            />
+                            <Button x:Name="PackageInfoButton" Content="Get Package Info">
+
+                            </Button>
+                        </StackPanel>
+
+                    </StackPanel>
+
+                    <StackPanel Margin="{StaticResource SettingsSubheaderMargin}" Orientation="Horizontal">
+                        <TextBlock
+                            ToolTipService.ToolTip="e.g. MyCompany.MySuite.MyApp"
+                            Style="{StaticResource SubtitleTextBlockStyle}" FontSize="15" Margin="5" VerticalAlignment="Center">  
+                            <Run Text="Name" />
+                            <Run Text="*" Foreground="Red" />
+                        </TextBlock>
+                        <TextBox 
+                            x:Uid="Name_Text_Box"
+                            x:Name="Name_Text_Box"
+                            Text="{x:Bind _mainPackage.Name, Mode=TwoWay}"
+                            ToolTipService.ToolTip="e.g. MyCompany.MySuite.MyApp"
+                            PlaceholderText="Package Name"
+                            HorizontalAlignment="Left"
+                            Width="400"
+                            Margin="141,0,0,0"
+                        />
+                    </StackPanel >
+
+                    <StackPanel Margin="{StaticResource SettingsSubheaderMargin}" Orientation="Horizontal">
+                        <TextBlock
+                            ToolTipService.ToolTip="e.g. 1.0.0.0"
+                            Style="{StaticResource SubtitleTextBlockStyle}" Margin="5" FontSize="15" VerticalAlignment="Center" Windows10FallCreatorsUpdate:HorizontalTextAlignment="Right">
+                            <Run Text="Version" />
+                            <Run Text="*" Foreground="Red" />
+                        </TextBlock>
+
+                        <TextBox 
+                            x:Uid="Version_Text_Box"
+                            x:Name="Version_Text_Box"
+                            Text="{x:Bind _mainPackage.Version, Mode=TwoWay}"
+                            PlaceholderText="Version"
+                            ToolTipService.ToolTip="e.g. 1.0.0.0"
+                            HorizontalAlignment="Left"
+                            Width="400"
+                            Margin="132,0,0,0"
+                        />
+                    </StackPanel>
+
+                    <StackPanel Margin="{StaticResource SettingsSubheaderMargin}" Orientation="Horizontal">
+                        <TextBlock
+                            ToolTipService.ToolTip="e.g. CN=janedoe"
+                            Style="{StaticResource SubtitleTextBlockStyle}" FontSize="15" Margin="5" VerticalAlignment="Center"> 
+                            <Run Text="Publisher" />
+                            <Run Text="*" Foreground="Red" />
+                        </TextBlock>
+                        <TextBox 
+                            x:Uid="Publisher_Text_Box"
+                            x:Name="Publisher_Text_Box"
+                            Text="{x:Bind _mainPackage.Publisher, Mode=TwoWay}"
+                            ToolTipService.ToolTip="e.g. CN=janedoe"
+                            PlaceholderText="Publisher"
+                            HorizontalAlignment="Left"
+                            Width="400"
+                            Margin="121,0,0,0"
+                        />
+                    </StackPanel>
+
+                    <StackPanel x:Name="Resource_Id_Stack_Panel" Margin="{StaticResource SettingsSubheaderMargin}" Orientation="Horizontal">
+                        <TextBlock
+                            x:Uid="Resource_Id"                            
+                            ToolTipService.ToolTip="e.g. English"
+                            Style="{StaticResource SubtitleTextBlockStyle}" FontSize="15" Margin="5" VerticalAlignment="Center">
+                            <Run Text="Resource Id"/>
+                        </TextBlock>
+                        <TextBox 
+                            x:Uid="Resource_Id_Text_box"
+                            x:Name="Resource_Id_Text_Box"
+                            Text="{x:Bind _mainPackage.ResourceId, Mode=TwoWay}"
+                            ToolTipService.ToolTip="e.g. English"
+                            PlaceholderText="Resource Id"
+                            HorizontalAlignment="Left"
+                            Width="400"
+                            Margin="116,0,0,0"
+                        />
+                    </StackPanel>
+
+                    <StackPanel Margin="{StaticResource SettingsSubheaderMargin}" x:Name="Processor_Type_Stack_Panel" Orientation="Horizontal">
+                        <TextBlock                            
+                            Style="{StaticResource SubtitleTextBlockStyle}" Margin="5" VerticalAlignment="Center" FontSize="15">
+                            <Run Text="Processor Architecture Type" />
+                        </TextBlock>
+
+                        <TextBox 
+                            x:Uid="Processor_Arch_Text_box"
+                            x:Name="Processor_Arch_Text_Box"
+                            Text="{x:Bind _mainPackage.ProcessorArchitecture, Mode=TwoWay}"
+                            ToolTipService.ToolTip="e.g. ARM, x64, x86"
+                            PlaceholderText="Processor Architecture"
+                            HorizontalAlignment="Left"
+                            Width="400"
+                            Margin="8,0,0,0"
+                        />
+                    </StackPanel>
+
+                    <StackPanel Margin="{StaticResource SettingsSubheaderMargin}" Orientation="Horizontal">
+                        <TextBlock
+                            ToolTipService.ToolTip="e.g. C:\Users\JaneDoe\Desktop\MyApp.msix"
+                            Style="{StaticResource SubtitleTextBlockStyle}" FontSize="15" Margin="5" VerticalAlignment="Center"
+                        >
+                            <Run  Text="File Path"  />
+                            <Run  Text="*" Foreground="Red"/>
+                        </TextBlock>
+                        <StackPanel >
+                            <TextBox 
+                                x:Uid="Uri_Path_Text_Box"
+                                x:Name="Uri_Path_Text_Box"
+                                Text="{x:Bind _mainPackage.FilePath, Mode=TwoWay}"
+                                PlaceholderText="Enter the package URI"
+                                ToolTipService.ToolTip="e.g. C:\Users\JaneDoe\Desktop\MyApp.msix"
+                                HorizontalAlignment="Left"
+                                Width="518"
+                                Margin="8,0,0,0"
+                            />
+                        </StackPanel>
+                    </StackPanel>
+                    
+                    <StackPanel Margin="{StaticResource SettingsSubheaderMargin}" Orientation="Horizontal">
+                        <TextBlock
+                            x:Uid="Check_For_Updates" 
+                            Style="{StaticResource SubtitleTextBlockStyle}" Padding="1,0,0,0"  FontSize="15"
+                            Margin="5" VerticalAlignment="Center"
+                        />
+                        <ToggleSwitch
+                            x:Uid="Check_For_Updates_Switch"
+                            x:Name="Check_For_Updates_Switch"
+                            IsOn="{Binding IsCheckUpdates}"
+                            Toggled="ToggleSwitch_Toggled"
+                        />
+                    </StackPanel>
+
+                    <StackPanel Margin="{StaticResource SettingsSubheaderMargin}" x:Name="Update_Settings_Stack_Panel">
+                        <StackPanel x:Name="Compatibility_Stack_Panel" Orientation="Horizontal">
+                            <TextBlock
+                            x:Uid="compat_text_block"
+                            Text="Min OS Version:"
+                            Style="{StaticResource SubtitleTextBlockStyle}" FontSize="15"
+                            Margin="5" VerticalAlignment="Center"
+                        />
+                            <ComboBox x:Name="CompatComboBox" x:Uid="CompatComboBox" PlaceholderText="Choose the min Win10 OS version" ItemsSource="{x:Bind Schemas}" SelectionChanged="CompatComboBox_SelectionChanged"/>
+                        </StackPanel>
+
+                        <StackPanel Orientation="Horizontal" x:Name="One_Update_Settings_Stack_Panel" x:Uid="One_Update_Settings_Stack_Panel" Visibility="Collapsed">
+                        <TextBlock
+                            x:Uid="Update_Frequency_Text_Block"
+                            Text="Hours between update checks"
+                            Style="{StaticResource SubtitleTextBlockStyle}" FontSize="15"
+                            Margin="5" VerticalAlignment="Center"
+                        />
+                        <TextBox
+                            x:Uid="Hours_Between_Updates_Text_Box"
+                            x:Name="Hours_Between_Updates_Text_Box"
+                            PlaceholderText="12"
+                            Width="20"
+                            HorizontalAlignment="Left"
+                            FontSize="15" Margin="5" VerticalAlignment="Center"
+                        />
+                            
+                        </StackPanel>
+
+                        <StackPanel Orientation="Horizontal" x:Name="Two_Update_Settings_Stack_Panel" x:Uid="Two_Update_Settings_Stack_Panel" Visibility="Collapsed">
+                            <TextBlock Text="Force Update" Style="{StaticResource SubtitleTextBlockStyle}" FontSize="15"
+                            Margin="5" VerticalAlignment="Center" />
+                            <ToggleSwitch
+                                Margin="21,0,0,0"
+                                x:Uid="Force_Update_Switch"
+                                x:Name="Force_Update_Switch"
+                                IsOn="{Binding IsForcedUpdate}"
+                                Toggled="Force_Update_Switch_Toggled"
+                            />
+                            <TextBlock Text="Auto Background Update" Style="{StaticResource SubtitleTextBlockStyle}" FontSize="15"
+                            Margin="5" VerticalAlignment="Center" />
+                            <ToggleSwitch
+                                Margin="21,0,0,0"
+                                x:Uid="Auto_Update_Switch"
+                                x:Name="Auto_Update_Switch"
+                                IsOn="{Binding IsAutoUpdate}"
+                                Toggled="Auto_Update_Switch_Toggled"
+                            />
+                        </StackPanel>
+
+                        <StackPanel Orientation="Horizontal" x:Name="Three_Update_Settings_Stack_Panel" x:Uid="Three_Update_Settings_Stack_Panel" Visibility="Collapsed">
+                            <TextBlock Text="Show Prompt" Style="{StaticResource SubtitleTextBlockStyle}" FontSize="15"
+                            Margin="5" VerticalAlignment="Center"/>
+                            <ToggleSwitch
+                                Margin="21,0,0,0"
+                                x:Uid="Show_Prompt_Switch"
+                                x:Name="Show_Prompt_Switch"
+                                IsOn="{Binding IsShowPrompt}"
+                                Toggled="Show_Prompt_Switch_Toggled"
+                            />
+                            <TextBlock Text="Blocking Update" Style="{StaticResource SubtitleTextBlockStyle}" FontSize="15"
+                            Margin="31,5,5,5" VerticalAlignment="Center"/>
+                            <ToggleSwitch
+                                Margin="2,0,0,0"
+                                x:Uid="Block_Update_Switch"
+                                x:Name="Block_Update_Switch"
+                                IsOn="{Binding IsBlockingUpdate}"
+                                Toggled="Block_Update_Switch_Toggled"
+                            />
+                        </StackPanel>
+
+                    </StackPanel>
+
+
+                </StackPanel>
+            </Grid>
+        </ScrollViewer>
+
+        <RelativePanel
+            Background="#e6e3e3"
+            Height="60" 
+            RelativePanel.AlignBottomWithPanel="True"
+            RelativePanel.AlignRightWithPanel="True"
+            RelativePanel.AlignLeftWithPanel="True"
+            >
+
+            <Button 
+                x:Name="Next_Button"
+                Click="Next_Button_Click"
+                Content="Next" 
+                RelativePanel.AlignVerticalCenterWithPanel="True"
+                RelativePanel.LeftOf="Review_Button"
+                Width="80"
+                Margin="0,0,20,0"
+                IsEnabled="False"
+             />
+
+            <Button 
+                x:Name="Review_Button"
+                Click="Review_Button_Click"
+                Content="Review" 
+                RelativePanel.AlignVerticalCenterWithPanel="True"
+                RelativePanel.AlignRightWithPanel="True"
+                Width="100"
+                Margin="0,0,20,0"
+             />
+        </RelativePanel>
+    </RelativePanel>
+</Page>
