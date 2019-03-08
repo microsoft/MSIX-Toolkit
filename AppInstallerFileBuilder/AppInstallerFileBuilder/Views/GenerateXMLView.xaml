@@ -80,8 +80,6 @@
                 <ScrollViewer Grid.Row="2" Grid.Column="0" ScrollViewer.VerticalScrollBarVisibility="Visible" ScrollViewer.VerticalScrollMode="Enabled">
                     <RelativePanel x:Name="Package_Relative_Panel">
                         <StackPanel>
-
-
                             <!--MainPackage Summary View-->
                             <StackPanel Orientation="Vertical">
                                 <StackPanel Margin="{StaticResource SettingsSubheaderMargin}" Orientation="Horizontal">
