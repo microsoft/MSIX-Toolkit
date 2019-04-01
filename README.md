@@ -2,7 +2,8 @@
 
 ## AppInstaller File Builder 
 
-<div class="nextstepaction"><p><a class="x-hidden-focus" href="ms-appinstaller:?source=http://appservertest.azurewebsites.net/AppInstallerFileBuilder/AppInstallerFileBuilder.appinstaller" data-linktype="external">Get AppInstaller File Builder</a></p></div>
+Paste the following link in your browser:
+`ms-appinstaller:?source=http://appservertest.azurewebsites.net/AppInstallerFileBuilder/AppInstallerFileBuilder.appinstaller`
 
 
 ## Contributing
