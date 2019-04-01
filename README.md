@@ -1,5 +1,11 @@
+# MSIX Toolkit 
 
-# Contributing
+## AppInstaller File Builder 
+
+<div class="nextstepaction"><p><a class="x-hidden-focus" href="ms-appinstaller:?source=http://appservertest.azurewebsites.net/AppInstallerFileBuilder/AppInstallerFileBuilder.appinstaller" data-linktype="external">Get AppInstaller File Builder</a></p></div>
+
+
+## Contributing
 
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a
 Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
