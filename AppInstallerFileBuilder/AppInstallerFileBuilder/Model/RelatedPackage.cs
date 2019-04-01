@@ -6,12 +6,19 @@ using System.Threading.Tasks;
 using System.Collections;
 using System.Runtime.Serialization;
 using System.Xml;
+using System.ComponentModel;
 
 namespace AppInstallerFileBuilder.Model
 {
     [DataContract(Name = "RelatedPackages")]
-    public class RelatedPackage
+    public class RelatedPackage : INotifyPropertyChanged
     {
+        public event PropertyChangedEventHandler PropertyChanged;
+        private void NotifyPropertyChanged(string v)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(v));
+        }
+
         [DataMember(Name = "Uri")]
         private String _filePath;
 
@@ -30,6 +37,9 @@ namespace AppInstallerFileBuilder.Model
         [DataMember(Name = "ProcessorArchitecture")]
         private String _processorArchitecture;
 
+        [DataMember(Name = "FullUriPath")]
+        private String _uriPath;
+
         public RelatedPackage()
         {
             _filePath = "";
@@ -38,9 +48,10 @@ namespace AppInstallerFileBuilder.Model
             _publisher = "";
             _name = "";
             _processorArchitecture = "";
+            _uriPath = "";
         }
 
-        public RelatedPackage(String filePath, String version, String publisher, String name, PackageType packageType, String processorArchitecture)
+        public RelatedPackage(String filePath, String version, String publisher, String name, PackageType packageType, String processorArchitecture, String uriPath)
         {
             _filePath = filePath;
             _version = version;
@@ -48,6 +59,7 @@ namespace AppInstallerFileBuilder.Model
             _packageType = packageType;
             _name = name;
             _processorArchitecture = processorArchitecture;
+            _uriPath = uriPath;
         }
 
         public String FilePath
@@ -55,7 +67,11 @@ namespace AppInstallerFileBuilder.Model
             get { return _filePath; }
             set
             {
-                _filePath = value;
+                if (value != _filePath)
+                {
+                    _filePath = value;
+                    NotifyPropertyChanged("FilePath");
+                }
             }
         }
 
@@ -64,7 +80,11 @@ namespace AppInstallerFileBuilder.Model
             get { return _version; }
             set
             {
-                _version = value;
+                if (value != _version)
+                {
+                    _version = value;
+                    NotifyPropertyChanged("Version");
+                }
             }
         }
 
@@ -73,7 +93,11 @@ namespace AppInstallerFileBuilder.Model
             get { return _publisher; }
             set
             {
-                _publisher = value;
+                if (value != _publisher)
+                {
+                    _publisher = value;
+                    NotifyPropertyChanged("Publisher");
+                }
             }
         }
 
@@ -82,7 +106,11 @@ namespace AppInstallerFileBuilder.Model
             get { return _name; }
             set
             {
-                _name = value;
+                if (value != _name)
+                {
+                    _name = value;
+                    NotifyPropertyChanged("Name");
+                }
             }
         }
 
@@ -108,7 +136,24 @@ namespace AppInstallerFileBuilder.Model
             get { return _processorArchitecture; }
             set
             {
-                _processorArchitecture = value;
+                if (value != _processorArchitecture)
+                {
+                    _processorArchitecture = value;
+                    NotifyPropertyChanged("ProcessorArchitecture");
+                }
+            }
+        }
+
+        public String FullUriPath
+        {
+            get { return _uriPath; }
+            set
+            {
+                if (value != _uriPath)
+                {
+                    _uriPath = value;
+                    NotifyPropertyChanged("FullUriPath");
+                }
             }
         }
 
@@ -116,7 +161,7 @@ namespace AppInstallerFileBuilder.Model
         {
             get
             {
-                // Will result in a list like {"Appx", "AppxBundle"}
+                // Will result in a list like {"Appx", "AppxBundle", "msix" or "msixbundle"}
                 return Enum.GetValues(typeof(PackageType)).Cast<PackageType>().ToList<PackageType>();
             }
         }

@@ -137,21 +137,12 @@ namespace AppInstallerFileBuilder.Views
                 IRandomAccessStream randomAccessStream = await file.OpenReadAsync();
                 AppxBundleMetadata appBundle = new AppxBundleMetadata(randomAccessStream);
 
-                //_filePathTextBox.Text = file.Path;
+                
                 _optionalPackage.FilePath = file.Path;
-
-                //_nameTextBox.Text = appBundle.PackageName;
                 _optionalPackage.Name = appBundle.PackageName;
-
-                //_publisherTextBox.Text = appBundle.Publisher;
                 _optionalPackage.Publisher = appBundle.Publisher;
-
-                //_versionTextBox.Text = appBundle.Version.ToString();
                 _optionalPackage.Version = appBundle.Version.ToString();
-
-                //_uriPathTextBox.Text = file.Path;
                 _optionalPackage.FullUriPath = file.Path;
-
                 _optionalPackage.PackageType = PackageType.MSIXBUNDLE;
             }
 

@@ -58,21 +58,21 @@ namespace AppInstallerFileBuilder
                     Label = "Optional Packages",
                     DestPage = typeof(OptionalPackagesView)
                 },
-                //new NavMenuItem()
-                //{
-                //    Label = "Related Packages",
-                //    DestPage = typeof(RelatedPackagesView)
-                //},
-                // new NavMenuItem()
-                //{
-                //    Label = "Modification Packages",
-                //    DestPage = typeof(ModificationPackagesView)
-                //},
-                //new NavMenuItem()
-                //{
-                //    Label = "Dependencies",
-                //    DestPage = typeof(DependenciesView)
-                //},
+                 new NavMenuItem()
+                {
+                    Label = "Modification Packages",
+                    DestPage = typeof(ModificationPackagesView)
+                },
+                 new NavMenuItem()
+                {
+                    Label = "Related Packages",
+                    DestPage = typeof(RelatedPackagesView)
+                },
+                new NavMenuItem()
+                {
+                    Label = "Dependencies",
+                    DestPage = typeof(DependenciesView)
+                },
             });
 
         public List<NavMenuItem> navlist3 = new List<NavMenuItem>(

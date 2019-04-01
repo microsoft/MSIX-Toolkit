@@ -45,7 +45,7 @@
                         FontSize="14" Padding="1,0,0,0" Margin="0,0,10,20" />
 
                 </StackPanel>
-                <ScrollViewer  Grid.Row="1" Grid.Column="0" ScrollViewer.VerticalScrollBarVisibility="Hidden" ScrollViewer.VerticalScrollMode="Enabled">
+                <ScrollViewer  Grid.Row="1" Grid.Column="0" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollMode="Enabled">
                     <RelativePanel x:Name="Package_Relative_Panel">
                         <ListView  x:Name="List_View" Margin="-12,0,0,0"  ItemContainerStyle="{StaticResource ListViewContainerStyle}" ItemsSource="{x:Bind OptionalPackages}" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollMode="Auto"  SelectionMode="None">
                             <ListView.ItemTemplate>
@@ -57,7 +57,7 @@
                                 <TextBox 
                                     x:Uid="File_Path_Text_Box"
                                     x:Name="File_Path_Text_Box"
-                                
+                                    Text="{x:Bind FilePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                     PlaceholderText="Browse to app package"
                                     ToolTipService.ToolTip="e.g. C:\Users\JaneDoe\Desktop\MyApp.msix"
                                     HorizontalAlignment="Left"
@@ -212,7 +212,6 @@
                 RelativePanel.LeftOf="Review_Button"
                 Width="80"
                 Margin="0,0,20,0"
-                IsEnabled="False"
              />
 
                 <Button 

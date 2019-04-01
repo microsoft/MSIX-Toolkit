@@ -45,143 +45,132 @@
                         Foreground="Red"
                         FontSize="14" Padding="1,0,0,0" Margin="0,0,10,20" />
 
-                    <TextBlock
-                        x:Uid="Use_Related_Packages"
-                        Style="{StaticResource SubtitleTextBlockStyle}" Padding="1,0,0,0" Margin="0,0,0,0" FontSize="15"
-                        />
-                    <ToggleSwitch
-                            x:Uid="Related_Packages_Switch"
-                            x:Name="Related_Packages_Switch"
-                            IsOn="{Binding IsRelatedPackages, Mode=TwoWay}"
-                            Toggled="ToggleSwitch_Toggled"
-                            >
-                    </ToggleSwitch>
-                   <!-- <Button
-                        Click="Button_Click"
-                        Content="Remove Packages"
-                    /> -->
                 </StackPanel>
                 <ScrollViewer  Grid.Row="1" Grid.Column="0" ScrollViewer.VerticalScrollBarVisibility="Hidden" ScrollViewer.VerticalScrollMode="Enabled">
                     <RelativePanel x:Name="Package_Relative_Panel">
-                        <ListView  x:Name="List_View" Margin="-12,0,0,0" ItemsSource="{x:Bind RelatedPackages}" ScrollViewer.VerticalScrollBarVisibility="Hidden" ScrollViewer.VerticalScrollMode="Disabled"  SelectionMode="None">
+                        <ListView  x:Name="List_View" Margin="-12,0,0,0"  ItemContainerStyle="{StaticResource ListViewContainerStyle}" ItemsSource="{x:Bind RelatedPackages}" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollMode="Auto"  SelectionMode="None">
                             <ListView.ItemTemplate>
                                 <DataTemplate x:DataType="Model:RelatedPackage">
                                     <StackPanel>
                                         <StackPanel Margin="{StaticResource SettingsSubheaderMargin}">
-                                            <TextBlock
-                                            x:Name="Package_Type"
-                                            Style="{StaticResource SubtitleTextBlockStyle}" FontFamily="Segoe UI" FontSize="15" Margin="0,0,-1,6" Padding="1,0,0,0">
-                                                <Run Text="Package Type" />
-                                                <Run Text="*" Foreground="Red" />
-                                            </TextBlock>
-                                            <ComboBox
-                                        SelectedValue="{x:Bind PackageType, Mode=TwoWay}" ItemsSource="{x:Bind PackageTypes}"
-                                            x:Uid="Package_Type_Combo_Box" Width="200"
-                                            x:Name="Package_Type_Combo_Box"
-                                            >
-                                            </ComboBox>
+
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBox 
+                                    x:Uid="File_Path_Text_Box"
+                                    x:Name="File_Path_Text_Box"
+                                    Text="{x:Bind FilePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                    PlaceholderText="Browse to app package"
+                                    ToolTipService.ToolTip="e.g. C:\Users\JaneDoe\Desktop\MyApp.msix"
+                                    HorizontalAlignment="Left"
+                                    Width="453"
+                                    Margin="0,0,15,0"
+                                />
+                                                <Button x:Name="PackageInfoButton" Content="Get Package Info" Click="PackageInfoButton_Click">
+
+                                                </Button>
+                                            </StackPanel>
+
                                         </StackPanel>
 
-                                        <StackPanel Margin="{StaticResource SettingsSubheaderMargin}">
+                                        <StackPanel Margin="{StaticResource SettingsSubheaderMargin}" Orientation="Horizontal">
                                             <TextBlock
-                                            x:Name="File_Path"
-                                            ToolTipService.ToolTip="e.g. C:\Users\JaneDoe\Desktop\MyRelatedPackage.msix"
-                                            Style="{StaticResource SubtitleTextBlockStyle}" FontSize="15" Margin="0,0,0,6" Padding="1,0,0,0">
-                                                <Run Text="File Path" />
-                                                <Run Text="*" Foreground="Red" />
-                                            </TextBlock>
-                                            <TextBox 
-                                            x:Uid="File_Path_Text_Box"
-                                            ToolTipService.ToolTip="e.g. C:\Users\JaneDoe\Desktop\MyRelatedPackage.msix"
-                                            x:Name="File_Path_Text_Box"
-                                            PlaceholderText="Enter the package location"
-                                            Text="{x:Bind FilePath, Mode=TwoWay}"
-                                            HorizontalAlignment="Left"
-                                            Width="400"
-                                        />
-                                        </StackPanel>
-
-                                        <StackPanel Margin="{StaticResource SettingsSubheaderMargin}">
-                                            <TextBlock
-                                            ToolTipService.ToolTip="e.g. 1.0.0.0"
-                                            x:Name="Version"
-                                            Style="{StaticResource SubtitleTextBlockStyle}" FontSize="15" Margin="0,0,0,6" Padding="1,0,0,0">
-                                                <Run Text="Version" />
-                                                <Run Text="*" Foreground="Red" />
+                                ToolTipService.ToolTip="e.g. MyCompany.MySuite.MyApp"
+                                Style="{StaticResource SubtitleTextBlockStyle}" FontSize="15" Margin="5" VerticalAlignment="Center">  
+                                <Run Text="Name" />
+                                <Run Text="*" Foreground="Red" />
                                             </TextBlock>
                                             <TextBox 
-                                                x:Uid="Version_Text_Box"
-                                                ToolTipService.ToolTip="e.g. 1.0.0.0"
-                                                PlaceholderText="Enter the package version"
-                                                x:Name="Version_Text_Box"
-                                                Text="{x:Bind Version, Mode=TwoWay}"
-                                                HorizontalAlignment="Left"
-                                             Width="400"
-                                        />
+                                x:Uid="Name_Text_Box"
+                                x:Name="Name_Text_Box"
+                                Text="{x:Bind Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                ToolTipService.ToolTip="e.g. MyCompany.MySuite.MyApp"
+                                PlaceholderText="Package Name"
+                                HorizontalAlignment="Left"
+                                Width="400"
+                                Margin="141,0,0,0"
+                            />
+                                        </StackPanel >
+
+                                        <StackPanel Margin="{StaticResource SettingsSubheaderMargin}" Orientation="Horizontal">
+                                            <TextBlock
+                                ToolTipService.ToolTip="e.g. 1.0.0.0"
+                                Style="{StaticResource SubtitleTextBlockStyle}" Margin="5" FontSize="15" VerticalAlignment="Center" >
+                                <Run Text="Version" />
+                                <Run Text="*" Foreground="Red" />
+                                            </TextBlock>
+
+                                            <TextBox 
+                            x:Uid="Version_Text_Box"
+                            x:Name="Version_Text_Box"
+                            Text="{x:Bind Version, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                            PlaceholderText="Version"
+                            ToolTipService.ToolTip="e.g. 1.0.0.0"
+                            HorizontalAlignment="Left"
+                            Width="400"
+                            Margin="132,0,0,0"
+                        />
                                         </StackPanel>
 
-                                        <StackPanel Margin="{StaticResource SettingsSubheaderMargin}">
+                                        <StackPanel Margin="{StaticResource SettingsSubheaderMargin}" Orientation="Horizontal">
                                             <TextBlock
-                                            ToolTipService.ToolTip="e.g. CN=janedoe"
-                                            x:Name="Publisher"
-                                            Style="{StaticResource SubtitleTextBlockStyle}" FontSize="15" Margin="0,0,0,6" Padding="1,0,0,0">
-                                            <Run Text="Publisher" />
-                                            <Run Text="*" Foreground="Red" />
+                                ToolTipService.ToolTip="e.g. CN=janedoe"
+                                Style="{StaticResource SubtitleTextBlockStyle}" FontSize="15" Margin="5" VerticalAlignment="Center"> 
+                                <Run Text="Publisher" />
+                                <Run Text="*" Foreground="Red" />
                                             </TextBlock>
                                             <TextBox 
-                                            x:Uid="Publisher_Text_Box"
-                                            x:Name="Publisher_Text_Box"
-                                            ToolTipService.ToolTip="e.g. CN=janedoe"
-                                            PlaceholderText="Enter the package publisher"
-                                            Text="{x:Bind Publisher, Mode=TwoWay}"
-                                            HorizontalAlignment="Left"
-                                            Width="400"
-                                        />
+                                x:Uid="Publisher_Text_Box"
+                                x:Name="Publisher_Text_Box"
+                                Text="{x:Bind Publisher, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                ToolTipService.ToolTip="e.g. CN=janedoe"
+                                PlaceholderText="Publisher"
+                                HorizontalAlignment="Left"
+                                Width="400"
+                                Margin="121,0,0,0"
+                            />
                                         </StackPanel>
 
-                                        <StackPanel Margin="{StaticResource SettingsSubheaderMargin}">
+                                        <StackPanel Margin="{StaticResource SettingsSubheaderMargin}" x:Name="Processor_Type_Stack_Panel" Orientation="Horizontal">
+                                            <TextBlock                            
+                            Style="{StaticResource SubtitleTextBlockStyle}" Margin="5" VerticalAlignment="Center" FontSize="15">
+                            <Run Text="Processor Architecture Type" />
+                                            </TextBlock>
+
+                                            <TextBox 
+                                x:Uid="Processor_Arch_Text_box"
+                                x:Name="Processor_Arch_Text_Box"
+                                Text="{x:Bind ProcessorArchitecture, Mode=TwoWay}"
+                                ToolTipService.ToolTip="e.g. ARM, x64, x86"
+                                PlaceholderText="Processor Architecture"
+                                HorizontalAlignment="Left"
+                                Width="400"
+                                Margin="8,0,0,0"
+                            />
+                                        </StackPanel>
+
+                                        <StackPanel Margin="{StaticResource SettingsSubheaderMargin}" Orientation="Horizontal">
                                             <TextBlock
-                                          x:Name="Name"
-                                          ToolTipService.ToolTip="e.g. MyCompany.MySuite.MyApp"
-                                          Style="{StaticResource SubtitleTextBlockStyle}" FontSize="15" Margin="0,0,0,6" Padding="1,0,0,0">
-                                            <Run Text="Name" />
-                                            <Run Text="*" Foreground="Red" />
+                                ToolTipService.ToolTip="e.g. C:\Users\JaneDoe\Desktop\MyApp.msix"
+                                Style="{StaticResource SubtitleTextBlockStyle}" FontSize="15" Margin="5" VerticalAlignment="Center"
+                            >
+                                <Run  Text="File Path"  />
+                                <Run  Text="*" Foreground="Red"/>
                                             </TextBlock>
                                             <TextBox 
-                                            x:Uid="Name_Text_Box"
-                                            x:Name="Name_Text_Box"
-                                            ToolTipService.ToolTip="e.g. MyCompany.MySuite.MyApp"
-                                            PlaceholderText="Enter the package name"
-                                            Text="{x:Bind Name, Mode=TwoWay}"
-                                            HorizontalAlignment="Left"
-                                            Width="400"
-                                        />
+                                x:Uid="Uri_Path_Text_Box"
+                                x:Name="Uri_Path_Text_Box"
+                                Text="{x:Bind FilePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                PlaceholderText="Enter the package URI"
+                                ToolTipService.ToolTip="e.g. C:\Users\JaneDoe\Desktop\MyApp.msix"
+                                HorizontalAlignment="Left"
+                                Width="518"
+                                Margin="8,0,0,0"
+                                                    
+                            />
                                         </StackPanel>
 
-                                        <StackPanel
-                                    Visibility="{x:Bind Path=PackageTypeAsString, Converter={StaticResource PackageTypeVisibilityConverter}}"
-                                    Margin="{StaticResource SettingsSubheaderMargin}" x:Name="Processor_Type_Stack_Panel">
-                                            <TextBlock
-                                            x:Uid="Processor_Type"
-                                            Style="{StaticResource SubtitleTextBlockStyle}" Padding="1,0,0,0" Margin="0,0,0,6" FontSize="15"
-                                        />
-                                            <ComboBox
-                                            x:Uid="Processor_Type_Combo_Box" Width="200"
-                                            x:Name="Processor_Type_Combo_Box"
-                                            Margin="0,0,0,5"
-                                            SelectedValue="{x:Bind ProcessorArchitecture, Mode=TwoWay}" ItemsSource="{x:Bind ProcessorTypes}"
-                                        >
-                                            </ComboBox>
-                                        </StackPanel>
 
-                                        <!--<CheckBox Name="Chck" Checked="Chck_Checked" Width="50" Tag="{Binding}"></CheckBox>-->
-                                        <Rectangle
-                                            Width="800"
-                                            Margin="12,0,0,20"
-                                            HorizontalAlignment="Right"
-                                            Height="1"
-                                            Fill="Gray"
-                                        />
+                                        <Rectangle Width="800" Margin="12,0,0,20" HorizontalAlignment="Right" Height="1" Fill="Gray" />
                                     </StackPanel>
                                 </DataTemplate>
                             </ListView.ItemTemplate>
@@ -190,8 +179,13 @@
                         <TextBlock 
                             RelativePanel.Below="List_View" Margin="12,0,0,80" Text="Add Related Package" Foreground="{ThemeResource SystemControlForegroundAccentBrush}" x:Name="Add_New_Package_Text_Block" Tapped="Add_New_Package_Tapped" 
                         />
+
+                        <TextBlock 
+                           RelativePanel.Below="List_View" RelativePanel.RightOf="Add_New_Package_Text_Block" Margin="12,0,0,80" Text="Remove Package" Foreground="Red" x:Name="Remove_Package_Text_Block" Tapped="Remove_Package_Text_Block_Tapped" 
+                        />
                     </RelativePanel>
                 </ScrollViewer>
+
             </Grid>
             <RelativePanel
                 Background="#e6e3e3"
@@ -219,7 +213,6 @@
                 RelativePanel.LeftOf="Review_Button"
                 Width="80"
                 Margin="0,0,20,0"
-                IsEnabled="False"
              />
 
                 <Button 

@@ -162,7 +162,7 @@ namespace AppInstallerFileBuilder.Model
         {
             get
             {
-                // Will result in a list like {"Appx", "AppxBundle"}
+                // Will result in a list like {"Appx", "AppxBundle", "msix" or "msixbundle"}
                 return Enum.GetValues(typeof(PackageType)).Cast<PackageType>().ToList<PackageType>();
             }
         }

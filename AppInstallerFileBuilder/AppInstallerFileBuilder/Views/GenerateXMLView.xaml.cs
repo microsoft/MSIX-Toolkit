@@ -33,6 +33,9 @@ namespace AppInstallerFileBuilder.Views
         private TextBox _mainPackagePublisherTextBox;
 
         public ObservableCollection<OptionalPackage> OptionalPackages { get; private set; } = new ObservableCollection<OptionalPackage>();
+        public ObservableCollection<ModificationPackage> ModificationPackages { get; private set; } = new ObservableCollection<ModificationPackage>();
+        public ObservableCollection<RelatedPackage> RelatedPackages { get; private set; } = new ObservableCollection<RelatedPackage>();
+        public ObservableCollection<Dependency> Dependencies { get; private set; } = new ObservableCollection<Dependency>();
 
         /***************************************************************************
          * 
@@ -53,6 +56,9 @@ namespace AppInstallerFileBuilder.Views
             _mainPackagePublisherTextBox = (TextBox)this.FindName("Main_Publisher_Box");
 
             this.OptionalPackages = App.OptionalPackages;
+            this.ModificationPackages = App.ModificationPackages;
+            this.RelatedPackages = App.RelatedPackages;
+            this.Dependencies = App.Dependencies;
 
         }
 
@@ -236,10 +242,11 @@ namespace AppInstallerFileBuilder.Views
 
                     //Modification Packages Content
                     ObservableCollection<ModificationPackage> modificationPackages = App.ModificationPackages;
-                    DataContractSerializer modificationPackageDCS = new DataContractSerializer(typeof(ModificationPackage));
+                    //DataContractSerializer modificationPackageDCS = new DataContractSerializer(typeof(ModificationPackage));
                     if (modificationPackages.Count > 0 && App.IsModificationPackages)
                     {
-                        modificationPackageDCS.WriteStartObject(xdw, modificationPackages[0]);
+                        xdw.WriteStartElement("ModificationPackages");
+                        //modificationPackageDCS.WriteStartObject(xdw, modificationPackages[0]);
                         for (int i = 0; i < modificationPackages.Count; i++)
                         {
                             //Write package or bundle element
@@ -254,8 +261,9 @@ namespace AppInstallerFileBuilder.Views
                                     modificationPackages[i].ProcessorArchitecture
                                 );
 
-                                DataContractSerializer packageDCS = new DataContractSerializer(typeof(Package));
-                                packageDCS.WriteStartObject(xdw, package);
+                                //DataContractSerializer packageDCS = new DataContractSerializer(typeof(Package));
+                                //packageDCS.WriteStartObject(xdw, package);
+                                xdw.WriteStartElement("Package");
                                 xdw.WriteAttributeString("Version", package.Version);
                                 xdw.WriteAttributeString("Uri", package.FilePath);
                                 xdw.WriteAttributeString("Publisher", package.Publisher);
@@ -264,7 +272,8 @@ namespace AppInstallerFileBuilder.Views
                                     xdw.WriteAttributeString("ProcessorArchitecture", package.ProcessorArchitecture.ToString());
                                 }
                                 xdw.WriteAttributeString("Name", package.Name);
-                                packageDCS.WriteEndObject(xdw);
+                                //packageDCS.WriteEndObject(xdw);
+                                xdw.WriteEndElement();
                             }
                             else if (modificationPackages[i].PackageType == PackageType.MSIXBUNDLE)
                             {
@@ -276,24 +285,28 @@ namespace AppInstallerFileBuilder.Views
                                     modificationPackages[i].PackageType
                                 );
 
-                                DataContractSerializer bundleDCS = new DataContractSerializer(typeof(Bundle));
-                                bundleDCS.WriteStartObject(xdw, bundle);
+                                //DataContractSerializer bundleDCS = new DataContractSerializer(typeof(Bundle));
+                                //bundleDCS.WriteStartObject(xdw, bundle);
+                                xdw.WriteStartElement("Bundle");
                                 xdw.WriteAttributeString("Version", bundle.Version);
                                 xdw.WriteAttributeString("Uri", bundle.FilePath);
                                 xdw.WriteAttributeString("Publisher", bundle.Publisher);
                                 xdw.WriteAttributeString("Name", bundle.Name);
-                                bundleDCS.WriteEndObject(xdw);
+                                //bundleDCS.WriteEndObject(xdw);
+                                xdw.WriteEndElement();
                             }
                         }
-                        modificationPackageDCS.WriteEndObject(xdw);
+                        //modificationPackageDCS.WriteEndObject(xdw);
+                        xdw.WriteEndElement();
                     }
 
                     //Related Packages Content
                     ObservableCollection<RelatedPackage> relatedPackages = App.RelatedPackages;
-                    DataContractSerializer relatedPackageDCS = new DataContractSerializer(typeof(RelatedPackage));
+                    //DataContractSerializer relatedPackageDCS = new DataContractSerializer(typeof(RelatedPackage));
                     if (relatedPackages.Count > 0 && App.IsRelatedPackages)
                     {
-                        relatedPackageDCS.WriteStartObject(xdw, relatedPackages[0]);
+                        //relatedPackageDCS.WriteStartObject(xdw, relatedPackages[0]);
+                        xdw.WriteStartElement("RelatedPackages");
                         for (int i = 0; i < relatedPackages.Count; i++)
                         {
                             //Write package or bundle element
@@ -308,8 +321,9 @@ namespace AppInstallerFileBuilder.Views
                                     relatedPackages[i].ProcessorArchitecture
                                 );
 
-                                DataContractSerializer packageDCS = new DataContractSerializer(typeof(Package));
-                                packageDCS.WriteStartObject(xdw, package);
+                                //DataContractSerializer packageDCS = new DataContractSerializer(typeof(Package));
+                                xdw.WriteStartElement("Package");
+                                //packageDCS.WriteStartObject(xdw, package);
                                 xdw.WriteAttributeString("Version", package.Version);
                                 xdw.WriteAttributeString("Uri", package.FilePath);
                                 xdw.WriteAttributeString("Publisher", package.Publisher);
@@ -318,7 +332,8 @@ namespace AppInstallerFileBuilder.Views
                                     xdw.WriteAttributeString("ProcessorArchitecture", package.ProcessorArchitecture.ToString());
                                 }
                                 xdw.WriteAttributeString("Name", package.Name);
-                                packageDCS.WriteEndObject(xdw);
+                                //packageDCS.WriteEndObject(xdw);
+                                xdw.WriteEndElement();
                             }
                             else if (relatedPackages[i].PackageType == PackageType.MSIXBUNDLE)
                             {
@@ -330,26 +345,30 @@ namespace AppInstallerFileBuilder.Views
                                     relatedPackages[i].PackageType
                                 );
 
-                                DataContractSerializer bundleDCS = new DataContractSerializer(typeof(Bundle));
-                                bundleDCS.WriteStartObject(xdw, bundle);
+                                //DataContractSerializer bundleDCS = new DataContractSerializer(typeof(Bundle));
+                                //bundleDCS.WriteStartObject(xdw, bundle);
+                                xdw.WriteStartElement("Bundle");
                                 xdw.WriteAttributeString("Version", bundle.Version);
                                 xdw.WriteAttributeString("Uri", bundle.FilePath);
                                 xdw.WriteAttributeString("Publisher", bundle.Publisher);
                                 xdw.WriteAttributeString("Name", bundle.Name);
-                                bundleDCS.WriteEndObject(xdw);
+                                //bundleDCS.WriteEndObject(xdw);
+                                xdw.WriteEndElement();
                             }
                         }
-                        relatedPackageDCS.WriteEndObject(xdw);
+                        //relatedPackageDCS.WriteEndObject(xdw);
+                        xdw.WriteEndElement();
                     }
 
 
                     //Dependency Content
 
                     ObservableCollection<Dependency> dependencies = App.Dependencies;
-                    DataContractSerializer dependencyDCS = new DataContractSerializer(typeof(Dependency));
+                    //DataContractSerializer dependencyDCS = new DataContractSerializer(typeof(Dependency));
                     if (dependencies.Count > 0 && App.IsDependencies)
                     {
-                        dependencyDCS.WriteStartObject(xdw, dependencies[0]);
+                        //dependencyDCS.WriteStartObject(xdw, dependencies[0]);
+                        xdw.WriteStartElement("Dependencies");
                         for (int i = 0; i < dependencies.Count; i++)
                         {
                             //Write package or bundle element
@@ -364,8 +383,9 @@ namespace AppInstallerFileBuilder.Views
                                     dependencies[i].ProcessorArchitecture
                                 );
 
-                                DataContractSerializer packageDCS = new DataContractSerializer(typeof(Package));
-                                packageDCS.WriteStartObject(xdw, package);
+                                //DataContractSerializer packageDCS = new DataContractSerializer(typeof(Package));
+                                //packageDCS.WriteStartObject(xdw, package);
+                                xdw.WriteStartElement("Package");
                                 xdw.WriteAttributeString("Version", package.Version);
                                 xdw.WriteAttributeString("Uri", package.FilePath);
                                 xdw.WriteAttributeString("Publisher", package.Publisher);
@@ -374,7 +394,8 @@ namespace AppInstallerFileBuilder.Views
                                     xdw.WriteAttributeString("ProcessorArchitecture", package.ProcessorArchitecture.ToString());
                                 }
                                 xdw.WriteAttributeString("Name", package.Name);
-                                packageDCS.WriteEndObject(xdw);
+                                //packageDCS.WriteEndObject(xdw);
+                                xdw.WriteEndElement();
                             }
                             else if (dependencies[i].PackageType == PackageType.MSIXBUNDLE)
                             {
@@ -386,16 +407,19 @@ namespace AppInstallerFileBuilder.Views
                                     dependencies[i].PackageType
                                 );
 
-                                DataContractSerializer bundleDCS = new DataContractSerializer(typeof(Bundle));
-                                bundleDCS.WriteStartObject(xdw, bundle);
+                                //DataContractSerializer bundleDCS = new DataContractSerializer(typeof(Bundle));
+                                //bundleDCS.WriteStartObject(xdw, bundle);
+                                xdw.WriteStartElement("Bundle");
                                 xdw.WriteAttributeString("Version", bundle.Version);
                                 xdw.WriteAttributeString("Uri", bundle.FilePath);
                                 xdw.WriteAttributeString("Publisher", bundle.Publisher);
                                 xdw.WriteAttributeString("Name", bundle.Name);
-                                bundleDCS.WriteEndObject(xdw);
+                                //bundleDCS.WriteEndObject(xdw);
+                                xdw.WriteEndElement();
                             }
                         }
-                        dependencyDCS.WriteEndObject(xdw);
+                        //dependencyDCS.WriteEndObject(xdw);
+                        xdw.WriteEndElement();
                     }
                     
 

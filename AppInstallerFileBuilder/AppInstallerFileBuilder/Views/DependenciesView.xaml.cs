@@ -1,10 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices.WindowsRuntime;
-using Windows.Foundation;
-using Windows.Foundation.Collections;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Controls.Primitives;
@@ -16,6 +10,10 @@ using System.Diagnostics;
 using System.ComponentModel;
 using System.Collections.ObjectModel;
 using AppInstallerFileBuilder.Model;
+using Microsoft.Packaging.SDKUtils.AppxPackaging;
+using Windows.Storage;
+using Windows.Storage.Pickers;
+using Windows.Storage.Streams;
 
 // The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=234238
 
@@ -24,41 +22,20 @@ namespace AppInstallerFileBuilder.Views
 	/// <summary>
 	/// An empty page that can be used on its own or navigated to within a Frame.
 	/// </summary>
-	public sealed partial class DependenciesView : Page , INotifyPropertyChanged
+	public sealed partial class DependenciesView : Page
     {
 
-        private ToggleSwitch _dependenciesSwitch;
         private RelativePanel _packageListView;
         private ListView _listView;
         private TextBlock _addNewPackageTextBlock;
+        private TextBlock _removePackageTextBlock;
+
+        private Dependency _dependencyPackage;
 
         public ObservableCollection<Dependency> Dependencies { get; private set; } = new ObservableCollection<Dependency>();
 
         private bool _isDependencies;
-        public bool IsDependencies
-        {
-            get
-            {
-                return this._isDependencies;
-            }
 
-            set
-            {
-                if (value != this._isDependencies)
-                {
-                    this._isDependencies = value;
-                    NotifyPropertyChanged("IsDependencies");
-
-                }
-            }
-
-        }
-
-        public event PropertyChangedEventHandler PropertyChanged;
-        private void NotifyPropertyChanged(string v)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(v));
-        }
 
         /***************************************************************************
         * 
@@ -68,12 +45,14 @@ namespace AppInstallerFileBuilder.Views
         public DependenciesView()
         {
             this.InitializeComponent();
+            this._isDependencies = true;
             this.DataContext = this;
             this.NavigationCacheMode = NavigationCacheMode.Required;
-            _dependenciesSwitch = (ToggleSwitch)this.FindName("Dependencies_Switch");
+            
             _packageListView = (RelativePanel)this.FindName("Package_Relative_Panel");
             _listView = (ListView)this.FindName("List_View");
             _addNewPackageTextBlock = (TextBlock)this.FindName("Add_New_Package_Text_Block");
+            _removePackageTextBlock = (TextBlock)this.FindName("Remove_Package_Text_Block");
         }
 
         /***************************************************************************
@@ -103,6 +82,54 @@ namespace AppInstallerFileBuilder.Views
         *
         ***************************************************************************/
 
+        private async void PackageInfoButton_Click(object sender, RoutedEventArgs e)
+        {
+            FileOpenPicker openPicker = new FileOpenPicker
+            {
+                ViewMode = PickerViewMode.Thumbnail,
+                SuggestedStartLocation = PickerLocationId.Desktop
+            };
+            openPicker.FileTypeFilter.Add(".msix");
+            openPicker.FileTypeFilter.Add(".msixbundle");
+            openPicker.FileTypeFilter.Add(".appx");
+            openPicker.FileTypeFilter.Add(".appxbundle");
+            StorageFile file = await openPicker.PickSingleFileAsync();
+            if (file != null && (file.FileType.Equals(".msix", StringComparison.OrdinalIgnoreCase) || file.FileType.Equals(".appx", StringComparison.OrdinalIgnoreCase)))
+            {
+                // Application now has read/write access to the picked file
+
+                IRandomAccessStream randomAccessStream = await file.OpenReadAsync();
+                AppxMetadata appPackage = new AppxMetadata(randomAccessStream);
+
+                _dependencyPackage.FilePath = file.Path;
+                _dependencyPackage.Name = appPackage.PackageName;
+                _dependencyPackage.Publisher = appPackage.Publisher;
+                _dependencyPackage.Version = appPackage.Version.ToString();
+                _dependencyPackage.ProcessorArchitecture = appPackage.Architecture;
+                _dependencyPackage.FullUriPath = file.Path;
+
+                _dependencyPackage.PackageType = PackageType.MSIX;
+
+            }
+            else if (file != null && (file.FileType.Equals(".msixbundle", StringComparison.OrdinalIgnoreCase) || file.FileType.Equals(".appxbundle", StringComparison.OrdinalIgnoreCase)))
+            {
+                IRandomAccessStream randomAccessStream = await file.OpenReadAsync();
+                AppxBundleMetadata appBundle = new AppxBundleMetadata(randomAccessStream);
+
+
+                _dependencyPackage.FilePath = file.Path;
+                _dependencyPackage.Name = appBundle.PackageName;
+                _dependencyPackage.Publisher = appBundle.Publisher;
+                _dependencyPackage.Version = appBundle.Version.ToString();
+                _dependencyPackage.FullUriPath = file.Path;
+
+                _dependencyPackage.PackageType = PackageType.MSIXBUNDLE;
+            }
+
+            _reloadViews();
+            _save();
+        }
+
         private void _reloadViews()
         {
             if (!_isDependencies)
@@ -112,6 +139,15 @@ namespace AppInstallerFileBuilder.Views
             else
             {
                 _packageListView.Visibility = Visibility.Visible;
+            }
+
+            if (Dependencies.Count > 0)
+            {
+                _removePackageTextBlock.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                _removePackageTextBlock.Visibility = Visibility.Collapsed;
             }
         }
 
@@ -136,18 +172,22 @@ namespace AppInstallerFileBuilder.Views
             AppShell.Current.AppFrame.Navigate(AppShell.Current.navlist3[0].DestPage);
         }
 
-        private void ToggleSwitch_Toggled(object sender, RoutedEventArgs e)
+        private void Add_New_Package_Tapped(object sender, TappedRoutedEventArgs e)
         {
+            _dependencyPackage = new Dependency();
+            Dependencies.Add(_dependencyPackage);
+
+            _save();
+            _reloadViews();
+
+        }
+        private void Remove_Package_Text_Block_Tapped(object sender, TappedRoutedEventArgs e)
+        {
+            Dependencies.RemoveAt(Dependencies.Count - 1);
             _reloadViews();
             _save();
         }
 
-        private void Add_New_Package_Tapped(object sender, TappedRoutedEventArgs e)
-        {
-            Dependencies.Add(new Dependency());
-            _save();
-        }
 
-       
     }
 }
