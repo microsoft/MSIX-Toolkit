@@ -1,7 +1,5 @@
 # ModifyPackagePublisher
 
-## SYNOPSIS
-
 Use this script to repackage and sign a MSIX package after modifying the publisher info in the manifest to match
 that of the cert that will be used to sign the package.
 
@@ -11,7 +9,6 @@ the zip file. You will need to modify the relative paths to packageeditor and si
 
 > [!NOTE]
 > The script was verified on the RS5_release insider builds.
-
 
 ## SYNTAX
 
@@ -75,6 +72,7 @@ the new manifest.
     OutBuffer, PipelineVariable, and OutVariable. For more information, see
     about_CommonParameters (https:/go.microsoft.com/fwlink/?LinkID=113216).
 
+## Usage
 ``` PowerShell
     -------------------------- EXAMPLE 1 --------------------------
 
