@@ -1,3 +1,5 @@
+# ModifyPackagePublisher
+
 ## SYNOPSIS
 
 Use this script to repackage and sign a MSIX package after modifying the publisher info in the manifest to match
@@ -7,14 +9,16 @@ that of the cert that will be used to sign the package.
 > The script should be run from within the folder context. All the required dependencies are present within
 the zip file. You will need to modify the relative paths to packageeditor and signtool if the script needs to be run from a different context.
 
-[NOTE]: The script was verified on the RS5_release insider builds.
+> [!NOTE]
+> The script was verified on the RS5_release insider builds.
 
 
 ## SYNTAX
 
+```ps1
 C:\temp\johns script\msixscript\msix-script.ps1 [-directory] <String> [-certPath] <String> [[-pfxPath] <String>]
     [[-password] <String>] [-forceContinue] [<CommonParameters>]
-
+```
 
 ## DESCRIPTION
 
