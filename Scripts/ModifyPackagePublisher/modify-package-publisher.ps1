@@ -8,7 +8,7 @@
     [NOTE]: The script was verified on the Windows 10 1809.
 
 .DESCRIPTION
-    msix-script.ps1 is a PowerShell script. It takes a directory containing MSIX packages along with a cert file as required inputs. The script retrives the publisher info from the cert and modifies the manifest file inside the MSIX package to reflect the publisher retrieved from the cert file. Then, the script repacks the MSIX package with the new manifest. 
+    modify-package-publisher.ps1 is a PowerShell script. It takes a directory containing MSIX packages along with a cert file as required inputs. The script retrives the publisher info from the cert and modifies the manifest file inside the MSIX package to reflect the publisher retrieved from the cert file. Then, the script repacks the MSIX package with the new manifest. 
 
 .PARAMETER <-directory>
     This parameter takes the directoryectory containing the MSIX packages. 
@@ -26,16 +26,16 @@
    This is an optional parameter which default to false. If the parameter is specified, the script will ignore the failed operations and continue with the next msix package if available. 
 
 .EXAMPLE
-   .\msix-script.ps1 -directory "c:\msixpackages\" -certPath "C:\cert\mycert.cer"
+   .\modify-package-publisher.ps1 -directory "c:\msixpackages\" -certPath "C:\cert\mycert.cer"
 
 .EXAMPLE
-   .\msix-script.ps1 -directory "c:\msixpackages\" -certPath "C:\cert\mycert.cer" -pfxPath "C:\cert\CertKey.pfx"
+   .\modify-package-publisher.ps1 -directory "c:\msixpackages\" -certPath "C:\cert\mycert.cer" -pfxPath "C:\cert\CertKey.pfx"
 
 .EXAMPLE 
-   .\msix-script.ps1 -directory "c:\msixpackages\" -certPath "C:\cert\mycert.cer" -pfxPath "C:\cert\CertKey.pfx" -password "aaabbbccc"
+   .\modify-package-publisher.ps1 -directory "c:\msixpackages\" -certPath "C:\cert\mycert.cer" -pfxPath "C:\cert\CertKey.pfx" -password "aaabbbccc"
 
 .EXAMPLE
-   .\msix-script.ps1 -directory "c:\msixpackages\" -certPath "C:\cert\mycert.cer" -pfxPath "C:\cert\CertKey.pfx" -forceContinue
+   .\modify-package-publisher.ps1 -directory "c:\msixpackages\" -certPath "C:\cert\mycert.cer" -pfxPath "C:\cert\CertKey.pfx" -forceContinue
 #>
 
 #Input Arguments for the script
