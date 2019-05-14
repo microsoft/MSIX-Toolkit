@@ -13,13 +13,13 @@ the zip file. You will need to modify the relative paths to packageeditor and si
 ## SYNTAX
 
 ```ps1
-msix-script.ps1 [-directory] <String> [-certPath] <String> [[-pfxPath] <String>]
+modify-package-publisher.ps1 [-directory] <String> [-certPath] <String> [[-pfxPath] <String>]
     [[-password] <String>] [-forceContinue] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
 
-msix-script.ps1 is a PowerShell script. It takes a directory containing MSIX packages along with a cert file as
+modify-package-publisher.ps1 is a PowerShell script. It takes a directory containing MSIX packages along with a cert file as
 required inputs. The script retrives the publisher info from the cert and modifies the manifest file inside the
 MSIX package to reflect the publisher retrieved from the cert file. Then, the script repacks the MSIX package with
 the new manifest.
@@ -76,23 +76,23 @@ the new manifest.
 ``` PowerShell
     -------------------------- EXAMPLE 1 --------------------------
 
-    PS C:\>.\msix-script.ps1 -directory "c:\msixpackages\" -certPath "C:\cert\mycert.cer"
+    PS C:\>.\modify-package-publisher.ps1 -directory "c:\msixpackages\" -certPath "C:\cert\mycert.cer"
 
 
     -------------------------- EXAMPLE 2 --------------------------
 
-    PS C:\>.\msix-script.ps1 -directory "c:\msixpackages\" -certPath "C:\cert\mycert.cer" -pfxPath
+    PS C:\>.\modify-package-publisher.ps1 -directory "c:\msixpackages\" -certPath "C:\cert\mycert.cer" -pfxPath
     "C:\cert\CertKey.pfx"
 
 
     -------------------------- EXAMPLE 3 --------------------------
 
-    PS C:\>.\msix-script.ps1 -directory "c:\msixpackages\" -certPath "C:\cert\mycert.cer" -pfxPath
+    PS C:\>.\modify-package-publisher.ps1 -directory "c:\msixpackages\" -certPath "C:\cert\mycert.cer" -pfxPath
     "C:\cert\CertKey.pfx" -password "aaabbbccc"
 
 
     -------------------------- EXAMPLE 4 --------------------------
 
-    PS C:\>.\msix-script.ps1 -directory "c:\msixpackages\" -certPath "C:\cert\mycert.cer" -pfxPath
+    PS C:\>.\modify-package-publisher.ps1 -directory "c:\msixpackages\" -certPath "C:\cert\mycert.cer" -pfxPath
     "C:\cert\CertKey.pfx" -forceContinue
   ```
