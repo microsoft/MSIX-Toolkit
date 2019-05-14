@@ -1,5 +1,13 @@
+# MSIX Toolkit 
 
-# Contributing
+## AppInstaller File Builder 
+
+Paste the following link in your browser:
+
+`ms-appinstaller:?source=http://appservertest.azurewebsites.net/AppInstallerFileBuilder/AppInstallerFileBuilder.appinstaller`
+
+
+## Contributing
 
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a
 Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
