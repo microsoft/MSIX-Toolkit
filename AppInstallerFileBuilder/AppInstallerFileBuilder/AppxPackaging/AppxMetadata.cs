@@ -21,7 +21,7 @@ namespace Microsoft.Packaging.SDKUtils.AppxPackaging
     public class AppxMetadata : PackageMetadata
     {
         /// <summary>
-        /// Initializes a new instance of the AppxMetadata class for an appx package.
+        /// Initializes a new instance of the AppxMetadata class for an appx/msix package.
         /// </summary>
         /// <param name="filePath">the path to the appx file</param>
         public AppxMetadata(IRandomAccessStream randomAccessStream)
@@ -30,8 +30,6 @@ namespace Microsoft.Packaging.SDKUtils.AppxPackaging
             {
                 throw new ArgumentNullException("file is null");
             }
-            
-            //IStream packageStream = StreamUtils.CreateInputStreamOnFile(this.FilePath);
             
             Guid guid = new Guid("0000000c-0000-0000-C000-000000000046");
             IStream packageStream = StreamUtils.CreateStreamOverRandomAccessStream(randomAccessStream, ref guid);
@@ -105,14 +103,5 @@ namespace Microsoft.Packaging.SDKUtils.AppxPackaging
         /// </summary>
         public IAppxPackageReader AppxReader { get; private set; }
 
-        ///// <summary>
-        ///// Gets the display name of the package
-        ///// </summary>
-        //public IRandomAccessStream Ras { get; private set; }
-
-        //public async void CreateRasFromFile(StorageFile file)
-        //{
-        //    this.Ras = await file.OpenReadAsync();
-        //}
     }
 }
