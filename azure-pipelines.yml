@@ -20,15 +20,11 @@ variables:
 
 steps:
 
-- task: DotNetCoreCLI@2  
-  inputs:
-    command: custom
-    custom: tool
-    arguments: install -g nbgv
-  displayName: Install NBGV tool
+- task: NuGetToolInstaller@0
 
-- script: nbgv cloud -c
-  displayName: Set Version
+- task: '333b11bd-d341-40d9-afcf-b32d5ce6f23b'@2
+inputs:
+  restoreSolution: '$(solution)'
 
 - task: VSBuild@1
   inputs:
