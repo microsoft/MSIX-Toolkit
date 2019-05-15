@@ -8,7 +8,8 @@ trigger:
 - master
 
 pool:
-  vmImage: 'windows-latest'
+  name: Hosted Windows 2019 with VS2019
+  demands: msbuild
 
 
 variables:
@@ -19,14 +20,15 @@ variables:
 
 steps:
 
-- task: NuGetToolInstaller@0
-
-- task: NuGetCommand@0
+- task: DotNetCoreCLI@2  
   inputs:
-    command: 'restore'
-    restoreSolution: '**/*.sln'
-    feedsToUse: 'select'
-    versioningScheme: 'off'
+    command: custom
+    custom: tool
+    arguments: install -g nbgv
+  displayName: Install NBGV tool
+
+- script: nbgv cloud -c
+  displayName: Set Version
 
 - task: VSBuild@1
   inputs:
