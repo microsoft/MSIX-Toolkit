@@ -1,4 +1,5 @@
 # Universal Windows Platform
+
 # Build a Universal Windows Platform project using Visual Studio.
 # Add steps that test and distribute an app, save build artifacts, and more:
 # https://aka.ms/yaml
@@ -6,12 +7,9 @@
 trigger:
 - master
 
-# pool:
-#  vmImage: 'vs2017-win2016'
-
 pool:
-  name: xPlatAppx
-  demands: Cmd
+  vmImage: 'windows-latest'
+
 
 variables:
   solution: '**/*.sln'
@@ -20,6 +18,15 @@ variables:
   appxPackageDir: '$(build.artifactStagingDirectory)\AppxPackages\\'
 
 steps:
+
+- task: NuGetToolInstaller@0
+
+- task: NuGetCommand@2
+  inputs:
+    command: 'restore'
+    restoreSolution: '**/*.sln'
+    feedsToUse: 'select'
+    versioningScheme: 'off'
 
 - task: VSBuild@1
   inputs:
