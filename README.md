@@ -1,11 +1,5 @@
 # MSIX Toolkit 
 
-## AppInstaller File Builder 
-
-Paste the following link in your browser:
-
-`ms-appinstaller:?source=http://appservertest.azurewebsites.net/AppInstallerFileBuilder/AppInstallerFileBuilder.appinstaller`
-
 
 ## Contributing
 
