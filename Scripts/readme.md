@@ -1,6 +1,11 @@
 # MSIX Toolkit - Scripts
 
-This repo folder is a collection of PowerShell and bash scripts to assist in making the process of packaging, signing, managing and distributing MSIX packages. 
+This folder is a collection of PowerShell and bash scripts to assist in making the process of packaging, signing, managing and distributing MSIX packages. 
+
+| Scripts | Description |
+|---|---|
+| Batch Conversion | This script allows users to convert a set of desktop applications to MSIX packages. |
+| Modify Package Publisher | This script takes an app package and certificate(pfx) file to resign the package with provide cert.|
 
 ## How to contribute
 
