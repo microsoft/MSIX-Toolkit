@@ -82,16 +82,16 @@ namespace Microsoft.Packaging.SDKUtils.AppxPackaging
         public static IAppxPackageReader GetPackageReader(string packagePath, bool isEncrypted = false)
         {
             IAppxPackageReader result = null;
-            //if (isEncrypted)
-            //{
-            //    IAppxEncryptionFactory factory = (IAppxEncryptionFactory)new AppxEncryptionFactory();
-            //    result = factory.CreateEncryptedPackageReader(StreamUtils.CreateInputStreamOnFile(packagePath), System.IntPtr.Zero);
-            //}
-            //else
-            //{
-            //    IAppxFactory factory = (IAppxFactory)new AppxFactory();
-            //    result = factory.CreatePackageReader(StreamUtils.CreateInputStreamOnFile(packagePath));
-            //}
+            if (isEncrypted)
+            {
+                IAppxEncryptionFactory factory = (IAppxEncryptionFactory)new AppxEncryptionFactory();
+                result = factory.CreateEncryptedPackageReader(StreamUtils.CreateInputStreamOnFile(packagePath), System.IntPtr.Zero);
+            }
+            else
+            {
+                IAppxFactory factory = (IAppxFactory)new AppxFactory();
+                result = factory.CreatePackageReader(StreamUtils.CreateInputStreamOnFile(packagePath));
+            }
 
             return result;
         }
