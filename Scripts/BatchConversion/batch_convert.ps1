@@ -62,47 +62,47 @@ function RunConversionJobs($conversionsParameters, $virtualMachines, $remoteMach
     
     # Next schedule jobs on virtual machines which can be checkpointed/re-used
     # keep a mapping of VMs and the current job they're running, initialized ot null
-    # $vmsCurrentJobMap = @{}
-    # $virtualMachines | Foreach-Object { $vmsCurrentJobMap.Add($_.Name, $nul) }
+    $vmsCurrentJobMap = @{}
+    $virtualMachines | Foreach-Object { $vmsCurrentJobMap.Add($_.Name, $nul) }
 
-    # # Use a semaphore to signal when a machine is available. Note we need a global semaphore as the jobs are each started in a different powershell process
-    # $semaphore = New-Object -TypeName System.Threading.Semaphore -ArgumentList @($virtualMachines.Count, $virtualMachines.Count, "Global\MPTBatchConversion")
+    # Use a semaphore to signal when a machine is available. Note we need a global semaphore as the jobs are each started in a different powershell process
+    $semaphore = New-Object -TypeName System.Threading.Semaphore -ArgumentList @($virtualMachines.Count, $virtualMachines.Count, "Global\MPTBatchConversion")
 
-    # while ($semaphore.WaitOne(-1))
-    # {
-        # if ($remainingConversions.Count -gt 0)
-        # {
-            # # select a job to run 
-            # Write-Host "Determining next job to run..."
-            # $conversionParam = $conversionsParameters[$remainingConversions[0]]
-            # # select a VM to run it on. Retry a few times due to race between semaphore signaling and process completion status
-            # $vm = $nul
-            # while (-not $vm) { $vm = $virtualMachines | where { -not($vmsCurrentJobMap[$_.Name]) -or -not($vmsCurrentJobMap[$_.Name].ExitCode -eq $Nul) } | Select-Object -First 1 }
-            # Write-Host "Dequeuing conversion job for installer $($conversionParam.InstallerPath) on VM $($vm.Name)"
+    while ($semaphore.WaitOne(-1))
+    {
+        if ($remainingConversions.Count -gt 0)
+        {
+            # select a job to run 
+            Write-Host "Determining next job to run..."
+            $conversionParam = $conversionsParameters[$remainingConversions[0]]
+            # select a VM to run it on. Retry a few times due to race between semaphore signaling and process completion status
+            $vm = $nul
+            while (-not $vm) { $vm = $virtualMachines | where { -not($vmsCurrentJobMap[$_.Name]) -or -not($vmsCurrentJobMap[$_.Name].ExitCode -eq $Nul) } | Select-Object -First 1 }
+            Write-Host "Dequeuing conversion job for installer $($conversionParam.InstallerPath) on VM $($vm.Name)"
 
-            # # Capture the job index and update list of remaining conversions to run
-            # $jobId = $remainingConversions[0]
-            # $remainingConversions = $remainingConversions | where { $_ -ne $remainingConversions[0] }
+            # Capture the job index and update list of remaining conversions to run
+            $jobId = $remainingConversions[0]
+            $remainingConversions = $remainingConversions | where { $_ -ne $remainingConversions[0] }
 
-            # $templateFilePath = CreateMPTTemplate $conversionParam $jobId $vm $nul $workingDirectory 
-            # $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($vm.Credential.Password)
-            # $password = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
+            $templateFilePath = CreateMPTTemplate $conversionParam $jobId $vm $nul $workingDirectory 
+            $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($vm.Credential.Password)
+            $password = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
 
-            # $process = Start-Process "powershell.exe" -ArgumentList($runJobScriptPath, "-jobId", $jobId, "-vmName", $vm.Name, "-vmsCount", $virtualMachines.Count, "-machinePassword", $password, "-templateFilePath", $templateFilePath, "-initialSnapshotName", $initialSnapshotName) -PassThru
-            # $vmsCurrentJobMap[$vm.Name] = $process
-        # }
-        # else
-        # {
-            # $semaphore.Release()
-            # break;
-        # }
+            $process = Start-Process "powershell.exe" -ArgumentList($runJobScriptPath, "-jobId", $jobId, "-vmName", $vm.Name, "-vmsCount", $virtualMachines.Count, "-machinePassword", $password, "-templateFilePath", $templateFilePath, "-initialSnapshotName", $initialSnapshotName) -PassThru
+            $vmsCurrentJobMap[$vm.Name] = $process
+        }
+        else
+        {
+            $semaphore.Release()
+            break;
+        }
 
-        # Sleep(1)
-    # }
+        Sleep(1)
+    }
 
-    #Write-Host "Finished scheduling all jobs"
-    #$virtualMachines | foreach-object { if ($vmsCurrentJobMap[$_.Name]) { $vmsCurrentJobMap[$_.Name].WaitForExit() } }
-    #$semaphore.Dispose()
+    Write-Host "Finished scheduling all jobs"
+    $virtualMachines | foreach-object { if ($vmsCurrentJobMap[$_.Name]) { $vmsCurrentJobMap[$_.Name].WaitForExit() } }
+    $semaphore.Dispose()
     Read-Host -Prompt 'Press any key to continue '
     Write-Host "Finished running all jobs"
 }
