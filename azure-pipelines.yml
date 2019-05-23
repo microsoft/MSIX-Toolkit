@@ -30,7 +30,7 @@ steps:
   inputs:
     restoreSolution: '**/*.sln'
     feedsToUse: config
-    nugetConfigPath: AppInstallerFileBuilder/.nuget/NuGet.config
+    nugetConfigPath: '**/.nuget/NuGet.config'
 
 - task: VSBuild@1
   inputs:
