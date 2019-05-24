@@ -1,7 +1,5 @@
 # MSIX Toolkit 
 
-# Welcome to the MSIX-Toolkit wiki!
-
 MSIX Toolkit is a combination of tools and scripts focused on assisting IT pros and developers to make their app package modernization journey smoother. The toolkit will be open sourced on GitHub to allow customers and enthusiasts to contribute directly and provide suggestions and feedback on the content that is available. 
 The goal of the toolkit is to make it a gathering place for customers working with MSIX packages to come and find the help and assistance they need to build, manage, troubleshoot them. 
 
