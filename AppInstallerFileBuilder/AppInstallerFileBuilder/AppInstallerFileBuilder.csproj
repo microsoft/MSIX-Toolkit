@@ -11,8 +11,8 @@
     <AssemblyName>AppInstallerFileBuilder</AssemblyName>
     <DefaultLanguage>en-US</DefaultLanguage>
     <TargetPlatformIdentifier>UAP</TargetPlatformIdentifier>
-    <TargetPlatformVersion Condition=" '$(TargetPlatformVersion)' == '' ">10.0.17763.0</TargetPlatformVersion>
-    <TargetPlatformMinVersion>10.0.15063.0</TargetPlatformMinVersion>
+    <TargetPlatformVersion Condition=" '$(TargetPlatformVersion)' == '' ">10.0.16299.0</TargetPlatformVersion>
+    <TargetPlatformMinVersion>10.0.16299.0</TargetPlatformMinVersion>
     <MinimumVisualStudioVersion>14</MinimumVisualStudioVersion>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{A5A43C5B-DE2A-4C0C-9213-0A381AF9435A};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
@@ -23,6 +23,9 @@
     <AppxBundlePlatforms>x86|x64</AppxBundlePlatforms>
     <AppInstallerUpdateFrequency>1</AppInstallerUpdateFrequency>
     <AppInstallerCheckForUpdateFrequency>OnApplicationRun</AppInstallerCheckForUpdateFrequency>
+    <AppxSymbolPackageEnabled>False</AppxSymbolPackageEnabled>
+    <PackageCertificateThumbprint>A5556A0110243FDC39CA78C807B6BEBBE1D1D8D1</PackageCertificateThumbprint>
+    <PackageCertificateKeyFile>AppInstallerFileBuilder_TemporaryKey.pfx</PackageCertificateKeyFile>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
     <DebugSymbols>true</DebugSymbols>
@@ -127,71 +130,11 @@
     <Compile Include="AppShell.xaml.cs">
       <DependentUpon>AppShell.xaml</DependentUpon>
     </Compile>
-    <Compile Include="AppxPackagingInterop\AppxBundleFactory.cs" />
-    <Compile Include="AppxPackagingInterop\AppxEncryptionFactory.cs" />
-    <Compile Include="AppxPackagingInterop\AppxFactory.cs" />
-    <Compile Include="AppxPackagingInterop\AppxPackageEditor.cs" />
-    <Compile Include="AppxPackagingInterop\AppxPackagingDiagnosticEventSinkManager.cs" />
-    <Compile Include="AppxPackagingInterop\IAppxBlockMapBlock.cs" />
-    <Compile Include="AppxPackagingInterop\IAppxBlockMapBlocksEnumerator.cs" />
-    <Compile Include="AppxPackagingInterop\IAppxBlockMapFile.cs" />
-    <Compile Include="AppxPackagingInterop\IAppxBlockMapFilesEnumerator.cs" />
-    <Compile Include="AppxPackagingInterop\IAppxBlockMapReader.cs" />
-    <Compile Include="AppxPackagingInterop\IAppxBundleFactory.cs" />
-    <Compile Include="AppxPackagingInterop\IAppxBundleManifestOptionalBundleInfo.cs" />
-    <Compile Include="AppxPackagingInterop\IAppxBundleManifestOptionalBundleInfoEnumerator.cs" />
-    <Compile Include="AppxPackagingInterop\IAppxBundleManifestPackageInfo.cs" />
-    <Compile Include="AppxPackagingInterop\IAppxBundleManifestPackageInfoEnumerator.cs" />
-    <Compile Include="AppxPackagingInterop\IAppxBundleManifestReader.cs" />
-    <Compile Include="AppxPackagingInterop\IAppxBundleManifestReader2.cs" />
-    <Compile Include="AppxPackagingInterop\IAppxBundleReader.cs" />
-    <Compile Include="AppxPackagingInterop\IAppxBundleWriter.cs" />
-    <Compile Include="AppxPackagingInterop\IAppxEncryptedBlockMapFile.cs" />
-    <Compile Include="AppxPackagingInterop\IAppxEncryptionFactory.cs" />
-    <Compile Include="AppxPackagingInterop\IAppxFactory.cs" />
-    <Compile Include="AppxPackagingInterop\IAppxFile.cs" />
-    <Compile Include="AppxPackagingInterop\IAppxFilesEnumerator.cs" />
-    <Compile Include="AppxPackagingInterop\IAppxManifestApplication.cs" />
-    <Compile Include="AppxPackagingInterop\IAppxManifestApplicationsEnumerator.cs" />
-    <Compile Include="AppxPackagingInterop\IAppxManifestCapabilitiesEnumerator.cs" />
-    <Compile Include="AppxPackagingInterop\IAppxManifestDeviceCapabilitiesEnumerator.cs" />
-    <Compile Include="AppxPackagingInterop\IAppxManifestOptionalPackageInfo.cs" />
-    <Compile Include="AppxPackagingInterop\IAppxManifestPackageDependenciesEnumerator.cs" />
-    <Compile Include="AppxPackagingInterop\IAppxManifestPackageDependency.cs" />
-    <Compile Include="AppxPackagingInterop\IAppxManifestPackageDependency2.cs" />
-    <Compile Include="AppxPackagingInterop\IAppxManifestPackageDependencyInternal.cs" />
-    <Compile Include="AppxPackagingInterop\IAppxManifestPackageId.cs" />
-    <Compile Include="AppxPackagingInterop\IAppxManifestPackageId2.cs" />
-    <Compile Include="AppxPackagingInterop\IAppxManifestProperties.cs" />
-    <Compile Include="AppxPackagingInterop\IAppxManifestQualifiedResource.cs" />
-    <Compile Include="AppxPackagingInterop\IAppxManifestQualifiedResourcesEnumerator.cs" />
-    <Compile Include="AppxPackagingInterop\IAppxManifestReader.cs" />
-    <Compile Include="AppxPackagingInterop\IAppxManifestReader2.cs" />
-    <Compile Include="AppxPackagingInterop\IAppxManifestReader3.cs" />
-    <Compile Include="AppxPackagingInterop\IAppxManifestReader4.cs" />
-    <Compile Include="AppxPackagingInterop\IAppxManifestResourcesEnumerator.cs" />
-    <Compile Include="AppxPackagingInterop\IAppxManifestTargetDeviceFamiliesEnumerator.cs" />
-    <Compile Include="AppxPackagingInterop\IAppxManifestTargetDeviceFamily.cs" />
-    <Compile Include="AppxPackagingInterop\IAppxPackageEditor.cs" />
-    <Compile Include="AppxPackagingInterop\IAppxPackageReader.cs" />
-    <Compile Include="AppxPackagingInterop\IAppxPackageWriter.cs" />
-    <Compile Include="AppxPackagingInterop\IAppxPackagingDiagnosticEventSink.cs" />
-    <Compile Include="AppxPackagingInterop\IAppxPackagingDiagnosticEventSinkManager.cs" />
-    <Compile Include="AppxPackagingInterop\IUri.cs" />
-    <Compile Include="AppxPackaging\AppxBundleMetadata.cs" />
-    <Compile Include="AppxPackaging\AppxMetadata.cs" />
-    <Compile Include="AppxPackaging\Block.cs" />
-    <Compile Include="AppxPackaging\PackageMetadata.cs" />
-    <Compile Include="AppxPackaging\PackagingConstants.cs" />
-    <Compile Include="AppxPackaging\PackagingUtils.cs" />
-    <Compile Include="AppxPackaging\VersionInfo.cs" />
     <Compile Include="Controls\NavMenuListView.cs" />
     <Compile Include="Converters\PackageTypeVisibilityConverter.cs" />
     <Compile Include="Enums\PackageType.cs" />
     <Compile Include="Enums\ProcessorArchitecture.cs" />
     <Compile Include="Enums\Schema.cs" />
-    <Compile Include="IO\InvalidFileTypeException.cs" />
-    <Compile Include="IO\StreamUtils.cs" />
     <Compile Include="Model\AppInstaller.cs" />
     <Compile Include="Model\AutomaticBackgroundTask.cs" />
     <Compile Include="Model\Bundle.cs" />
@@ -356,6 +299,12 @@
     <PackageReference Include="Microsoft.NETCore.UniversalWindowsPlatform">
       <Version>6.2.3</Version>
     </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\AppInstallerFileBuilderLib\AppInstallerFileBuilderLib.csproj">
+      <Project>{61ab9b24-233b-4840-813a-deffd6fbe26a}</Project>
+      <Name>AppInstallerFileBuilderLib</Name>
+    </ProjectReference>
   </ItemGroup>
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">
     <VisualStudioVersion>14.0</VisualStudioVersion>

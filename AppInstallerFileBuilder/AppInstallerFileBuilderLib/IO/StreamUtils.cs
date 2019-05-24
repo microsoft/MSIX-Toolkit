@@ -12,7 +12,7 @@ namespace Microsoft.Packaging.SDKUtils
     using System.Reflection;
     using System.Runtime.InteropServices;
     using System.Runtime.InteropServices.ComTypes;
-    using Windows.Storage.Streams;
+
     using STATSTG = System.Runtime.InteropServices.ComTypes.STATSTG;
 
     /// <summary>
@@ -42,13 +42,13 @@ namespace Microsoft.Packaging.SDKUtils
         /// <exception cref="ArgumentNullException">fileName is null.</exception>
         /// <exception cref="FileNotFoundException">The file specified in fileName was not
         /// found.</exception>
-        //public static IStream CreateInputStreamOnFile(string fileName, object cloudStreamHandler = null)
-        //{
-        //    var mode = STGM.STGM_READ;
-        //    uint attributes = 0; // Doesn't matter; only useful when creating.
-        //    bool create = false; // Don't create the file if it doesn't already exist.
-        //    return CreateStreamOnFile(fileName, mode, attributes, create, cloudStreamHandler);
-        //}
+        public static IStream CreateInputStreamOnFile(string fileName, object cloudStreamHandler = null)
+        {
+            var mode = STGM.STGM_READ;
+            uint attributes = 0; // Doesn't matter; only useful when creating.
+            bool create = false; // Don't create the file if it doesn't already exist.
+            return CreateStreamOnFile(fileName, mode, attributes, create, cloudStreamHandler);
+        }
 
         /// <summary>
         /// Create an IStream to write to a file.
@@ -59,13 +59,13 @@ namespace Microsoft.Packaging.SDKUtils
         /// <exception cref="ArgumentNullException">fileName is null.</exception>
         /// <exception cref="FileNotFoundException">The file specified in fileName was not
         /// found.</exception>
-        //public static IStream CreateOutputStreamOnFile(string fileName, object cloudStreamHandler = null)
-        //{
-        //    var mode = STGM.STGM_WRITE | STGM.STGM_CREATE;
-        //    uint attributes = 0; // Default attributes
-        //    bool create = true;
-        //    return CreateStreamOnFile(fileName, mode, attributes, create, cloudStreamHandler);
-        //}
+        public static IStream CreateOutputStreamOnFile(string fileName, object cloudStreamHandler = null)
+        {
+            var mode = STGM.STGM_WRITE | STGM.STGM_CREATE;
+            uint attributes = 0; // Default attributes
+            bool create = true;
+            return CreateStreamOnFile(fileName, mode, attributes, create, cloudStreamHandler);
+        }
 
         /// <summary>
         /// Create an IStream to read and write to a file.
@@ -77,17 +77,17 @@ namespace Microsoft.Packaging.SDKUtils
         /// <exception cref="ArgumentNullException">fileName is null.</exception>
         /// <exception cref="FileNotFoundException">The file specified in fileName was not
         /// found.</exception>
-        //public static IStream CreateInputOutputStreamOnFile(string fileName, bool create = true, object cloudStreamHandler = null)
-        //{
-        //    var mode = STGM.STGM_READWRITE;
-        //    if (create)
-        //    {
-        //        mode |= STGM.STGM_CREATE;
-        //    }
+        public static IStream CreateInputOutputStreamOnFile(string fileName, bool create = true, object cloudStreamHandler = null)
+        {
+            var mode = STGM.STGM_READWRITE;
+            if (create)
+            {
+                mode |= STGM.STGM_CREATE;
+            }
 
-        //    uint attributes = 0; // Default attributes
-        //    return CreateStreamOnFile(fileName, mode, attributes, create, cloudStreamHandler);
-        //}
+            uint attributes = 0; // Default attributes
+            return CreateStreamOnFile(fileName, mode, attributes, create, cloudStreamHandler);
+        }
 
         /// <summary>
         /// Clone a stream and move the clone's seek pointer to the beginning of the stream.
@@ -217,15 +217,12 @@ namespace Microsoft.Packaging.SDKUtils
         /// found.</exception>
         [SuppressMessage("StyleCop.CSharp.ReadabilityRules", "SA1121:UseBuiltInTypeAlias", Justification = "Interop")]
         private static IStream CreateStreamOnFile(
-            string fileName,            
-            IRandomAccessStream randomAccessStream,
+            string fileName,
             STGM mode,
             uint attributes,
             bool create,
             object cloudStreamHandler)
         {
-            Guid guid = new Guid("0000000c - 0000 - 0000 - C000 - 000000000046");
-
             if (fileName == null)
             {
                 throw new ArgumentNullException("fileName");
@@ -257,9 +254,7 @@ namespace Microsoft.Packaging.SDKUtils
                 }
                 else
                 {
-                    //return SHCreateStreamOnFileEx(fileName, mode, attributes, create, null);
-                    return CreateStreamOverRandomAccessStream(randomAccessStream,ref guid);
-
+                    return SHCreateStreamOnFileEx(fileName, mode, attributes, create, null);
                 }
             }
             catch (FileNotFoundException e)
@@ -296,8 +291,8 @@ namespace Microsoft.Packaging.SDKUtils
             [In] uint attributes,
             [In] bool create,
             [In] IStream template);
-
         [DllImport("shcore.dll", PreserveSig = false)]
+
         public static extern IStream CreateStreamOverRandomAccessStream(
             [MarshalAs(UnmanagedType.IUnknown)] object pUnk,
             [In] ref Guid riid);

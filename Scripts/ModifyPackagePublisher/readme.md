@@ -3,12 +3,10 @@
 Use this script to repackage and sign a MSIX package after modifying the publisher info in the manifest to match
 that of the cert that will be used to sign the package.
 
-> [!NOTE]
-> The script should be run from within the folder context. All the required dependencies are present within
+**NOTE:** The script should be run from within the folder context. All the required dependencies are present within
 the zip file. You will need to modify the relative paths to packageeditor and signtool if the script needs to be run from a different context.
 
-> [!NOTE]
-> The script was verified on the RS5_release insider builds.
+This script will require PackageEditor and SignTool in the same directory as the script. 
 
 ## SYNTAX
 
@@ -66,33 +64,27 @@ the new manifest.
     Accept pipeline input?       false
     Accept wildcard characters?  false
 
-<CommonParameters>
-    This cmdlet supports the common parameters: Verbose, Debug,
-    ErrorAction, ErrorVariable, WarningAction, WarningVariable,
-    OutBuffer, PipelineVariable, and OutVariable. For more information, see
-    [about_CommonParameters](https:/go.microsoft.com/fwlink/?LinkID=113216).
-
 ## Usage
 ``` PowerShell
-    -------------------------- EXAMPLE 1 --------------------------
+-------------------------- EXAMPLE 1 --------------------------
 
-    PS C:\>.\modify-package-publisher.ps1 -directory "c:\msixpackages\" -certPath "C:\cert\mycert.cer"
-
-
-    -------------------------- EXAMPLE 2 --------------------------
-
-    PS C:\>.\modify-package-publisher.ps1 -directory "c:\msixpackages\" -certPath "C:\cert\mycert.cer" -pfxPath
-    "C:\cert\CertKey.pfx"
+PS C:\>.\modify-package-publisher.ps1 -directory "c:\msixpackages\" -certPath "C:\cert\mycert.cer"
 
 
-    -------------------------- EXAMPLE 3 --------------------------
+-------------------------- EXAMPLE 2 --------------------------
 
-    PS C:\>.\modify-package-publisher.ps1 -directory "c:\msixpackages\" -certPath "C:\cert\mycert.cer" -pfxPath
-    "C:\cert\CertKey.pfx" -password "aaabbbccc"
+PS C:\>.\modify-package-publisher.ps1 -directory "c:\msixpackages\" -certPath "C:\cert\mycert.cer" -pfxPath
+"C:\cert\CertKey.pfx"
 
 
-    -------------------------- EXAMPLE 4 --------------------------
+-------------------------- EXAMPLE 3 --------------------------
 
-    PS C:\>.\modify-package-publisher.ps1 -directory "c:\msixpackages\" -certPath "C:\cert\mycert.cer" -pfxPath
-    "C:\cert\CertKey.pfx" -forceContinue
+PS C:\>.\modify-package-publisher.ps1 -directory "c:\msixpackages\" -certPath "C:\cert\mycert.cer" -pfxPath
+"C:\cert\CertKey.pfx" -password "aaabbbccc"
+
+
+-------------------------- EXAMPLE 4 --------------------------
+
+PS C:\>.\modify-package-publisher.ps1 -directory "c:\msixpackages\" -certPath "C:\cert\mycert.cer" -pfxPath
+"C:\cert\CertKey.pfx" -forceContinue
   ```
