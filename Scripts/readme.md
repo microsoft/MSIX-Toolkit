@@ -2,10 +2,10 @@
 
 This folder is a collection of PowerShell and bash scripts to assist in making the process of packaging, signing, managing and distributing MSIX packages. 
 
-| Scripts | Description |
-|---|---|
-| Batch Conversion | This script allows users to convert a set of desktop applications to MSIX packages. |
-| Modify Package Publisher | This script takes an app package and certificate(pfx) file to resign the package with provide cert.|
+| Scripts | Description | Download |
+|---|---|---|
+| [Batch Conversion](BatchConversion/README.md) | This script allows users to convert a set of desktop applications to MSIX packages. | [Batch-Conversion.zip](https://github.com/microsoft/MSIX-Toolkit/releases/download/v1.0/Batch-Conversion.zip)
+| [Modify Package Publisher](ModifyPackagePublisher/readme.md) | This script takes an app package and certificate(pfx) file to resign the package with provide cert.| [Modify-Package-Publisher.ps1](https://github.com/microsoft/MSIX-Toolkit/releases/download/v1.0/modify-package-publisher.ps1)|
 
 ## How to contribute
 

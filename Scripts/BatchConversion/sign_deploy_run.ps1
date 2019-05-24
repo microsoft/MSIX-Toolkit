@@ -1,8 +1,5 @@
 function SignAndDeploy($msixFolder)
 {
-    Get-AppxPackage *YourApp* | Remove-AppxPackage
-    Get-AppxPackage *YourApp2* | Remove-AppxPackage
-    Get-AppxPackage *YourApp3* | Remove-AppxPackage
 
     Get-ChildItem $msixFolder | foreach-object {
         $pfxFilePath = "\\Path\To\Your\Certificate\YourCert.pfx"
