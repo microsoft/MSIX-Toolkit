@@ -6,7 +6,7 @@ that of the cert that will be used to sign the package.
 **NOTE:** The script should be run from within the folder context. All the required dependencies are present within
 the zip file. You will need to modify the relative paths to packageeditor and signtool if the script needs to be run from a different context.
 
-This script will require MakeAppx, PackageEditor and SignTool in the same directory as the script. 
+This script will require PackageEditor and SignTool in the same directory as the script. 
 
 ## SYNTAX
 
