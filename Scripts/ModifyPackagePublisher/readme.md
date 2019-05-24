@@ -66,33 +66,27 @@ the new manifest.
     Accept pipeline input?       false
     Accept wildcard characters?  false
 
-<CommonParameters>
-    This cmdlet supports the common parameters: Verbose, Debug,
-    ErrorAction, ErrorVariable, WarningAction, WarningVariable,
-    OutBuffer, PipelineVariable, and OutVariable. For more information, see
-    [about_CommonParameters](https:/go.microsoft.com/fwlink/?LinkID=113216).
-
 ## Usage
 ``` PowerShell
-    -------------------------- EXAMPLE 1 --------------------------
+-------------------------- EXAMPLE 1 --------------------------
 
-    PS C:\>.\modify-package-publisher.ps1 -directory "c:\msixpackages\" -certPath "C:\cert\mycert.cer"
-
-
-    -------------------------- EXAMPLE 2 --------------------------
-
-    PS C:\>.\modify-package-publisher.ps1 -directory "c:\msixpackages\" -certPath "C:\cert\mycert.cer" -pfxPath
-    "C:\cert\CertKey.pfx"
+PS C:\>.\modify-package-publisher.ps1 -directory "c:\msixpackages\" -certPath "C:\cert\mycert.cer"
 
 
-    -------------------------- EXAMPLE 3 --------------------------
+-------------------------- EXAMPLE 2 --------------------------
 
-    PS C:\>.\modify-package-publisher.ps1 -directory "c:\msixpackages\" -certPath "C:\cert\mycert.cer" -pfxPath
-    "C:\cert\CertKey.pfx" -password "aaabbbccc"
+PS C:\>.\modify-package-publisher.ps1 -directory "c:\msixpackages\" -certPath "C:\cert\mycert.cer" -pfxPath
+"C:\cert\CertKey.pfx"
 
 
-    -------------------------- EXAMPLE 4 --------------------------
+-------------------------- EXAMPLE 3 --------------------------
 
-    PS C:\>.\modify-package-publisher.ps1 -directory "c:\msixpackages\" -certPath "C:\cert\mycert.cer" -pfxPath
-    "C:\cert\CertKey.pfx" -forceContinue
+PS C:\>.\modify-package-publisher.ps1 -directory "c:\msixpackages\" -certPath "C:\cert\mycert.cer" -pfxPath
+"C:\cert\CertKey.pfx" -password "aaabbbccc"
+
+
+-------------------------- EXAMPLE 4 --------------------------
+
+PS C:\>.\modify-package-publisher.ps1 -directory "c:\msixpackages\" -certPath "C:\cert\mycert.cer" -pfxPath
+"C:\cert\CertKey.pfx" -forceContinue
   ```
