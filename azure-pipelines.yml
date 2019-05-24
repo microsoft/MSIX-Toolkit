@@ -34,6 +34,13 @@ steps:
 #    feedsToUse: 'select'
 #    versioningScheme: 'off'
 
+- task: NuGetCommand@2
+  inputs:
+    command: 'restore'
+    restoreSolution: '**/*.sln'
+    feedsToUse: 'select'
+    versioningScheme: 'off'
+
 - task: VSBuild@1
   inputs:
     platform: 'x86'
