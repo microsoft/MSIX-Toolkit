@@ -23,18 +23,15 @@ using Windows.Storage.Streams;
 using Microsoft.Packaging.SDKUtils.AppxPackaging;
 using System.ComponentModel;
 
-// The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=234238
 
 namespace AppInstallerFileBuilder.Views
 {
 	/// <summary>
-	/// An empty page that can be used on its own or navigated to within a Frame.
+	/// Main Package View
 	/// </summary>
 	public sealed partial class MainPackageView : Page
 	{
         private TextBox _filePathTextBox;
-        //private ComboBox _packageTypeComboBox;
-        //private ComboBox _processorTypeComboBox;
         private TextBox _processorArchTextBox;
         private TextBox _versionTextBox;
         private TextBox _publisherTextBox;
@@ -74,12 +71,10 @@ namespace AppInstallerFileBuilder.Views
 			this.InitializeComponent();
 
             _filePathTextBox = (TextBox)this.FindName("File_Path_Text_Box");
-            //_packageTypeComboBox = (ComboBox)this.FindName("Package_Type_Combo_Box");
             _versionTextBox = (TextBox)this.FindName("Version_Text_Box");
             _publisherTextBox = (TextBox)this.FindName("Publisher_Text_Box");
             _nameTextBox = (TextBox)this.FindName("Name_Text_Box");
             _resourceIdTextBox = (TextBox)this.FindName("Resource_Id_Text_Box");
-            //_processorTypeComboBox = (ComboBox)this.FindName("Processor_Type_Combo_Box");
             _processorArchTextBox = (TextBox)this.FindName("Processor_Arch_Text_Box");
             _uriPathTextBox = (TextBox)this.FindName("Uri_Path_Text_Box");
             _processorTypeStackPanel = (StackPanel)this.FindName("Processor_Type_Stack_Panel");
@@ -188,9 +183,8 @@ namespace AppInstallerFileBuilder.Views
             _nameTextBox.Text = _mainPackage.Name;
             _resourceIdTextBox.Text = _mainPackage.ResourceId; 
             _filePathTextBox.Text = _mainPackage.FilePath;
-            //_processorTypeComboBox.SelectedValue = _mainPackage.ProcessorArchitecture;
             _processorArchTextBox.Text = _mainPackage.ProcessorArchitecture;
-            //_packageTypeComboBox.SelectedValue = _mainPackage.PackageType;
+            
 
             _hoursBetweenUpdates = App.HoursBetweenUpdates;
             _hoursBetweenUpdatesTextBox.Text = _hoursBetweenUpdates.ToString();
@@ -224,7 +218,7 @@ namespace AppInstallerFileBuilder.Views
                 _resourceIdStackPanel.Visibility = Visibility.Collapsed;
                 _mainPackage.ProcessorArchitecture = ""; 
             }
-            //Debug.WriteLine("isCheckUpdates is " + App.IsCheckUpdates + " - " + _checkUpdatesSwitch.IsOn);
+            
             if (!App.IsCheckUpdates)
             {
                 _checkUpdatesSwitch.IsOn = false;
@@ -277,6 +271,7 @@ namespace AppInstallerFileBuilder.Views
 
         private void Back_Button_Click(object sender, RoutedEventArgs e)
         {
+            // main page - so need of back button
             //AppShell.Current.AppFrame.Navigate(AppShell.Current.navlist[0].DestPage);
         }
 
@@ -284,19 +279,6 @@ namespace AppInstallerFileBuilder.Views
         {
             AppShell.Current.AppFrame.Navigate(AppShell.Current.navlist3[0].DestPage);
         }
-
-        //private void Package_Type_Combo_Box_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        //{
-        //    _save();
-        //    _reloadViews();
-        //}
-
-        //private void Processor_Type_Combo_Box_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        //{
-        //    _save();
-        //    _reloadViews();
-        //}
-
         public IList<String> Schemas
         {
             get
@@ -304,12 +286,12 @@ namespace AppInstallerFileBuilder.Views
                 // Will result in a list like {"Win10Ver1709", Win10Ver1803, "Win10Ver1809"}
                 List<String> lStrings = new List<string>
                 {
-                    "Windows 10 Version 1809 or later",
+                    //although update options{showprompt and blocking updates} are available in 1809, these options were supported in centennial apps till 1903
+                    "Windows 10 Version 1903 or later",
                     "Windows 10 Version 1803 or later",
                     "Windows 10 Version 1709 or later"
                 };
 
-                //return Enum.GetValues(typeof(Schema)).Cast<Schema>().ToList<Schema>();
                 return lStrings;
             }
         }
