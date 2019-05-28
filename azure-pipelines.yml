@@ -5,7 +5,15 @@
 # https://aka.ms/yaml
 
 trigger:
-- master
+  branches:
+    include:
+    - master
+  paths:
+    include:
+    - AppInstallerFileBuilder/*
+    exclude:
+    - Scripts/*
+    - Redist/*
 
 pool:
   name: Hosted Windows 2019 with VS2019
