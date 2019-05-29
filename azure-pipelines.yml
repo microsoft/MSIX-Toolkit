@@ -1,0 +1,59 @@
+# Universal Windows Platform
+
+# Build a Universal Windows Platform project using Visual Studio.
+# Add steps that test and distribute an app, save build artifacts, and more:
+# https://aka.ms/yaml
+
+trigger:
+  branches:
+    include:
+    - master
+  paths:
+    include:
+    - AppInstallerFileBuilder/*
+    exclude:
+    - Scripts/*
+    - Redist/*
+
+pool:
+  name: Hosted Windows 2019 with VS2019
+  demands: msbuild
+
+
+variables:
+  solution: '**/*.sln'
+  buildPlatform: 'x86'
+  buildConfiguration: 'Release'
+  appxPackageDir: '$(build.artifactStagingDirectory)\AppxPackages\\'
+
+steps:
+- task: NuGetToolInstaller@1
+  inputs:
+    versionSpec: '4.x'
+
+- task: '333b11bd-d341-40d9-afcf-b32d5ce6f23b@2'
+  inputs:
+    command: 'restore'
+    restoreSolution: '**/*.sln'
+    feedsToUse: 'config'
+    nugetConfigPath: 'AppInstallerFileBuilder/.nuget/NuGet.Config'
+    versioningScheme: 'off'
+
+- task: VSBuild@1
+  inputs:
+    platform: 'x86'
+    solution: '$(solution)'
+    configuration: '$(buildConfiguration)'
+    msbuildArgs: '/p:AppxBundlePlatforms="$(buildPlatform)" /p:AppxPackageDir="$(appxPackageDir)" /p:AppxBundle=Never /p:UapAppxPackageBuildMode=StoreUpload'
+
+- task: CopyFiles@2
+  displayName: 'Copy Files to: $(build.artifactstagingdirectory)'
+  inputs:
+    SourceFolder: '$(system.defaultworkingdirectory)'
+    Contents: '**\bin\$(BuildConfiguration)\**'
+    TargetFolder: '$(build.artifactstagingdirectory)'
+
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish Artifact: drop'
+  inputs:
+    PathtoPublish: '$(build.artifactstagingdirectory)'
