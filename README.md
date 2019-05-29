@@ -61,6 +61,8 @@ Only upload the files and content that is required to compile the application. F
 ## Redistributables
 MSIX Toolkit will also include tools that are traditionally available in the Windows 10 SDK. This allows for IT pros specifically to not require downloading a massive SDK that is of no use to them. There is a ‘redist’ folder in the root of the MSIX toolkit GitHub project where these tools will be available. 
 
+This repo also includes redistributable binaries and tools from the Windows 10 SDK that are essential for working with MSIX packages. These redistributables are governed by the license terms found [here](https://aka.ms/WinSDKLicenseURL). 
+
 ## Contributing
 
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a
