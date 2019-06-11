@@ -49,8 +49,8 @@ param(
 
 
 #relative paths to the tools used to repackage and sign
-$packageEditorExe = "PackageEditor.exe"
-$signToolExe = "signtool.exe"
+$packageEditorExe = ".\PackageEditor.exe"
+$signToolExe = ".\signtool.exe"
 
 #retreive publisher info from the .cer file
 function GetCertPublisher
