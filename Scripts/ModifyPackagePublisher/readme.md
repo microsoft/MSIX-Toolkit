@@ -4,14 +4,12 @@ Use this script to repackage and sign a MSIX package after modifying the publish
 that of the cert that will be used to sign the package.
 
 **NOTE:** The script should be run from within the folder context. All the required dependencies are present within
-the zip file. You will need to modify the relative paths to packageeditor and signtool if the script needs to be run from a different context.
-
-This script will require PackageEditor and SignTool in the same directory as the script. 
+the zip file redist folder. You will need to modify the relative paths to packageeditor and signtool if the script needs to be run from a different context.
 
 ## SYNTAX
 
 ```ps1
-modify-package-publisher.ps1 [-directory] <String> [-certPath] <String> [[-pfxPath] <String>]
+modify-package-publisher.ps1 [-directory] <String>[-redist] <String> [-certPath] <String> [[-pfxPath] <String>]
     [[-password] <String>] [-forceContinue] [<CommonParameters>]
 ```
 
@@ -32,7 +30,7 @@ the new manifest.
     Accept pipeline input?       false
     Accept wildcard characters?  false
 
--certPath <String>
+-redist <String>
 
     Required?                    true
     Position?                    2
@@ -40,10 +38,18 @@ the new manifest.
     Accept pipeline input?       false
     Accept wildcard characters?  false
 
+-certPath <String>
+
+    Required?                    true
+    Position?                    3
+    Default value
+    Accept pipeline input?       false
+    Accept wildcard characters?  false
+
 -pfxPath <String>
 
     Required?                    false
-    Position?                    3
+    Position?                    4
     Default value
     Accept pipeline input?       false
     Accept wildcard characters?  false
@@ -51,7 +57,7 @@ the new manifest.
 -password <String>
 
     Required?                    false
-    Position?                    4
+    Position?                    5
     Default value
     Accept pipeline input?       false
     Accept wildcard characters?  false
@@ -68,23 +74,23 @@ the new manifest.
 ``` PowerShell
 -------------------------- EXAMPLE 1 --------------------------
 
-PS C:\>.\modify-package-publisher.ps1 -directory "c:\msixpackages\" -certPath "C:\cert\mycert.cer"
+PS C:\>.\modify-package-publisher.ps1 -directory "c:\msixpackages\" -redist "c:\msixtoolkit\redist" -certPath "C:\cert\mycert.cer"
 
 
 -------------------------- EXAMPLE 2 --------------------------
 
-PS C:\>.\modify-package-publisher.ps1 -directory "c:\msixpackages\" -certPath "C:\cert\mycert.cer" -pfxPath
+PS C:\>.\modify-package-publisher.ps1 -directory "c:\msixpackages\" -redist "c:\msixtoolkit\redist" -certPath "C:\cert\mycert.cer" -pfxPath
 "C:\cert\CertKey.pfx"
 
 
 -------------------------- EXAMPLE 3 --------------------------
 
-PS C:\>.\modify-package-publisher.ps1 -directory "c:\msixpackages\" -certPath "C:\cert\mycert.cer" -pfxPath
+PS C:\>.\modify-package-publisher.ps1 -directory "c:\msixpackages\" -redist "c:\msixtoolkit\redist" -certPath "C:\cert\mycert.cer" -pfxPath
 "C:\cert\CertKey.pfx" -password "aaabbbccc"
 
 
 -------------------------- EXAMPLE 4 --------------------------
 
-PS C:\>.\modify-package-publisher.ps1 -directory "c:\msixpackages\" -certPath "C:\cert\mycert.cer" -pfxPath
+PS C:\>.\modify-package-publisher.ps1 -directory "c:\msixpackages\" -redist "c:\msixtoolkit\redist" -certPath "C:\cert\mycert.cer" -pfxPath
 "C:\cert\CertKey.pfx" -forceContinue
   ```

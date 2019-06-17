@@ -1,6 +1,6 @@
 ﻿<#
 .SYNOPSIS
-    Use this script to repackage and sign a MSIX package after modifying the publisher info in the manifest to match that of the cert that will be used to sign the package. 
+    This script will update the publisher in the app manifest and resign the package based on a new certificate.  The script is currently limited to msix packages only and not msixbundles. 
 
     [NOTE]: The script should be run from within the folder context. All the required dependencies are present within the zip file. You will need to modify the relative paths to
     packageeditor and signtool if the script needs to be run from a different context. 
@@ -11,10 +11,13 @@
     modify-package-publisher.ps1 is a PowerShell script. It takes a directory containing MSIX packages along with a cert file as required inputs. The script retrives the publisher info from the cert and modifies the manifest file inside the MSIX package to reflect the publisher retrieved from the cert file. Then, the script repacks the MSIX package with the new manifest. 
 
 .PARAMETER <-directory>
-    This parameter takes the directoryectory containing the MSIX packages. 
+    [Required] This parameter takes the directory containing the MSIX packages. 
 
 .PARAMETER <-certPath>
-   This parameter takes the path to the cert file that will be used to get the publisher/Subject info. 
+   [Required] This parameter takes the path to the cert file that will be used to get the publisher/Subject info. 
+
+.PARAMETER <-redist>
+   [Required] This parameter takes the directory of the redist for signtool and PackageEditor 
 
 .PARAMETER <-pfxPath>
    This parameter takes the path to the pfx file that will be use to sign the MSIX package. This is an optional parameter.
@@ -26,22 +29,23 @@
    This is an optional parameter which default to false. If the parameter is specified, the script will ignore the failed operations and continue with the next msix package if available. 
 
 .EXAMPLE
-   .\modify-package-publisher.ps1 -directory "c:\msixpackages\" -certPath "C:\cert\mycert.cer"
+   .\modify-package-publisher.ps1 -directory "C:\MSIX" -redist "C:\MSIX-Toolkit\Redist" -certPath "C:\cert\mycert.cer"
 
 .EXAMPLE
-   .\modify-package-publisher.ps1 -directory "c:\msixpackages\" -certPath "C:\cert\mycert.cer" -pfxPath "C:\cert\CertKey.pfx"
+   .\modify-package-publisher.ps1 -directory "C:\MSIX" -redist "C:\MSIX-Toolkit\Redist" -certPath "C:\cert\mycert.cer" -pfxPath "C:\cert\CertKey.pfx"
 
 .EXAMPLE 
-   .\modify-package-publisher.ps1 -directory "c:\msixpackages\" -certPath "C:\cert\mycert.cer" -pfxPath "C:\cert\CertKey.pfx" -password "aaabbbccc"
+   .\modify-package-publisher.ps1 -directory "C:\MSIX" -redist "C:\MSIX-Toolkit\Redist" -certPath "C:\cert\mycert.cer" -pfxPath "C:\cert\CertKey.pfx" -password "aaabbbccc"
 
 .EXAMPLE
-   .\modify-package-publisher.ps1 -directory "c:\msixpackages\" -certPath "C:\cert\mycert.cer" -pfxPath "C:\cert\CertKey.pfx" -forceContinue
+   .\modify-package-publisher.ps1 -directory "C:\MSIX" -redist "C:\MSIX-Toolkit\Redist" -certPath "C:\cert\mycert.cer" -pfxPath "C:\cert\CertKey.pfx" -forceContinue
 #>
 
 #Input Arguments for the script
 param(
    [Parameter(Mandatory=$true)][string]$directory,
    [Parameter(Mandatory=$true)][string]$certPath,
+   [Parameter(Mandatory=$true)][string]$redist,
    [string]$pfxPath,
    [string]$password,
    [switch]$forceContinue=$false
@@ -49,8 +53,8 @@ param(
 
 
 #relative paths to the tools used to repackage and sign
-$packageEditorExe = ".\PackageEditor.exe"
-$signToolExe = ".\signtool.exe"
+$packageEditorExe = $redist + "\PackageEditor.exe"
+$signToolExe = $redist + "\signtool.exe"
 
 #retreive publisher info from the .cer file
 function GetCertPublisher
@@ -182,7 +186,7 @@ function SignPackage ([string]$path)
     if ([string]::IsNullOrEmpty($password))
     {
         $signToolCmd = ("& `"" + $signToolExe + "`" sign /f `"" + $pfxPath + "`" /fd SHA256 `"" + $path + "`"" )
-        #                & "SDK_Signing_Tools\signtool.exe" sign /f ".\CertKey.pfx" /fd SHA256 "C:\Users\cdon\Desktop\msixscript\aps\New folder\AppInstaller - Copy.msix"
+        #                & "SDK_Signing_Tools\signtool.exe" sign /f ".\CertKey.pfx" /fd SHA256 "C:\msix\MyEmployees.msix"
         Write-Host $signToolCmd
         Invoke-Expression $signToolCmd
         if ($LASTEXITCODE) 
@@ -195,8 +199,8 @@ function SignPackage ([string]$path)
     }
     else
     {
-        $signToolCmd = ("& `"" + $signToolExe + "`" sign /f `"" + $pfxPath + "`" /fd SHA256 `"" + $path + "`"" + "`" /p `"" + $password + "`"")
-        #                & "SDK_Signing_Tools\signtool.exe" sign /f ".\CertKey.pfx" /fd SHA256 "C:\Users\cdon\Desktop\msixscript\aps\New folder\AppInstaller - Copy.msix"" /p "aaabbbaa"
+        $signToolCmd = ("& `"" + $signToolExe + "`" sign /f `"" + $pfxPath + "`" /p " + $password + " /fd SHA256 `"" + $path + "`"" )
+        #                & "SDK_Signing_Tools\signtool.exe" sign /f ".\CertKey.pfx" /fd SHA256 "C:\msix\MyEmployees.msix" /p "My!Pa$$word"
 
         Write-Host $signToolCmd
         Invoke-Expression $signToolCmd
