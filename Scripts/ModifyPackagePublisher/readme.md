@@ -3,6 +3,8 @@
 Use this script to repackage and sign a MSIX package after modifying the publisher info in the manifest to match
 that of the cert that will be used to sign the package.
 
+This script is signed, but you may need to allow the script to run once or run always, before you can proceed. 
+
 **NOTE:** The script should be run from within the folder context. All the required dependencies are present within
 the zip file redist folder. You will need to modify the relative paths to packageeditor and signtool if the script needs to be run from a different context.
 
