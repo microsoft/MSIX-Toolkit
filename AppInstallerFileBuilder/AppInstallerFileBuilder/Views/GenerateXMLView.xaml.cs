@@ -179,124 +179,125 @@ namespace AppInstallerFileBuilder.Views
                     }
 
                     //Optional Packages Content
-                    ObservableCollection<OptionalPackage> optionalPackages = App.OptionalPackages; 
+                    ObservableCollection<OptionalPackage> optionalPackages = App.OptionalPackages;
                     //DataContractSerializer optionalPackageDCS = new DataContractSerializer(typeof(OptionalPackage));
-                    
-                    if (optionalPackages.Count > 0 && App.IsOptionalPackages)
-                    {
-                        xdw.WriteStartElement("OptionalPackages");
-                        //optionalPackageDCS.WriteStartObject(xdw, optionalPackages[0]);
-                        for (int i = 0; i < optionalPackages.Count; i++)
-                        {
-                            //Write package or bundle element
-                            if (optionalPackages[i].PackageType == PackageType.MSIX)
-                            {
-                                Package package = new Package(
-                                    optionalPackages[i].FilePath,
-                                    optionalPackages[i].Version,
-                                    optionalPackages[i].Publisher,
-                                    optionalPackages[i].Name,
-                                    optionalPackages[i].PackageType,
-                                    optionalPackages[i].ProcessorArchitecture
-                                );
-
-                                //DataContractSerializer packageDCS = new DataContractSerializer(typeof(Package));
-                                xdw.WriteStartElement("Package");
-                                //packageDCS.WriteStartObject(xdw, package);
-                                xdw.WriteAttributeString("Version", package.Version);
-                                xdw.WriteAttributeString("Uri", package.FilePath);
-                                xdw.WriteAttributeString("Publisher", package.Publisher);
-                                if (package.ProcessorArchitecture != "" && package.PackageType != PackageType.MSIXBUNDLE)
-                                {
-                                    xdw.WriteAttributeString("ProcessorArchitecture", package.ProcessorArchitecture.ToString());
-                                }
-                                xdw.WriteAttributeString("Name", package.Name);
-                                //packageDCS.WriteEndObject(xdw);
-                                xdw.WriteEndElement();
-                            }
-                            else if (optionalPackages[i].PackageType == PackageType.MSIXBUNDLE)
-                            {
-                                Bundle bundle = new Bundle(
-                                     optionalPackages[i].FilePath,
-                                    optionalPackages[i].Version,
-                                    optionalPackages[i].Publisher,
-                                    optionalPackages[i].Name,
-                                    optionalPackages[i].PackageType
-                                );
-
-                                //DataContractSerializer bundleDCS = new DataContractSerializer(typeof(Bundle));
-                                //bundleDCS.WriteStartObject(xdw, bundle);
-                                xdw.WriteStartElement("Bundle");
-                                xdw.WriteAttributeString("Version", bundle.Version);
-                                xdw.WriteAttributeString("Uri", bundle.FilePath);
-                                xdw.WriteAttributeString("Publisher", bundle.Publisher);
-                                xdw.WriteAttributeString("Name", bundle.Name);
-                                //bundleDCS.WriteEndObject(xdw);
-                                xdw.WriteEndElement();
-                            }
-                        }
-                        //optionalPackageDCS.WriteEndObject(xdw);
-                        xdw.WriteEndElement();
-                    }
-
 
                     //Modification Packages Content
                     ObservableCollection<ModificationPackage> modificationPackages = App.ModificationPackages;
-                    //DataContractSerializer modificationPackageDCS = new DataContractSerializer(typeof(ModificationPackage));
-                    if (modificationPackages.Count > 0 && App.IsModificationPackages)
+
+                    bool hasOptionalPackage = (optionalPackages.Count > 0 && App.IsOptionalPackages);
+                    bool hasModificationPackage = (modificationPackages.Count > 0 && App.IsModificationPackages);
+
+                    if (hasOptionalPackage || hasModificationPackage)
                     {
-                        xdw.WriteStartElement("ModificationPackages");
-                        //modificationPackageDCS.WriteStartObject(xdw, modificationPackages[0]);
-                        for (int i = 0; i < modificationPackages.Count; i++)
+                        xdw.WriteStartElement("OptionalPackages");
+                        //optionalPackageDCS.WriteStartObject(xdw, optionalPackages[0]);
+                        if (hasOptionalPackage)
                         {
-                            //Write package or bundle element
-                            if (modificationPackages[i].PackageType == PackageType.MSIX)
+                            for (int i = 0; i < optionalPackages.Count; i++)
                             {
-                                Package package = new Package(
-                                    modificationPackages[i].FilePath,
-                                    modificationPackages[i].Version,
-                                    modificationPackages[i].Publisher,
-                                    modificationPackages[i].Name,
-                                    modificationPackages[i].PackageType,
-                                    modificationPackages[i].ProcessorArchitecture
-                                );
-
-                                //DataContractSerializer packageDCS = new DataContractSerializer(typeof(Package));
-                                //packageDCS.WriteStartObject(xdw, package);
-                                xdw.WriteStartElement("Package");
-                                xdw.WriteAttributeString("Version", package.Version);
-                                xdw.WriteAttributeString("Uri", package.FilePath);
-                                xdw.WriteAttributeString("Publisher", package.Publisher);
-                                if (package.ProcessorArchitecture != "" && package.PackageType != PackageType.MSIXBUNDLE)
+                                //Write package or bundle element
+                                if (optionalPackages[i].PackageType == PackageType.MSIX)
                                 {
-                                    xdw.WriteAttributeString("ProcessorArchitecture", package.ProcessorArchitecture.ToString());
-                                }
-                                xdw.WriteAttributeString("Name", package.Name);
-                                //packageDCS.WriteEndObject(xdw);
-                                xdw.WriteEndElement();
-                            }
-                            else if (modificationPackages[i].PackageType == PackageType.MSIXBUNDLE)
-                            {
-                                Bundle bundle = new Bundle(
-                                     modificationPackages[i].FilePath,
-                                    modificationPackages[i].Version,
-                                    modificationPackages[i].Publisher,
-                                   modificationPackages[i].Name,
-                                    modificationPackages[i].PackageType
-                                );
+                                    Package package = new Package(
+                                        optionalPackages[i].FilePath,
+                                        optionalPackages[i].Version,
+                                        optionalPackages[i].Publisher,
+                                        optionalPackages[i].Name,
+                                        optionalPackages[i].PackageType,
+                                        optionalPackages[i].ProcessorArchitecture
+                                    );
 
-                                //DataContractSerializer bundleDCS = new DataContractSerializer(typeof(Bundle));
-                                //bundleDCS.WriteStartObject(xdw, bundle);
-                                xdw.WriteStartElement("Bundle");
-                                xdw.WriteAttributeString("Version", bundle.Version);
-                                xdw.WriteAttributeString("Uri", bundle.FilePath);
-                                xdw.WriteAttributeString("Publisher", bundle.Publisher);
-                                xdw.WriteAttributeString("Name", bundle.Name);
-                                //bundleDCS.WriteEndObject(xdw);
-                                xdw.WriteEndElement();
+                                    //DataContractSerializer packageDCS = new DataContractSerializer(typeof(Package));
+                                    xdw.WriteStartElement("Package");
+                                    //packageDCS.WriteStartObject(xdw, package);
+                                    xdw.WriteAttributeString("Version", package.Version);
+                                    xdw.WriteAttributeString("Uri", package.FilePath);
+                                    xdw.WriteAttributeString("Publisher", package.Publisher);
+                                    if (package.ProcessorArchitecture != "" && package.PackageType != PackageType.MSIXBUNDLE)
+                                    {
+                                        xdw.WriteAttributeString("ProcessorArchitecture", package.ProcessorArchitecture.ToString());
+                                    }
+                                    xdw.WriteAttributeString("Name", package.Name);
+                                    //packageDCS.WriteEndObject(xdw);
+                                    xdw.WriteEndElement();
+                                }
+                                else if (optionalPackages[i].PackageType == PackageType.MSIXBUNDLE)
+                                {
+                                    Bundle bundle = new Bundle(
+                                         optionalPackages[i].FilePath,
+                                        optionalPackages[i].Version,
+                                        optionalPackages[i].Publisher,
+                                        optionalPackages[i].Name,
+                                        optionalPackages[i].PackageType
+                                    );
+
+                                    //DataContractSerializer bundleDCS = new DataContractSerializer(typeof(Bundle));
+                                    //bundleDCS.WriteStartObject(xdw, bundle);
+                                    xdw.WriteStartElement("Bundle");
+                                    xdw.WriteAttributeString("Version", bundle.Version);
+                                    xdw.WriteAttributeString("Uri", bundle.FilePath);
+                                    xdw.WriteAttributeString("Publisher", bundle.Publisher);
+                                    xdw.WriteAttributeString("Name", bundle.Name);
+                                    //bundleDCS.WriteEndObject(xdw);
+                                    xdw.WriteEndElement();
+                                }
                             }
                         }
-                        //modificationPackageDCS.WriteEndObject(xdw);
+
+                        if (hasModificationPackage)
+                        {
+                            for (int i = 0; i < modificationPackages.Count; i++)
+                            {
+                                //Write package or bundle element
+                                if (modificationPackages[i].PackageType == PackageType.MSIX)
+                                {
+                                    Package package = new Package(
+                                        modificationPackages[i].FilePath,
+                                        modificationPackages[i].Version,
+                                        modificationPackages[i].Publisher,
+                                        modificationPackages[i].Name,
+                                        modificationPackages[i].PackageType,
+                                        modificationPackages[i].ProcessorArchitecture
+                                    );
+
+                                    //DataContractSerializer packageDCS = new DataContractSerializer(typeof(Package));
+                                    //packageDCS.WriteStartObject(xdw, package);
+                                    xdw.WriteStartElement("Package");
+                                    xdw.WriteAttributeString("Version", package.Version);
+                                    xdw.WriteAttributeString("Uri", package.FilePath);
+                                    xdw.WriteAttributeString("Publisher", package.Publisher);
+                                    if (package.ProcessorArchitecture != "" && package.PackageType != PackageType.MSIXBUNDLE)
+                                    {
+                                        xdw.WriteAttributeString("ProcessorArchitecture", package.ProcessorArchitecture.ToString());
+                                    }
+                                    xdw.WriteAttributeString("Name", package.Name);
+                                    //packageDCS.WriteEndObject(xdw);
+                                    xdw.WriteEndElement();
+                                }
+                                else if (modificationPackages[i].PackageType == PackageType.MSIXBUNDLE)
+                                {
+                                    Bundle bundle = new Bundle(
+                                         modificationPackages[i].FilePath,
+                                        modificationPackages[i].Version,
+                                        modificationPackages[i].Publisher,
+                                       modificationPackages[i].Name,
+                                        modificationPackages[i].PackageType
+                                    );
+
+                                    //DataContractSerializer bundleDCS = new DataContractSerializer(typeof(Bundle));
+                                    //bundleDCS.WriteStartObject(xdw, bundle);
+                                    xdw.WriteStartElement("Bundle");
+                                    xdw.WriteAttributeString("Version", bundle.Version);
+                                    xdw.WriteAttributeString("Uri", bundle.FilePath);
+                                    xdw.WriteAttributeString("Publisher", bundle.Publisher);
+                                    xdw.WriteAttributeString("Name", bundle.Name);
+                                    //bundleDCS.WriteEndObject(xdw);
+                                    xdw.WriteEndElement();
+                                }
+                            }
+                        }                       
+                        //optionalPackageDCS.WriteEndObject(xdw);
                         xdw.WriteEndElement();
                     }
 
