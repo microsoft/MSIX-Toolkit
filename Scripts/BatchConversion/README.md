@@ -21,6 +21,8 @@ The script is *ParallelPackaging.ps1*. It takes 3 parameters:
 - FolderContainingMSIs - Local full path name of the folder containing all MSIs to package
 - publisherName - Full name of the publisher which has to be the same as the signing certificate
 
+**Note:** In order to perform a checkpoint/restore between each packaging and have a clean VM each time you have to uncomment the commented line of the script *run_job.js1*
+
 **Exemple:** 
 
 `ParallelPackaging.ps1 -VMNames MSIXVM01,MSIXVM02 -FolderContainingMSIs C:\Temp\FolderWithMSIs\ -publisherName "Contoso Software (FOR LAB USE ONLY), O=Contoso Corporation, C=US"`
