@@ -5,6 +5,22 @@ Supporting scripts:
 2. sign_deploy_run.ps1 - Sign resulting packages
 3. run_job.ps1 - Attempt to run the packages locally for initial validation
 
-Usage:
-Edit the file entry.ps1 with the parameters of your virtual/remote machines and installers you would like to convert.
-Run: entry.ps1
+## Package specified MSIs locally or on virtual/remote machines
+The script point is *entry.ps1*
+
+**Note:** Edit the file entry.ps1 with the parameters of your virtual/remote machines and installers you would like to convert.
+
+**Run:**
+
+`entry.ps1`
+
+
+## Packages all MSIs of a folder on multiple virtual machines
+The script is *ParallelPackaging.ps1*. It takes 3 parameters:
+- VMNames = Names of the local virtual machines on which we run the packaging in parallel. The names are comma separated
+- FolderContainingMSIs - Local full path name of the folder containing all MSIs to package
+- publisherName - Full name of the publisher which has to be the same as the signing certificate
+
+**Exemple:** 
+
+`ParallelPackaging.ps1 -VMNames MSIXVM01,MSIXVM02 -FolderContainingMSIs C:\Temp\FolderWithMSIs\ -publisherName "Contoso Software (FOR LAB USE ONLY), O=Contoso Corporation, C=US"`
