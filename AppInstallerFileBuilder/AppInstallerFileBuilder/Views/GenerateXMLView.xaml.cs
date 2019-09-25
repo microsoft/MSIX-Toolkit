@@ -445,7 +445,13 @@ namespace AppInstallerFileBuilder.Views
                         //DataContractSerializer onLaunchDCS = new DataContractSerializer(typeof(OnLaunch));
                         //onLaunchDCS.WriteStartObject(xdw, onLaunch);
                         xdw.WriteStartElement("OnLaunch");
-                        xdw.WriteAttributeString("HoursBetweenUpdateChecks", onLaunch.HoursBetweenUpdateChecks.ToString());
+
+                        //HoursBetweenUpdate checks is only available AFTER 1709
+                        if(!App.AppInstallerFileSchemaNamespace.Equals("http://schemas.microsoft.com/appx/appinstaller/2017"))
+                        {
+                            xdw.WriteAttributeString("HoursBetweenUpdateChecks", onLaunch.HoursBetweenUpdateChecks.ToString());
+                        }
+                        
                         if (onLaunch.IsShowPrompt)
                             xdw.WriteAttributeString("ShowPrompt", onLaunch.IsShowPrompt.ToString().ToLower());
                         if (onLaunch.IsBlockUpdate)

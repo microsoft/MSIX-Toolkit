@@ -201,33 +201,25 @@
                         </StackPanel>
 
                         <StackPanel Orientation="Horizontal" x:Name="One_Update_Settings_Stack_Panel" x:Uid="One_Update_Settings_Stack_Panel" Visibility="Collapsed">
-                        <TextBlock
+                          
+                        </StackPanel>
+
+                        <StackPanel Orientation="Horizontal" x:Name="Two_Update_Settings_Stack_Panel" x:Uid="Two_Update_Settings_Stack_Panel" Visibility="Collapsed">
+                            <TextBlock
                             x:Uid="Update_Frequency_Text_Block"
                             Text="Hours between update checks"
                             Style="{StaticResource SubtitleTextBlockStyle}" FontSize="15"
                             Margin="5" VerticalAlignment="Center"
-                        />
-                        <TextBox
+                            />
+                            <TextBox
                             x:Uid="Hours_Between_Updates_Text_Box"
                             x:Name="Hours_Between_Updates_Text_Box"
                             PlaceholderText="12"
                             Width="70"
                             HorizontalAlignment="Left"
                             FontSize="15" Margin="5" VerticalAlignment="Center"
-                        />
-                            
-                        </StackPanel>
-
-                        <StackPanel Orientation="Horizontal" x:Name="Two_Update_Settings_Stack_Panel" x:Uid="Two_Update_Settings_Stack_Panel" Visibility="Collapsed">
-                            <TextBlock Text="Force update" Style="{StaticResource SubtitleTextBlockStyle}" FontSize="15"
-                            Margin="5" VerticalAlignment="Center" />
-                            <ToggleSwitch
-                                Margin="21,0,0,0"
-                                x:Uid="Force_Update_Switch"
-                                x:Name="Force_Update_Switch"
-                                IsOn="{Binding IsForcedUpdate}"
-                                Toggled="Force_Update_Switch_Toggled"
                             />
+                            
                             <TextBlock Text="Auto background update" Style="{StaticResource SubtitleTextBlockStyle}" FontSize="15"
                             Margin="5" VerticalAlignment="Center" />
                             <ToggleSwitch
@@ -240,6 +232,16 @@
                         </StackPanel>
 
                         <StackPanel Orientation="Horizontal" x:Name="Three_Update_Settings_Stack_Panel" x:Uid="Three_Update_Settings_Stack_Panel" Visibility="Collapsed">
+                            <TextBlock Text="Force update" Style="{StaticResource SubtitleTextBlockStyle}" FontSize="15"
+                            Margin="5" VerticalAlignment="Center" />
+                            <ToggleSwitch
+                                Margin="21,0,0,0"
+                                x:Uid="Force_Update_Switch"
+                                x:Name="Force_Update_Switch"
+                                IsOn="{Binding IsForcedUpdate}"
+                                Toggled="Force_Update_Switch_Toggled"
+                            />
+                            
                             <TextBlock Text="Show prompt" Style="{StaticResource SubtitleTextBlockStyle}" FontSize="15"
                             Margin="5" VerticalAlignment="Center"/>
                             <ToggleSwitch
