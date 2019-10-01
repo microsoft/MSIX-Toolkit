@@ -212,7 +212,7 @@
                                     Width="185" VerticalAlignment="Center"
                                     Margin="5"
                             />
-                                <TextBox
+                            <TextBox
                             x:Uid="Hours_Between_Updates_Text_Box"
                             x:Name="Hours_Between_Updates_Text_Box"
                             PlaceholderText="12"
