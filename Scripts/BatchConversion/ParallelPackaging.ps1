@@ -103,7 +103,7 @@ get-childitem $root -recurse | Where-Object {$_.extension -eq ".msi"} | % {
     $o.InstallerPath = $_.FullName
     $o.PackageName = $_.BaseName
     $o.PackageDisplayName = $_.BaseName
-    $o.PublisherName = "CN=" + $publisherName;
+    $o.PublisherName = $publisherName;
     $o.PublisherDisplayName = $publisherName;
     $o.PackageVersion = "1.0.0.0"
 
