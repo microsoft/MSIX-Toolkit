@@ -99,9 +99,12 @@ $conversionsParameters = @()
 $root = $FolderContainingMSIs
 get-childitem $root -recurse | Where-Object {$_.extension -eq ".msi"} | % {
   
+    # Epurate the MSI name for creating the MSIX
+    $MSIXName = $_.BaseName.replace("(","-").replace(")","-").replace("_","-").replace(" ","-")
+
     $o = New-Object Cparameter
     $o.InstallerPath = $_.FullName
-    $o.PackageName = $_.BaseName
+    $o.PackageName = $MSIXName
     $o.PackageDisplayName = $_.BaseName
     $o.PublisherName = $publisherName;
     $o.PublisherDisplayName = $publisherName;
@@ -117,12 +120,16 @@ $workingDirectory = [System.IO.Path]::Combine($PSScriptRoot, "out")
 Write-Host 
 Write-Host "Here is the job you asked"
 Write-Host "========================="
-Write-Host "- Packaging all MSIs of the folder '$FolderContainingMSIs'"
+Write-Host "- Packaging all MSIs of the folder '$FolderContainingMSIs':"
+foreach($msi in $conversionsParameters) {
+    Write-Host "`t" $msi.InstallerPath -ForegroundColor Cyan
+}
 Write-Host "- Using the following VMs: "
 foreach ($o in $virtualMachines) {
-	Write-Host "`t" $o.Name
+	Write-Host "`t" $o.Name -ForegroundColor Cyan
 }
-Write-Host "- Using the publisher name : '$publisherName'"
+Write-Host "- Using the publisher name :"
+Write-Host "`t '$publisherName'" -ForegroundColor Cyan
 Write-Host
 Write-Host "Press ENTER continue or CTRL+C to stop here" -ForegroundColor Yellow
 Read-Host
