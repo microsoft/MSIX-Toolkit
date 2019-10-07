@@ -286,7 +286,7 @@ namespace AppInstallerFileBuilder.Views
                 // Will result in a list like {"Win10Ver1709", Win10Ver1803, "Win10Ver1809"}
                 List<String> lStrings = new List<string>
                 {
-                    //although update options{showprompt and blocking updates} are available in 1809, these options were supported in centennial apps till 1903
+                    //although update options {showprompt and blocking updates} are available in 1809, these options were not supported in repackaged MSIX apps until 1903
                     "Windows 10 Version 1903 or later",
                     "Windows 10 Version 1803 or later",
                     "Windows 10 Version 1709 or later"
