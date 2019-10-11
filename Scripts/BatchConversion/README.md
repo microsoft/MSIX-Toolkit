@@ -15,7 +15,7 @@ The script point is *entry.ps1*
 `.\entry.ps1`
 
 
-## Packages all MSIs of a folder on multiple virtual machines
+## Packages all MSIs or executables from a folder on multiple virtual machines
 The script is *ParallelPackaging.ps1*. It takes 3 parameters:
 - VMNames = Names of the local virtual machines on which we run the packaging in parallel. The names are comma separated
 - FolderContainingMSIs - Local full path name of the folder containing all MSIs to package
@@ -24,7 +24,8 @@ The script is *ParallelPackaging.ps1*. It takes 3 parameters:
 
 **Note:** In order to perform a checkpoint/restore between each packaging and have a clean VM each time you have to uncomment the commented line of the script *run_job.js1*.
 
+**⚠ Caution:** Support for executables is actually a partial support. The goal of this script is to run automatically for all files (.exe or .msi) from a folder. For executables, we need the *silent* switch. It can be different from each executable. So we will need to add another parameter to provide the switches. Right now, we use "/S" for all executables.
 
-**Exemple:** 
+**Example:** 
 
 `.\ParallelPackaging.ps1 -VMNames MSIXVM01,MSIXVM02 -FolderContainingMSIs C:\Temp\FolderWithMSIs\ -publisherName "Contoso Software (FOR LAB USE ONLY), O=Contoso Corporation, C=US"`
