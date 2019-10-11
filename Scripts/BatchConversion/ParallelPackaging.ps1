@@ -90,6 +90,7 @@ public class Cparameter
     public string PublisherName;
     public string PublisherDisplayName;
     public string PackageVersion;
+    public string InstallerArguments;
 }
 '@    
 
@@ -97,7 +98,7 @@ public class Cparameter
 $conversionsParameters = @()
 
 $root = $FolderContainingMSIs
-get-childitem $root -recurse | Where-Object {$_.extension -eq ".msi"} | % {
+get-childitem $root -recurse | Where-Object {$_.extension -eq ".msi" -or $_.extension -eq ".exe"} | % {
   
     # Epurate the MSI name for creating the MSIX
     $MSIXName = $_.BaseName.replace("(","-").replace(")","-").replace("_","-").replace(" ","-")
@@ -107,8 +108,17 @@ get-childitem $root -recurse | Where-Object {$_.extension -eq ".msi"} | % {
     $o.PackageName = $MSIXName
     $o.PackageDisplayName = $_.BaseName
     $o.PublisherName = $publisherName;
-    $o.PublisherDisplayName = $publisherName;
+    $o.PublisherDisplayName = $publisherName
     $o.PackageVersion = "1.0.0.0"
+
+    # TODO: Add a new parameter to handle different switches for silent mode for executables
+    # By default, we use "/S"
+    if ($_.FullName.endswith(".exe") ) {
+        $o.InstallerArguments = "/S"
+    }
+    else {
+        $o.InstallerArguments = ""
+    }
 
     $conversionsParameters += $o
 }
