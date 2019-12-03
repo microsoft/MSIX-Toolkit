@@ -59,6 +59,7 @@ namespace AppInstallerFileBuilder.Views
         private StackPanel _1809updateSettingsStackPanel;
 
         private int _hoursBetweenUpdates;
+        private ScrollViewer _scrollViewer;
         
         /***************************************************************************
         * 
@@ -79,6 +80,7 @@ namespace AppInstallerFileBuilder.Views
             _uriPathTextBox = (TextBox)this.FindName("Uri_Path_Text_Box");
             _processorTypeStackPanel = (StackPanel)this.FindName("Processor_Type_Stack_Panel");
             _resourceIdStackPanel = (StackPanel)this.FindName("Resource_Id_Stack_Panel");
+            _scrollViewer = (ScrollViewer)this.FindName("Main_ScrollViewer");
 
             PackageInfoButton.Click += new RoutedEventHandler(PackageInfoButton_Click);
 
@@ -312,6 +314,7 @@ namespace AppInstallerFileBuilder.Views
                     _1803updateSettingsStackPanel.Visibility = Visibility.Visible;
                     _1709updateSettingsStackPanel.Visibility = Visibility.Visible;
                     App.AppInstallerFileSchemaNamespace = "http://schemas.microsoft.com/appx/appinstaller/2018";
+                    _scrollViewer.ChangeView(0.0f, _scrollViewer.ScrollableHeight, 1.0f);
                     break;
                 case 1: //1803 and above
                     Debug.WriteLine("1");
@@ -321,6 +324,7 @@ namespace AppInstallerFileBuilder.Views
                     _showPromptSwitch.IsOn = false;
                     _blockUpdateSwitch.IsOn = false;
                     App.AppInstallerFileSchemaNamespace = "http://schemas.microsoft.com/appx/appinstaller/2017/2";
+                    _scrollViewer.ChangeView(0.0f, _scrollViewer.ScrollableHeight/2.5, 1.0f);
                     break;
                 case 2: //1709 and above
                     Debug.WriteLine("2");
@@ -369,5 +373,9 @@ namespace AppInstallerFileBuilder.Views
 
         }
 
+        private void TextBlock_SelectionChanged(object sender, RoutedEventArgs e)
+        {
+
+        }
     }
 }
