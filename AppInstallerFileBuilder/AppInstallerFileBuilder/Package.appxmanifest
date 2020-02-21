@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10" xmlns:mp="http://schemas.microsoft.com/appx/2014/phone/manifest" xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10" IgnorableNamespaces="uap mp">
-  <Identity Name="AppInstallerFileBuilder" Publisher="CN=MSIX-Toolkit-Tempkey" Version="1.2019.1001.0" />
+  <Identity Name="AppInstallerFileBuilder" Publisher="CN=MSIX-Toolkit-Tempkey" Version="1.2020.221.0" />
   <mp:PhoneIdentity PhoneProductId="4a19f631-5573-4e7d-9544-322a5adf9868" PhonePublisherId="00000000-0000-0000-0000-000000000000" />
   <Properties>
     <DisplayName>AppInstaller File Builder (Preview)</DisplayName>

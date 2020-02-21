@@ -108,7 +108,7 @@ namespace AppInstallerFileBuilder.Views
                 var t = Task.Run(async () =>
                 {
                     var fileStream = await file.OpenAsync(FileAccessMode.ReadWrite);
-
+                   
                     //Create file
                     //FileStream writer = new FileStream(file.Path, FileMode.OpenOrCreate);
 
@@ -124,6 +124,7 @@ namespace AppInstallerFileBuilder.Views
                     };
                     
                     var fs = fileStream.AsStreamForWrite();
+                    fs.SetLength(0);
 
                     
                     XmlWriter xdw = XmlWriter.Create(fs, settings);
