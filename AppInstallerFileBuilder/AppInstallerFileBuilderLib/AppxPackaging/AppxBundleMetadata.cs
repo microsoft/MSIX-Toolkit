@@ -30,7 +30,7 @@ namespace Microsoft.Packaging.SDKUtils.AppxPackaging
         }
 
         /// <summary>
-        /// Initializes a ne` instance of the AppxBundleMetadata class.
+        /// Initializes a new instance of the AppxBundleMetadata class.
         /// </summary>
         /// <param name="filePath">the path to the appxbundle file</param>
         public AppxBundleMetadata(IRandomAccessStream randomAccessStream)
