@@ -4,8 +4,7 @@ AppInstaller File Builder is a Windows 10 application for users to easily build 
 
 ## Install the app 
 
-[Click here](https://github.com/microsoft/MSIX-Toolkit/releases/download/1.3.3/AppInstallerFileBuilder_1.2019.1001.0.msix) to download the app package and use App Installer to install it:
-![install app](AppInstallerFileBuilder-appinstaller.png)
+[Click here](https://github.com/microsoft/MSIX-Toolkit/releases/download/1.3.4/AppInstallerFileBuilder_1.2020.221.0_x86.msix) to download the app package and use App Installer to install it.
 
 ## Use 
 
