@@ -1,3 +1,5 @@
+. $psscriptroot\SharedScriptLib.ps1
+
 function CreateMPTTemplate($conversionParam, $jobId, $virtualMachine, $remoteMachine, $workingDirectory)
 {
     # create template file for this conversion
@@ -36,7 +38,7 @@ function RunConversionJobs($conversionsParameters, $virtualMachines, $remoteMach
 {
     New-Item -Force -Type Directory ([System.IO.Path]::Combine($workingDirectory, "MPT_Templates"))
     New-Item -Force -Type Directory ([System.IO.Path]::Combine($workingDirectory, "MSIX"))
-    $initialSnapshotName = "BeforeMsixConversions_$(Get-Date -format FileDateTime)" 
+    $initialSnapshotName = "BeforeMsixConversions_$(Get-Date -format yyyy-MM-dd)" 
     $runJobScriptPath = [System.IO.Path]::Combine($PSScriptRoot, "run_job.ps1")
 
     # create list of the indices of $conversionsParameters that haven't started running yet
@@ -46,9 +48,9 @@ function RunConversionJobs($conversionsParameters, $virtualMachines, $remoteMach
     # first schedule jobs on the remote machines. These machines will be recycled and will not be re-used to run additional conversions
     $remoteMachines | Foreach-Object {
         # select a job to run 
-        Write-Host "Determining next job to run..."
+        New-LogEntry -LogValue "Determining next job to run..." -Component "batch_convert:RunConversionJobs"
         $conversionParam = $conversionsParameters[$remainingConversions[0]]
-        Write-Host "Dequeuing conversion job for installer $($conversionParam.InstallerPath) on remote machine $($_.ComputerName)"
+        New-LogEntry -LogValue "Dequeuing conversion job for installer $($conversionParam.InstallerPath) on remote machine $($_.ComputerName)" -Component "batch_convert:RunConversionJobs"
 
         # Capture the job index and update list of remaining conversions to run
         $jobId = $remainingConversions[0]
@@ -73,12 +75,13 @@ function RunConversionJobs($conversionsParameters, $virtualMachines, $remoteMach
         if ($remainingConversions.Count -gt 0)
         {
             # select a job to run 
-            Write-Host "Determining next job to run..."
+            New-LogEntry -LogValue "Determining next job to run..." -Component "batch_convert:RunConversionJobs"
+    
             $conversionParam = $conversionsParameters[$remainingConversions[0]]
             # select a VM to run it on. Retry a few times due to race between semaphore signaling and process completion status
             $vm = $nul
             while (-not $vm) { $vm = $virtualMachines | where { -not($vmsCurrentJobMap[$_.Name]) -or -not($vmsCurrentJobMap[$_.Name].ExitCode -eq $Nul) } | Select-Object -First 1 }
-            Write-Host "Dequeuing conversion job for installer $($conversionParam.InstallerPath) on VM $($vm.Name)"
+            New-LogEntry -LogValue "Dequeuing conversion job for installer $($conversionParam.InstallerPath) on VM $($vm.Name)" -Component "batch_convert:RunConversionJobs"
 
             # Capture the job index and update list of remaining conversions to run
             $jobId = $remainingConversions[0]
@@ -100,9 +103,10 @@ function RunConversionJobs($conversionsParameters, $virtualMachines, $remoteMach
         Sleep(1)
     }
 
-    Write-Host "Finished scheduling all jobs"
+    New-LogEntry -LogValue "Finished scheduling all jobs" -Component "batch_convert:RunConversionJobs"
     $virtualMachines | foreach-object { if ($vmsCurrentJobMap[$_.Name]) { $vmsCurrentJobMap[$_.Name].WaitForExit() } }
     $semaphore.Dispose()
+    
     Read-Host -Prompt 'Press any key to continue '
-    Write-Host "Finished running all jobs"
+    New-LogEntry -LogValue "Finished running all jobs" -Component "batch_convert:RunConversionJobs"
 }
