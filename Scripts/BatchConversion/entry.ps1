@@ -1,5 +1,6 @@
 . $PSScriptRoot\batch_convert.ps1
 . $PSScriptRoot\sign_deploy_run.ps1
+. $PSScriptRoot\SharedScriptLib.ps1
 
 ##
 ## Usage:
