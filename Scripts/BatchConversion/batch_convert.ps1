@@ -47,21 +47,26 @@ function RunConversionJobs($conversionsParameters, $virtualMachines, $remoteMach
 
     # first schedule jobs on the remote machines. These machines will be recycled and will not be re-used to run additional conversions
     $remoteMachines | Foreach-Object {
-        # select a job to run 
-        New-LogEntry -LogValue "Determining next job to run..." -Component "batch_convert:RunConversionJobs"
-        $conversionParam = $conversionsParameters[$remainingConversions[0]]
-        New-LogEntry -LogValue "Dequeuing conversion job for installer $($conversionParam.InstallerPath) on remote machine $($_.ComputerName)" -Component "batch_convert:RunConversionJobs"
+        ## Verifies if the remote machine is accessible on the network.
+        If(Test-RMConnection -RemoteMachineName $($_.ComputerName))
+        {
+            # select a job to run 
+            New-LogEntry -LogValue "Determining next job to run..." -Component "batch_convert:RunConversionJobs"
+            $conversionParam = $conversionsParameters[$remainingConversions[0]]
+            New-LogEntry -LogValue "Dequeuing conversion job for installer $($conversionParam.InstallerPath) on remote machine $($_.ComputerName)" -Component "batch_convert:RunConversionJobs"
 
-        # Capture the job index and update list of remaining conversions to run
-        $jobId = $remainingConversions[0]
-        $remainingConversions = $remainingConversions | where { $_ -ne $remainingConversions[0] }
+            # Capture the job index and update list of remaining conversions to run
+            $jobId = $remainingConversions[0]
+            $remainingConversions = $remainingConversions | where { $_ -ne $remainingConversions[0] }
 
-        $templateFilePath = CreateMPTTemplate $conversionParam $jobId $nul $_ $workingDirectory 
-        $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($_.Credential.Password)
-        $password = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
-        $process = Start-Process "powershell.exe" -ArgumentList($runJobScriptPath, "-jobId", $jobId, "-machinePassword", $password, "-templateFilePath", $templateFilePath, "-workingDirectory", $workingDirectory) -PassThru
+            $templateFilePath = CreateMPTTemplate $conversionParam $jobId $nul $_ $workingDirectory 
+            $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($_.Credential.Password)
+            $password = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
+            $process = Start-Process "powershell.exe" -ArgumentList($runJobScriptPath, "-jobId", $jobId, "-machinePassword", $password, "-templateFilePath", $templateFilePath, "-workingDirectory", $workingDirectory) -PassThru
+        }
     }
     
+
     # Next schedule jobs on virtual machines which can be checkpointed/re-used
     # keep a mapping of VMs and the current job they're running, initialized ot null
     $vmsCurrentJobMap = @{}
@@ -106,7 +111,7 @@ function RunConversionJobs($conversionsParameters, $virtualMachines, $remoteMach
     New-LogEntry -LogValue "Finished scheduling all jobs" -Component "batch_convert:RunConversionJobs"
     $virtualMachines | foreach-object { if ($vmsCurrentJobMap[$_.Name]) { $vmsCurrentJobMap[$_.Name].WaitForExit() } }
     $semaphore.Dispose()
-    
+
     Read-Host -Prompt 'Press any key to continue '
     New-LogEntry -LogValue "Finished running all jobs" -Component "batch_convert:RunConversionJobs"
 }
