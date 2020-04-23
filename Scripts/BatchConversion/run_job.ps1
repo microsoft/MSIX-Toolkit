@@ -1,29 +1,6 @@
 param($jobId, $vmName, $vmsCount, $machinePassword, $templateFilePath, $initialSnapshotName)
 . $PSScriptRoot\SharedScriptLib.ps1
 
-Function New-InitialSnapshot ($SnapshotName, $vmName, $jobId )
-{
-    ## Verifies if the script snapshot exists, if not exists snapshot is created.
-    IF ($SnapshotName -cnotin $(Get-VMSnapshot -VMName $vmName).Name)
-    {
-        New-LogEntry -LogValue "Creating VM Snap for VM ($VMName): $SnapshotName" -Component "run_job.ps1:$jobId" 
-        $Scratch = Checkpoint-VM -Name $vmName -SnapshotName "$SnapshotName"
-    }
-    Else
-    {
-        New-LogEntry -LogValue "Snapshot ($SnapshotName) for VM ($VMName) already exists. " -Component "run_job.ps1:$jobId"
-    }
-}
-
-Function Restore-InitialSnapshot ($SnapshotName, $vmName, $jobId )
-{
-    IF ($SnapshotName -in $(Get-VMSnapshot -VMName $vmName).Name)
-    {
-        New-LogEntry -LogValue "Reverting Virtual Machine to earlier snapshot ($initialSnapshotName)" -Component "run_job.ps1:$jobId"
-        $Scratch = Restore-VMSnapshot -Name "$SnapshotName" -VMName $vmName -Confirm:$false
-    }
-}
-
 $TemplateFile = [xml](get-content $($templateFilePath))
 New-LogEntry -LogValue "JOB: $jobId - $($TemplateFile.MsixPackagingToolTemplate.PackageInformation.PackageDisplayName)" -Component "run_job.ps1:$jobId"
 
@@ -44,7 +21,15 @@ try
         {
             $Entry + "`n`r"
         }
-    New-LogEntry -LogValue "$Scratch" -Component "run_job.ps1:$jobId" -WriteHost $false
+    If ($Error)
+    {
+        New-LogEntry -LogValue "$Scratch" -Component "run_job.ps1:$jobId" -WriteHost $false -Severity 3
+    }
+    Else
+    {
+        New-LogEntry -LogValue "$Scratch" -Component "run_job.ps1:$jobId" -WriteHost $false
+    }
+    
 }
 Catch{}
 
@@ -60,5 +45,5 @@ if ($vmName)
     $semaphore.Dispose()
 }
 
-#Read-Host -Prompt 'Press any key to exit this window '
+Read-Host -Prompt 'Press any key to exit this window '
 New-LogEntry -LogValue "Conversion of application ($($TemplateFile.MsixPackagingToolTemplate.PackageInformation.PackageDisplayName)) completed" -Component "run_job.ps1:$jobId"
