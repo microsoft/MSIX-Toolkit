@@ -132,36 +132,42 @@ Function Test-HostWinRM ($RemoteMachineName)
     $HostMachineObject = (Get-WmiObject -ComputerName $RemoteMachineName -Query "Win32_ComputerSystem")
     $RemoteMachineObject = (Get-WmiObject -ComputerName $RemoteMachineName -Query "Win32_ComputerSystem")
 
-
 }
-function Set-MSIXSignApp($msixFolder, $CertificatePath, $CertificatePassword)
+
+function Set-MSIXSignApp($msixFolder, $CertificatePath, $CertificatePassword, $Encryption="SHA256")
 {
     ## Goes up two folders in the path.
     $SignToolPath = $PSScriptRoot
     $SignToolPath = $SignToolPath.Substring(0, $($SignToolPath.LastIndexOf("\")))
     $SignToolPath = $SignToolPath.Substring(0, $($SignToolPath.LastIndexOf("\")))
 
+    ## Detects the OS Architecture and sets the variable path approrpriately.
+    Switch ($(Get-WmiObject -Query "Select OSArchitecture from Win32_operatingsystem").OSArchitecture)
+    {
+        "64-bit" {$SignTool   = ".\Redist.x64\signtool.exe"}
+        "32-bit" {$SignTool   = ".\Redist.x86\signtool.exe"}
+    }
+
     ##Sets the location to root of the MSIX Toolkit
     $IntialLocation = Get-Location
     Set-Location -Path $SignToolPath
 
     ## Parses through all files in the identified MSIX Folder to sign all files.
-    Get-ChildItem $msixFolder | foreach-object {
+    Get-ChildItem $msixFolder | foreach-object 
+    {
         $msixPath       = $_.FullName
-        $SignToolPath   = ".\Redist.x64\signtool.exe"
-        $Encryption     = "SHA256"
-        
-        $signToolCmd = "$SignToolPath sign /f ""$CertificatePath"" /p $CertificatePassword /fd $Encryption ""$msixPath"""
-        Write-Host $signToolCmd
 
-        ## Commits the signing of each MSIX App using the signing tool
-        Invoke-Expression $signToolCmd
+        ##Validates that the file to be signed is an MSIX App.
+        IF ($([System.IO.Path]::GetExtension($misxPath)) -eq ",msix")
+        {
+            $signToolCmd = "$SignTool sign /f ""$CertificatePath"" /p $CertificatePassword /fd $Encryption ""$msixPath"""
+            New-LogEntry -LogValue $signToolCmd -Component "SharedScriptLib:Set-MSIXSignApp"
 
-        ## Installs the MSIX App onto the computer.
-        Add-AppxPackage $msixPath
-
+            ## Commits the signing of each MSIX App using the signing tool.
+            Invoke-Expression $signToolCmd
+        }   
     }
 
-    ## Returns the current path to the original location
+    ## Returns the current path to the original location.
     Set-Location -Path $IntialLocation
 }
