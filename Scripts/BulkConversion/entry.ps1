@@ -1,5 +1,4 @@
 . $PSScriptRoot\bulk_convert.ps1
-. $PSScriptRoot\sign_deploy_run.ps1
 . $PSScriptRoot\SharedScriptLib.ps1
 
 ##
@@ -47,4 +46,4 @@ $workingDirectory = [System.IO.Path]::Combine($PSScriptRoot, "out")
 
 RunConversionJobs -conversionsParameters $conversionsParameters -virtualMachines $virtualMachines -remoteMachines $remoteMachines $workingDirectory
 
-SignAndDeploy "$workingDirectory\MSIX"
+Set-MSIXSignApp "$workingDirectory\MSIX"
