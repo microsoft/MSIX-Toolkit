@@ -95,7 +95,8 @@ function RunConversionJobs($conversionsParameters, $virtualMachines, $remoteMach
             $templateFilePath = CreateMPTTemplate $conversionParam $jobId $vm $nul $workingDirectory 
             $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($vm.Credential.Password)
             $password = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
-
+            
+            ## Converts the Application to the MSIX Packaging format.
             $process = Start-Process "powershell.exe" -ArgumentList($runJobScriptPath, "-jobId", $jobId, "-vmName", $vm.Name, "-vmsCount", $virtualMachines.Count, "-machinePassword", $password, "-templateFilePath", $templateFilePath, "-initialSnapshotName", $initialSnapshotName) -PassThru
             $vmsCurrentJobMap[$vm.Name] = $process
         }
@@ -114,4 +115,65 @@ function RunConversionJobs($conversionsParameters, $virtualMachines, $remoteMach
 
     Read-Host -Prompt 'Press any key to continue '
     New-LogEntry -LogValue "Finished running all jobs" -Component "batch_convert:RunConversionJobs"
+}
+
+Function Test-VMConnection ([string]$VMName)
+{
+    ## Retrieves a list of network interfaces for the machine.
+    $HostNic = netsh interface ipv4 show interfaces
+
+    ## Retrieves the VM Object, if no object found fails, and returns false.
+    $GuestVM = Get-VM -Name $VMName -ErrorVariable Error -ErrorAction SilentlyContinue
+    If ($Error) 
+    {
+        New-LogEntry -LogValue "Unable to locate $VMName on this machine." -Component "SharedScriptLib.ps1:Test-VMConnection" -Severity 3
+        Return $false
+    }
+
+    ## Collects the name of the VM NIC.
+    $GuestVMNic = $(Get-VMNetworkAdapter -VM $GuestVM).SwitchName
+
+    ## Parses through all of the host NIC's to find the matching NIC of the VM. Validates connection status then returns true if status is connected.
+    Foreach ($Connection in $HostNic)
+    {
+        IF($Connection -like "*" + $GuestVMNic + "*" -and $Connection -notlike "*disconnected*")
+        {
+            New-LogEntry -LogValue "Connection to $VMName VM was successful." -Component "SharedScriptLib.ps1:Test-VMConnection"
+            Return $true
+        }
+    }
+
+    ## Unable to find a matching NIC or the connection was disconnected. Returns false.
+    New-LogEntry -LogValue "Connection to $VMName VM failed." -Component "SharedScriptLib.ps1:Test-VMConnection" -Severity 3
+    Return $false
+}
+
+Function Test-VMMSIXPackagingTool ($VMName)
+{
+
+}
+
+Function Test-RMConnection ($RemoteMachineName)
+{
+    ## Sends a network ping request to the Remote Machine
+    $PingResult = Test-Connection $RemoteMachineName -ErrorAction SilentlyContinue
+
+    ## Validates if a response of any kind has been returned.
+    If ($($PingResult.Count) -gt 0 )
+    {
+        ## If all Pings returned successfully, consider this a 100% good VM to work with.
+        If ($($PingResult.Count) -eq 4)
+        {
+            New-LogEntry -LogValue "Connection to $RemoteMachineName Successful." -Component "SharedScriptLib.ps1:Test-RMConnection"
+            Return $true
+        }
+
+        ## If some Pings were lost, still good, just potential network issue.
+        New-LogEntry -LogValue "Connection to $RemoteMachineName successful, Some packets were dropped." -Component "SharedScriptLib.ps1:Test-RMConnection" -Severity 2
+        Return $true
+    }
+
+    ## Returns false, no network response was available.
+    New-LogEntry -LogValue "Unable to Connect to $RemoteMachineName`r    - Ensure Firewall has been configured to allow remote connections and PING requests"  -Component "SharedScriptLib.ps1:Test-RMConnection" -Severity 3
+    Return $false
 }
