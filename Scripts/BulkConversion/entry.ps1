@@ -14,7 +14,6 @@ $SigningCertificate = @{
     Password = "P@ssw0rd"; Path = "C:\Temp\cert.pfx"
 }
 
-
 ## Virtual Machines to be used for converting applications to the MSIX Packaging format.
 $virtualMachines = @(
     @{ Name = "vm1"; Credential = $credential }
@@ -29,29 +28,36 @@ $remoteMachines = @(
 ## Applications to be converted.
 $conversionsParameters = @(
     @{
-        InstallerPath = "Path\To\Your\Installer\YourInstaller.msi";
-        PackageName = "YourApp";
-        PackageDisplayName = "Your App";
+        PackageName = "YourApp2";
+        PackageDisplayName = "Your App2";
         PublisherName = "CN=YourCompany";
         PublisherDisplayName = "YourCompany";
         PackageVersion = "1.0.0.0"
-    },
+        Installers = @{
+            InstallerPath = "Path\To\Your\Installer\YourInstaller2.msi"
+     },
     @{
-       InstallerPath = "Path\To\Your\Installer\YourInstaller2.msi";
        PackageName = "YourApp2";
        PackageDisplayName = "Your App2";
        PublisherName = "CN=YourCompany";
        PublisherDisplayName = "YourCompany";
        PackageVersion = "1.0.0.0"
-    },
+       Installers = @{
+           InstallerPath = "Path\To\Your\Installer\YourInstaller2.msi"
+}
+   },
     @{
-       InstallerPath = "Path\To\Your\Installer\YourInstaller3.msi";
-       PackageName = "YourApp3";
-       PackageDisplayName = "Your App3";
-       PublisherName = "CN=YourCompany";
-       PublisherDisplayName = "YourCompany";
-       PackageVersion = "1.0.0.0"
-    }
+        PackageName             = "YourApp2";
+        PackageDisplayName      = "Your App2";
+        PublisherName           = "CN=YourCompany";                                         ## This must be the same as the code signing certificate.
+        PublisherDisplayName    = "YourCompany";
+        PackageVersion          = "1.0.0.0"
+        Installers = @{
+            InstallerPath       = "Path\To\Your\Installer\YourInstaller2.msi";
+#            InstallerArguements = ""                                                       ## Optional - If Installer is MSI otherwise required.
+#       $SavePackagePath = [System.IO.Path]::Combine($PSScriptRoot, "out\MSIX");            ## Optional - Working Directory will be used if not provided.
+#       $SaveTemplatePath - [System.IO.Path]::Combine($PSScriptRoot, "out\MPT_Templates");  ## Optional - Working Directory will be used if not provided.
+   }
 )
 
 ## Converts the identified applications to MSIX Packaging Format.
