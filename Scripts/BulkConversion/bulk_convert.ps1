@@ -2,9 +2,26 @@
 
 function CreateMPTTemplate($conversionParam, $jobId, $virtualMachine, $remoteMachine, $workingDirectory)
 {
+    ## If the Save Template Path has been specified, use this directory otherwise use the default working directory.
+    If($conversionParam.SaveTemplatePath)
+    {
+        $workingDirectory = $conversionParam.SaveTemplatePath
+    }
+
+    ## If the Save Package Path has been specified, use this directory otherwise use the default working directory.
+    If($conversionParam.SavePackagePath)
+    {
+        $saveFolder = [System.IO.Path]::Combine($($conversionParam.SavePackagePath), "MSIX")
+    }
+    Else
+    {
+        $saveFolder = [System.IO.Path]::Combine($workingDirectory, "MSIX")
+    }
+    
     # create template file for this conversion
     $templateFilePath = [System.IO.Path]::Combine($workingDirectory, "MPT_Templates", "MsixPackagingToolTemplate_Job$($jobId).xml")
     $conversionMachine = ""
+
     if ($virtualMachine)
     {
         $conversionMachine = "<VirtualMachine Name=""$($vm.Name)"" Username=""$($vm.Credential.UserName)"" />"
@@ -13,12 +30,11 @@ function CreateMPTTemplate($conversionParam, $jobId, $virtualMachine, $remoteMac
     {
         $conversionMachine = "<mptv2:RemoteMachine ComputerName=""$($remoteMachine.ComputerName)"" Username=""$($remoteMachine.Credential.UserName)"" />"
     }
-    $saveFolder = [System.IO.Path]::Combine($workingDirectory, "MSIX")
     $xmlContent = @"
 <MsixPackagingToolTemplate
     xmlns="http://schemas.microsoft.com/appx/msixpackagingtool/template/2018"
     xmlns:mptv2="http://schemas.microsoft.com/msix/msixpackagingtool/template/1904">
-<Installer Path="$($conversionParam.InstallerPath)" Arguments="$($conversionParam.InstallerArguments)" />
+<Installer Path="$($conversionParam.Installers.InstallerPath)" Arguments="$($conversionParam.Installers.InstallerArguments)" />
 $conversionMachine
 <SaveLocation PackagePath="$saveFolder" />
 <PackageInformation
@@ -36,14 +52,25 @@ $conversionMachine
 
 function RunConversionJobs($conversionsParameters, $virtualMachines, $remoteMachines, $workingDirectory)
 {
-    New-Item -Force -Type Directory ([System.IO.Path]::Combine($workingDirectory, "MPT_Templates"))
-    New-Item -Force -Type Directory ([System.IO.Path]::Combine($workingDirectory, "MSIX"))
+    ## Creates working directory and child directories
+    $scratch = New-Item -Force -Type Directory ([System.IO.Path]::Combine($workingDirectory, "MPT_Templates"))
+    $scratch = New-Item -Force -Type Directory ([System.IO.Path]::Combine($workingDirectory, "MSIX"))
+
     $initialSnapshotName = "BeforeMsixConversions_$(Get-Date -format yyyy-MM-dd)" 
     $runJobScriptPath = [System.IO.Path]::Combine($PSScriptRoot, "run_job.ps1")
 
     # create list of the indices of $conversionsParameters that haven't started running yet
     $remainingConversions = @()
     $conversionsParameters | Foreach-Object { $i = 0 } { $remainingConversions += ($i++) }
+
+    ## Validates that there are enough remote / virtual machines provided to package all identified applications to the MSIX packaging format.
+    If($virtualMachines.count -eq 0)
+    {
+        If($RemoteMachines.count -lt $ConversionsParameters.count)
+        {
+            New-LogEntry -logValue "Warning, there are not enough Remote Machines ($($RemoteMachines.count)) to package all identified applications ($($ConversionsParameters.count))" -Severity 2 -Component "bulk_convert:RunConversionJobs"
+        }
+    }
 
     # first schedule jobs on the remote machines. These machines will be recycled and will not be re-used to run additional conversions
     $remoteMachines | Foreach-Object {
@@ -53,16 +80,17 @@ function RunConversionJobs($conversionsParameters, $virtualMachines, $remoteMach
             # select a job to run 
             New-LogEntry -LogValue "Determining next job to run..." -Component "batch_convert:RunConversionJobs"
             $conversionParam = $conversionsParameters[$remainingConversions[0]]
-            New-LogEntry -LogValue "Dequeuing conversion job for installer $($conversionParam.InstallerPath) on remote machine $($_.ComputerName)" -Component "batch_convert:RunConversionJobs"
+            New-LogEntry -LogValue "Dequeuing conversion job for installer $($conversionParam.Installers.InstallerPath) on remote machine $($_.ComputerName)" -Component "batch_convert:RunConversionJobs"
 
             # Capture the job index and update list of remaining conversions to run
-            $jobId = $remainingConversions[0]
-            $remainingConversions = $remainingConversions | where { $_ -ne $remainingConversions[0] }
+            $_jobId =            $remainingConversions[0]
+            $_templateFilePath = CreateMPTTemplate $conversionParam $jobId $nul $_ $workingDirectory 
+            $_BSTR =             [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($_.Credential.Password)
+            $_password =         [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($_BSTR)
+            
+            $process =          Start-Process "powershell.exe" -ArgumentList($runJobScriptPath, "-jobId", $jobId, "-machinePassword", $password, "-templateFilePath", $templateFilePath, "-workingDirectory", $workingDirectory) -PassThru
 
-            $templateFilePath = CreateMPTTemplate $conversionParam $jobId $nul $_ $workingDirectory 
-            $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($_.Credential.Password)
-            $password = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
-            $process = Start-Process "powershell.exe" -ArgumentList($runJobScriptPath, "-jobId", $jobId, "-machinePassword", $password, "-templateFilePath", $templateFilePath, "-workingDirectory", $workingDirectory) -PassThru
+            $remainingConversions = $remainingConversions | where { $_ -ne $remainingConversions[0] }
         }
     }
     
@@ -146,11 +174,6 @@ Function Test-VMConnection ([string]$VMName)
     ## Unable to find a matching NIC or the connection was disconnected. Returns false.
     New-LogEntry -LogValue "Connection to $VMName VM failed." -Component "SharedScriptLib.ps1:Test-VMConnection" -Severity 3
     Return $false
-}
-
-Function Test-VMMSIXPackagingTool ($VMName)
-{
-
 }
 
 Function Test-RMConnection ($RemoteMachineName)
