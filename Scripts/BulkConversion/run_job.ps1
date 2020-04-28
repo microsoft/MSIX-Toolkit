@@ -17,9 +17,11 @@ New-LogEntry -LogValue "Initiating capture of $($TemplateFile.MsixPackagingToolT
 try
 {
     ## Convert application to the MSIX Packaging format.
-    $Scratch = foreach($Entry in $(MsixPackagingTool.exe create-package --template $templateFilePath --machinePassword $machinePassword))
+    $Scratch
+    foreach($Entry in $(MsixPackagingTool.exe create-package --template $templateFilePath --machinePassword $machinePassword))
         {
-            $Entry + "`n`r"
+            Write-host $Entry
+            $Scratch = $Entry + "`n`r"
         }
     If ($Error)
     {
