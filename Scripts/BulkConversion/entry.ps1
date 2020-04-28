@@ -1,13 +1,19 @@
 . $PSScriptRoot\bulk_convert.ps1
 . $PSScriptRoot\SharedScriptLib.ps1
+. $PSScriptRoot\Sign_deploy_run.ps1
+
+## Specifies the directory that will host the newly created MSIX Packaged Apps.
+$workingDirectory = [System.IO.Path]::Combine($PSScriptRoot, "out")
 
 ## Retrieves the credentials that will be used for connecting to both Virtual and Remote Machines. Credentials must be consistent.
+New-LogEntry -LogValue "Collecting credentials for accessing the Remote / Virtual Machines" -Component "entry.ps1"
 $credential = Get-Credential
 
 ## The Code Signing certificate to be used for signing the MSIX Apps.
 $SigningCertificate = @{
     Password = "P@ssw0rd"; Path = "C:\Temp\cert.pfx"
 }
+
 
 ## Virtual Machines to be used for converting applications to the MSIX Packaging format.
 $virtualMachines = @(
@@ -47,8 +53,6 @@ $conversionsParameters = @(
        PackageVersion = "1.0.0.0"
     }
 )
-
-$workingDirectory = [System.IO.Path]::Combine($PSScriptRoot, "out")
 
 ## Converts the identified applications to MSIX Packaging Format.
 RunConversionJobs -conversionsParameters $conversionsParameters -virtualMachines $virtualMachines -remoteMachines $remoteMachines $workingDirectory
