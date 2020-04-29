@@ -7,7 +7,7 @@ Param(
     [Parameter(Position=3)] [boolean] $WriteHost = $true,
                             [string]  $Path      = $($PSScriptRoot + "\Log")
 )
-    IF(!(Test-path -Path $Path)) {mkdir $Path}
+    IF(!(Test-path -Path $Path)) {$Scratch = mkdir $Path}
     #Formats the values required to enter for Trace32 Format
     #$TimeZoneBias = Get-WmiObject -Query "Select Bias from Win32_TimeZone"
     [string]$Time = Get-Date -Format "HH:mm:ss.ffff"
