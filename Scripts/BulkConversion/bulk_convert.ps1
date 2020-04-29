@@ -64,8 +64,8 @@ function RunConversionJobs($conversionsParameters, $virtualMachines, $remoteMach
     $LogEntry += "`t - Total Conversions:      $($conversionsParameters.count)`n"
     $LogEntry += "`t - Total Remote Machines:  $($RemoteMachines.count)`n"
     $LogEntry += "`t - Total Virtual Machines: $($VirtualMachines.count)`n`r"
-    
-#    Write-Progress -ID 0 -Status "Converting Applications..." -PercentComplete $($(0)/$($conversionsParameters.count)) -Activity "Capture"
+
+    Write-Progress -ID 0 -Status "Converting Applications..." -PercentComplete $($(0)/$($conversionsParameters.count)) -Activity "Capture"
     New-LogEntry -LogValue $LogEntry
 
     ## Creates working directory and child directories
@@ -88,6 +88,8 @@ function RunConversionJobs($conversionsParameters, $virtualMachines, $remoteMach
         }
     }
 
+    $ConversionJobs = @()
+
     # first schedule jobs on the remote machines. These machines will be recycled and will not be re-used to run additional conversions
     $remoteMachines | Foreach-Object {
         ## Verifies if the remote machine is accessible on the network.
@@ -107,10 +109,13 @@ function RunConversionJobs($conversionsParameters, $virtualMachines, $remoteMach
             New-LogEntry -LogValue "Dequeuing conversion job ($($_JobId+1)) for installer $($conversionParam.InstallerPath) on remote machine $($_.ComputerName)" -Component "batch_convert:RunConversionJobs"
             
 #            $process = Start-Process "powershell.exe" -ArgumentList ($runJobScriptPath, "-jobId", $_jobId, "-machinePassword", $_password, "-templateFilePath", $_templateFilePath, "-workingDirectory", $workingDirectory) -PassThru
-            $Scratch = Start-Job -Name $($_.ComputerName) -FilePath $runJobScriptPath -ArgumentList($_JobId, "", 0, $_password, $_templateFilePath, "BeforeConversion", $PSScriptRoot)
+            $ConversionJobs += @(Start-Job -Name $("$($_JobId+1) - $($conversionParam.PackageName)") -FilePath $runJobScriptPath -ArgumentList($_JobId, "", 0, $_password, $_templateFilePath, $initialSnapshotName, $PSScriptRoot))
 #                "-jobId", $_jobId, "-machinePassword", $_password, "-templateFilePath", $_templateFilePath, "-workingDirectory", $workingDirectory)
 
             $remainingConversions = $remainingConversions | where { $_ -ne $remainingConversions[0] }
+
+            sleep(1)
+            Set-JobProgress -ConversionJobs $ConversionJobs -TotalTasks $($conversionsParameters.count)
         }
     }
 
@@ -127,9 +132,10 @@ function RunConversionJobs($conversionsParameters, $virtualMachines, $remoteMach
             }
     
             Sleep(1)
+            Set-JobProgress -ConversionJobs $ConversionJobs -TotalTasks $($conversionsParameters.count)
         }    
 
-        Get-Job
+        Set-JobProgress -ConversionJobs $ConversionJobs -TotalTasks $($conversionsParameters.count)
 
         ## Exits the conversion, as no more machines are available for use.
         New-LogEntry -LogValue "Finished running all jobs on the provided Remote Machines" -Component "batch_convert:RunConversionJobs"
@@ -162,14 +168,15 @@ function RunConversionJobs($conversionsParameters, $virtualMachines, $remoteMach
             $remainingConversions = $remainingConversions | where { $_ -ne $remainingConversions[0] }
 
 #            Write-Progress -ID 0 -Status "Converting Applications..." -PercentComplete $($($_JobID)/$($conversionsParameters.count)*100) -Activity "Capture"
-            New-LogEntry -LogValue "Dequeuing conversion job ($($_JobId)) for installer $($conversionParam.InstallerPath) on VM $($vm.Name)" -Component "batch_convert:RunConversionJobs"
+            New-LogEntry -LogValue "Dequeuing conversion job ($($_JobId+1)) for installer $($conversionParam.InstallerPath) on VM $($vm.Name)" -Component "batch_convert:RunConversionJobs"
 
             $_templateFilePath = CreateMPTTemplate $conversionParam $_jobId $vm $nul $workingDirectory 
             $_BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($vm.Credential.Password)
             $_password = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($_BSTR)
             
             ## Converts the Application to the MSIX Packaging format.
-            $process = Start-Process "powershell.exe" -ArgumentList ($runJobScriptPath, "-jobId", $_jobId, "-vmName", $vm.Name, "-vmsCount", $virtualMachines.Count, "-machinePassword", $_password, "-templateFilePath", $_templateFilePath, "-initialSnapshotName", $initialSnapshotName) -PassThru
+#            $process = Start-Process "powershell.exe" -ArgumentList ($runJobScriptPath, "-jobId", $_jobId, "-vmName", $vm.Name, "-vmsCount", $virtualMachines.Count, "-machinePassword", $_password, "-templateFilePath", $_templateFilePath, "-initialSnapshotName", $initialSnapshotName) -PassThru
+            $ConversionJobs += @(Start-Job -Name $("$($_JobId+1) - $($conversionParam.PackageName)") -FilePath $runJobScriptPath -ArgumentList($_JobId, $VM.Name, $virtualMachines.Count, $_password, $_templateFilePath, $initialSnapshotName, $PSScriptRoot))
             $vmsCurrentJobMap[$vm.Name] = $process
         }
         else
@@ -179,6 +186,7 @@ function RunConversionJobs($conversionsParameters, $virtualMachines, $remoteMach
         }
 
         Sleep(1)
+        Set-JobProgress -ConversionJobs $ConversionJobs -TotalTasks $($conversionsParameters.count)
     }
 
     $OnceThrough = $true
@@ -191,11 +199,17 @@ function RunConversionJobs($conversionsParameters, $virtualMachines, $remoteMach
             $OnceThrough = $false
         }
         Sleep(1)
+        Set-JobProgress -ConversionJobs $ConversionJobs -TotalTasks $($conversionsParameters.count)
     }   
 
+    Set-JobProgress -ConversionJobs $ConversionJobs -TotalTasks $($conversionsParameters.count)
     New-LogEntry -LogValue "Finished scheduling all jobs" -Component "batch_convert:RunConversionJobs"
     $virtualMachines | foreach-object { if ($vmsCurrentJobMap[$_.Name]) { $vmsCurrentJobMap[$_.Name].WaitForExit() } }
     $semaphore.Dispose()
+    
+    ## Remove and stop all scripted jobs.
+    $ConversionJobs | Where-Object State -ne "Completed" | Stop-job
+    $ConversionJobs | Remove-job
 
     #Read-Host -Prompt 'Press any key to continue '
     New-LogEntry -LogValue "Finished running all jobs" -Component "batch_convert:RunConversionJobs"
