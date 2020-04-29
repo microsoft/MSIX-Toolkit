@@ -1,4 +1,4 @@
-# Batch Conversion scripts
+# Bulk Conversion scripts
 A set of basic scripts that allow converting a batch of installers on a set of machines using MSIX Packaging Tool:
 
 ## Supporting scripts
