@@ -11,7 +11,7 @@ function CreateMPTTemplate($conversionParam, $jobId, $virtualMachine, $remoteMac
 
     ## Detects if the provided custom path exists, if not creates the required path.
     IF(!$(Get-Item -Path $saveFolder -ErrorAction SilentlyContinue))
-        { New-Item -Force -Type Directory $saveFolder }
+        { $Scratch = New-Item -Force -Type Directory $saveFolder }
 
 
     ## Package Template Path:
@@ -23,7 +23,7 @@ function CreateMPTTemplate($conversionParam, $jobId, $virtualMachine, $remoteMac
 
     ## Detects if the MPT Template path exists, if not creates it.
     IF(!$(Get-Item -Path $workingDirectory -ErrorAction SilentlyContinue))
-        { New-Item -Force -Type Directory $workingDirectory }
+        { $Scratch = New-Item -Force -Type Directory $workingDirectory }
     
     # create template file for this conversion
     $templateFilePath = [System.IO.Path]::Combine($workingDirectory, "MsixPackagingToolTemplate_Job$($jobId).xml")
@@ -109,7 +109,7 @@ function RunConversionJobs($conversionsParameters, $virtualMachines, $remoteMach
             New-LogEntry -LogValue "Dequeuing conversion job ($($_JobId+1)) for installer $($conversionParam.InstallerPath) on remote machine $($_.ComputerName)" -Component "batch_convert:RunConversionJobs"
             
 #            $process = Start-Process "powershell.exe" -ArgumentList ($runJobScriptPath, "-jobId", $_jobId, "-machinePassword", $_password, "-templateFilePath", $_templateFilePath, "-workingDirectory", $workingDirectory) -PassThru
-            $ConversionJobs += @(Start-Job -Name $("$($_JobId+1) - $($conversionParam.PackageName)") -FilePath $runJobScriptPath -ArgumentList($_JobId, "", 0, $_password, $_templateFilePath, $initialSnapshotName, $PSScriptRoot))
+            $ConversionJobs += @(Start-Job -Name $("JobID: $($_JobId+1) - Converting $($conversionParam.PackageDisplayName)") -FilePath $runJobScriptPath -ArgumentList($_JobId, "", 0, $_password, $_templateFilePath, $initialSnapshotName, $PSScriptRoot))
 #                "-jobId", $_jobId, "-machinePassword", $_password, "-templateFilePath", $_templateFilePath, "-workingDirectory", $workingDirectory)
 
             $remainingConversions = $remainingConversions | where { $_ -ne $remainingConversions[0] }
@@ -176,7 +176,7 @@ function RunConversionJobs($conversionsParameters, $virtualMachines, $remoteMach
             
             ## Converts the Application to the MSIX Packaging format.
 #            $process = Start-Process "powershell.exe" -ArgumentList ($runJobScriptPath, "-jobId", $_jobId, "-vmName", $vm.Name, "-vmsCount", $virtualMachines.Count, "-machinePassword", $_password, "-templateFilePath", $_templateFilePath, "-initialSnapshotName", $initialSnapshotName) -PassThru
-            $ConversionJobs += @(Start-Job -Name $("$($_JobId+1) - $($conversionParam.PackageName)") -FilePath $runJobScriptPath -ArgumentList($_JobId, $VM.Name, $virtualMachines.Count, $_password, $_templateFilePath, $initialSnapshotName, $PSScriptRoot))
+            $ConversionJobs += @(Start-Job -Name $("JobID: $($_JobId+1) - Converting $($conversionParam.PackageDisplayName)") -FilePath $runJobScriptPath -ArgumentList($_JobId, $VM.Name, $virtualMachines.Count, $_password, $_templateFilePath, $initialSnapshotName, $PSScriptRoot))
             $vmsCurrentJobMap[$vm.Name] = $process
         }
         else
