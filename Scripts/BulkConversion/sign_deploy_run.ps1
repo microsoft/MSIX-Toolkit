@@ -1,6 +1,6 @@
 . $PSScriptRoot\SharedScriptLib.ps1
 
-function Set-MSIXSignApp($msixFolder, $CertificatePath, $CertificatePassword, $Encryption="SHA256")
+function Set-MSIXSignApp($conversionsParameters, $WorkingDirectory, $CertificatePath, $CertificatePassword, $Encryption="SHA256")
 {
     ## Goes up two folders in the path.
     $SignToolPath = $PSScriptRoot
@@ -13,6 +13,7 @@ function Set-MSIXSignApp($msixFolder, $CertificatePath, $CertificatePassword, $E
         "64-bit" {$SignTool   = ".\Redist.x64\signtool.exe"}
         "32-bit" {$SignTool   = ".\Redist.x86\signtool.exe"}
     }
+    New-LogEntry -LogValue "Identified path to the SignTool:  $($SignToolPath)$($SignTool.Substring(1,$($($SignTool.Length)-1)))" -Component "sign_deploy_run.ps1:Set-MSIXSignApp"
 
     ##Sets the location to root of the MSIX Toolkit
     $IntialLocation = Get-Location
@@ -20,22 +21,29 @@ function Set-MSIXSignApp($msixFolder, $CertificatePath, $CertificatePassword, $E
 
     ## Parses through all files in the identified MSIX Folder to sign all files.
 #    Get-ChildItem $msixFolder | foreach-object 
-    ForEach ($File in $(Get-ChildItem $msixFolder))
+
+    ForEach ($ConvertParam in $conversionsParameters)
     {
-        $msixPath = $File.FullName
+        IF($ConvertParam.SavePackagePath)
+            {$msixFolder = [System.IO.Path]::Combine($($ConvertParam.SavePackagePath), "msix") }
+        Else
+            {$msixFolder = [System.IO.Path]::Combine($WorkingDirectory, "msix") }
 
-        ##Validates that the file to be signed is an MSIX App.
-        IF ($([System.IO.Path]::GetExtension($msixPath)) -eq ".msix")
-        {
-            $signToolCmd = "$SignTool sign /f ""$CertificatePath"" /p $CertificatePassword /fd $Encryption ""$msixPath"""
-            New-LogEntry -LogValue $signToolCmd -Component "SharedScriptLib:Set-MSIXSignApp"
+        New-LogEntry -LogValue "Searching the ""$msixFolder"" for ""$($ConvertParam.PackageName)_$($ConvertParam.PackageVersion)""" -Component "sign_deploy_run.ps1:Set-MSIXSignApp"
 
-            ## Commits the signing of each MSIX App using the signing tool.
-            Invoke-Expression $signToolCmd
-        }   
-        else 
+        ForEach ($File in $(Get-ChildItem $msixFolder))
         {
-            New-LogEntry -LogValue "The following is not an MSIX packaged application: $($File.Name)" -Component "sign_deploy_run:Set-MSIXSignApp" -Severity 2
+            $msixPath = $File.FullName
+
+            ##Validates that the file to be signed is an MSIX App.
+            IF ($([System.IO.Path]::GetExtension($msixPath)) -eq ".msix" -and $($File.Name).StartsWith("$($ConvertParam.PackageName)_$($ConvertParam.PackageVersion)"))
+            {
+                $signToolCmd = "$SignTool sign /f ""$CertificatePath"" /p $CertificatePassword /fd $Encryption ""$msixPath"""
+                New-LogEntry -LogValue $signToolCmd -Component "SharedScriptLib:Set-MSIXSignApp"
+
+                ## Commits the signing of each MSIX App using the signing tool.
+                Invoke-Expression $signToolCmd
+            }   
         }
     }
 
