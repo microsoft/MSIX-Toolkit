@@ -1,6 +1,13 @@
-param($jobId, $vmName, $vmsCount, $machinePassword, $templateFilePath, $initialSnapshotName)
-. $PSScriptRoot\SharedScriptLib.ps1
+param($jobId, $vmName, $vmsCount, $machinePassword, $templateFilePath, $initialSnapshotName, $ScriptRoot)
 
+IF($PSScriptRoot)
+{ . $PSScriptRoot\SharedScriptLib.ps1 }
+Else
+{ . $ScriptRoot\SharedScriptLib.ps1 }
+
+#Write-Host "#############`n`nJobID:  $jobId `nVMName:  $vmName `nVMCount:  $vmsCount `nMachinePassword:  $machinePassword `nTemplateFilePath:  $templateFilePath `nInitialSnapshotName:  $initialSnapshotName `nScriptRoot:  $ScriptRoot `n`n#############"
+
+$Scratch = ""
 $TemplateFile = [xml](get-content $($templateFilePath))
 New-LogEntry -LogValue "JOB: $jobId - $($TemplateFile.MsixPackagingToolTemplate.PackageInformation.PackageDisplayName)" -Component "run_job.ps1:$jobId"
 
@@ -8,20 +15,20 @@ New-LogEntry -LogValue "JOB: $jobId - $($TemplateFile.MsixPackagingToolTemplate.
 if ($vmName)
 {
     ## Creates initial Snapshot of Virtual Machine.
-    New-InitialSnapshot -SnapshotName $initialSnapshotName -vmName $vmName -jobId $jobId
+    $Scratch = New-InitialSnapshot -SnapshotName $initialSnapshotName -vmName $vmName -jobId $jobId
 }
 
 ## Reads the Template file, and logs which application is being attempted.
+$Scratch +=  "`nInitiating capture of $($TemplateFile.MsixPackagingToolTemplate.PackageInformation.PackageDisplayName).`n"
 New-LogEntry -LogValue "Initiating capture of $($TemplateFile.MsixPackagingToolTemplate.PackageInformation.PackageDisplayName)." -Component "run_job.ps1:$jobId"
 
 try
 {
     ## Convert application to the MSIX Packaging format.
-    $Scratch
     foreach($Entry in $(MsixPackagingTool.exe create-package --template $templateFilePath --machinePassword $machinePassword))
         {
             Write-host $Entry
-            $Scratch = $Entry + "`n`r"
+            $Scratch += $Entry + "`n`r"
         }
     If ($Error)
     {
@@ -47,5 +54,6 @@ if ($vmName)
     $semaphore.Dispose()
 }
 
-Read-Host -Prompt 'Press any key to exit this window '
+#Read-Host -Prompt 'Press any key to exit this window '
 New-LogEntry -LogValue "Conversion of application ($($TemplateFile.MsixPackagingToolTemplate.PackageInformation.PackageDisplayName)) completed" -Component "run_job.ps1:$jobId"
+Return $Scratch
