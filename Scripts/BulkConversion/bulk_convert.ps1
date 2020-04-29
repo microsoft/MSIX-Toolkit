@@ -2,39 +2,45 @@
 
 function CreateMPTTemplate($conversionParam, $jobId, $virtualMachine, $remoteMachine, $workingDirectory)
 {
-    ## If the Save Template Path has been specified, use this directory otherwise use the default working directory.
-    If($conversionParam.SaveTemplatePath)
-    {
-        $workingDirectory = $conversionParam.SaveTemplatePath
-    }
-
+    ## Package File Path:
     ## If the Save Package Path has been specified, use this directory otherwise use the default working directory.
-    If($conversionParam.SavePackagePath)
-    {
-        $saveFolder = [System.IO.Path]::Combine($($conversionParam.SavePackagePath), "MSIX")
-    }
+    If($($conversionParam.SavePackagePath))
+        { $saveFolder = [System.IO.Path]::Combine($($conversionParam.SavePackagePath), "MSIX") }
     Else
-    {
-        $saveFolder = [System.IO.Path]::Combine($workingDirectory, "MSIX")
-    }
+        { $saveFolder = [System.IO.Path]::Combine($workingDirectory, "MSIX") }
+
+    ## Detects if the provided custom path exists, if not creates the required path.
+    IF(!$(Get-Item -Path $saveFolder -ErrorAction SilentlyContinue))
+        { New-Item -Force -Type Directory $saveFolder }
+
+
+    ## Package Template Path:
+    ## If the Save Template Path has been specified, use this directory otherwise use the default working directory.
+    If($($conversionParam.SaveTemplatePath))
+        { $workingDirectory = [System.IO.Path]::Combine($($conversionParam.SaveTemplatePath), "MPT_Templates") }
+    Else
+        { $workingDirectory = [System.IO.Path]::Combine($($workingDirectory), "MPT_Templates") }
+
+    ## Detects if the MPT Template path exists, if not creates it.
+    IF(!$(Get-Item -Path $workingDirectory -ErrorAction SilentlyContinue))
+        { New-Item -Force -Type Directory $workingDirectory }
     
     # create template file for this conversion
-    $templateFilePath = [System.IO.Path]::Combine($workingDirectory, "MPT_Templates", "MsixPackagingToolTemplate_Job$($jobId).xml")
+    $templateFilePath = [System.IO.Path]::Combine($workingDirectory, "MsixPackagingToolTemplate_Job$($jobId).xml")
     $conversionMachine = ""
 
+    ## Determines the type of machine that will be connected to for conversion.
     if ($virtualMachine)
-    {
-        $conversionMachine = "<VirtualMachine Name=""$($vm.Name)"" Username=""$($vm.Credential.UserName)"" />"
-    }
+        { $conversionMachine = "<VirtualMachine Name=""$($vm.Name)"" Username=""$($vm.Credential.UserName)"" />" }
     else 
-    {
-        $conversionMachine = "<mptv2:RemoteMachine ComputerName=""$($remoteMachine.ComputerName)"" Username=""$($remoteMachine.Credential.UserName)"" />"
-    }
+        { $conversionMachine = "<mptv2:RemoteMachine ComputerName=""$($remoteMachine.ComputerName)"" Username=""$($remoteMachine.Credential.UserName)"" />" }
+
+    ## Generates the XML Content
     $xmlContent = @"
 <MsixPackagingToolTemplate
     xmlns="http://schemas.microsoft.com/appx/msixpackagingtool/template/2018"
     xmlns:mptv2="http://schemas.microsoft.com/msix/msixpackagingtool/template/1904">
-<Installer Path="$($conversionParam.Installers.InstallerPath)" Arguments="$($conversionParam.Installers.InstallerArguments)" />
+<Installer Path="$($conversionParam.InstallerPath)" Arguments="$($conversionParam.InstallerArguments)" />
 $conversionMachine
 <SaveLocation PackagePath="$saveFolder" />
 <PackageInformation
@@ -46,12 +52,22 @@ $conversionMachine
 </PackageInformation>
 </MsixPackagingToolTemplate>
 "@
+
+    ## Creates the XML file with the above content.
     Set-Content -Value $xmlContent -Path $templateFilePath
     $templateFilePath
 }
 
 function RunConversionJobs($conversionsParameters, $virtualMachines, $remoteMachines, $workingDirectory)
 {
+    $LogEntry  = "Conversion Stats:`n"
+    $LogEntry += "`t - Total Conversions:      $($conversionsParameters.count)`n"
+    $LogEntry += "`t - Total Remote Machines:  $($RemoteMachines.count)`n"
+    $LogEntry += "`t - Total Virtual Machines: $($VirtualMachines.count)`n`r"
+    
+#    Write-Progress -ID 0 -Status "Converting Applications..." -PercentComplete $($(0)/$($conversionsParameters.count)) -Activity "Capture"
+    New-LogEntry -LogValue $LogEntry
+
     ## Creates working directory and child directories
     $scratch = New-Item -Force -Type Directory ([System.IO.Path]::Combine($workingDirectory, "MPT_Templates"))
     $scratch = New-Item -Force -Type Directory ([System.IO.Path]::Combine($workingDirectory, "MSIX"))
@@ -77,31 +93,56 @@ function RunConversionJobs($conversionsParameters, $virtualMachines, $remoteMach
         ## Verifies if the remote machine is accessible on the network.
         If(Test-RMConnection -RemoteMachineName $($_.ComputerName))
         {
-            # select a job to run 
+            # select a job to run
             New-LogEntry -LogValue "Determining next job to run..." -Component "batch_convert:RunConversionJobs"
             $conversionParam = $conversionsParameters[$remainingConversions[0]]
-            New-LogEntry -LogValue "Dequeuing conversion job for installer $($conversionParam.Installers.InstallerPath) on remote machine $($_.ComputerName)" -Component "batch_convert:RunConversionJobs"
 
             # Capture the job index and update list of remaining conversions to run
             $_jobId =            $remainingConversions[0]
-            $_templateFilePath = CreateMPTTemplate $conversionParam $jobId $nul $_ $workingDirectory 
+            $_templateFilePath = CreateMPTTemplate $conversionParam $jobId $nul $_ $workingDirectory
             $_BSTR =             [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($_.Credential.Password)
             $_password =         [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($_BSTR)
+
+#            Write-Progress -ID 0 -Status "Converting Applications..." -PercentComplete $($($_JobID+1)/$($conversionsParameters.count)*100) -Activity "Capture"
+            New-LogEntry -LogValue "Dequeuing conversion job ($($_JobId+1)) for installer $($conversionParam.InstallerPath) on remote machine $($_.ComputerName)" -Component "batch_convert:RunConversionJobs"
             
-            $process =          Start-Process "powershell.exe" -ArgumentList($runJobScriptPath, "-jobId", $jobId, "-machinePassword", $password, "-templateFilePath", $templateFilePath, "-workingDirectory", $workingDirectory) -PassThru
+#            $process = Start-Process "powershell.exe" -ArgumentList ($runJobScriptPath, "-jobId", $_jobId, "-machinePassword", $_password, "-templateFilePath", $_templateFilePath, "-workingDirectory", $workingDirectory) -PassThru
+            $Scratch = Start-Job -Name $($_.ComputerName) -FilePath $runJobScriptPath -ArgumentList($_JobId, "", 0, $_password, $_templateFilePath, "BeforeConversion", $PSScriptRoot)
+#                "-jobId", $_jobId, "-machinePassword", $_password, "-templateFilePath", $_templateFilePath, "-workingDirectory", $workingDirectory)
 
             $remainingConversions = $remainingConversions | where { $_ -ne $remainingConversions[0] }
         }
     }
-    
 
+    $OnceThrough = $true
+    If ($($virtualMachines.Count) -eq 0)
+    {
+        ## Waits for the conversion on the Remote Machines to complete before exiting.
+        While ($(Get-Job | where state -eq running).count -gt 0)
+        {
+            If ($OnceThrough)
+            {
+                New-LogEntry -LogValue "Waiting for applications to complete on remote machines." -Component "bulk_convert.ps1:RunConversionJobs"
+                $OnceThrough = $false
+            }
+    
+            Sleep(1)
+        }    
+
+        Get-Job
+
+        ## Exits the conversion, as no more machines are available for use.
+        New-LogEntry -LogValue "Finished running all jobs on the provided Remote Machines" -Component "batch_convert:RunConversionJobs"
+        Return
+    }
+    
     # Next schedule jobs on virtual machines which can be checkpointed/re-used
     # keep a mapping of VMs and the current job they're running, initialized ot null
     $vmsCurrentJobMap = @{}
     $virtualMachines | Foreach-Object { $vmsCurrentJobMap.Add($_.Name, $nul) }
 
     # Use a semaphore to signal when a machine is available. Note we need a global semaphore as the jobs are each started in a different powershell process
-    $semaphore = New-Object -TypeName System.Threading.Semaphore -ArgumentList @($virtualMachines.Count, $virtualMachines.Count, "Global\MPTBatchConversion")
+    $semaphore = New-Object -TypeName System.Threading.Semaphore -ArgumentList ($virtualMachines.Count, $virtualMachines.Count, "Global\MPTBatchConversion")
 
     while ($semaphore.WaitOne(-1))
     {
@@ -111,21 +152,24 @@ function RunConversionJobs($conversionsParameters, $virtualMachines, $remoteMach
             New-LogEntry -LogValue "Determining next job to run..." -Component "batch_convert:RunConversionJobs"
     
             $conversionParam = $conversionsParameters[$remainingConversions[0]]
+
             # select a VM to run it on. Retry a few times due to race between semaphore signaling and process completion status
             $vm = $nul
             while (-not $vm) { $vm = $virtualMachines | where { -not($vmsCurrentJobMap[$_.Name]) -or -not($vmsCurrentJobMap[$_.Name].ExitCode -eq $Nul) } | Select-Object -First 1 }
-            New-LogEntry -LogValue "Dequeuing conversion job for installer $($conversionParam.InstallerPath) on VM $($vm.Name)" -Component "batch_convert:RunConversionJobs"
-
+            
             # Capture the job index and update list of remaining conversions to run
-            $jobId = $remainingConversions[0]
+            $_jobId = $remainingConversions[0]
             $remainingConversions = $remainingConversions | where { $_ -ne $remainingConversions[0] }
 
-            $templateFilePath = CreateMPTTemplate $conversionParam $jobId $vm $nul $workingDirectory 
-            $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($vm.Credential.Password)
-            $password = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
+#            Write-Progress -ID 0 -Status "Converting Applications..." -PercentComplete $($($_JobID)/$($conversionsParameters.count)*100) -Activity "Capture"
+            New-LogEntry -LogValue "Dequeuing conversion job ($($_JobId)) for installer $($conversionParam.InstallerPath) on VM $($vm.Name)" -Component "batch_convert:RunConversionJobs"
+
+            $_templateFilePath = CreateMPTTemplate $conversionParam $_jobId $vm $nul $workingDirectory 
+            $_BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($vm.Credential.Password)
+            $_password = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($_BSTR)
             
             ## Converts the Application to the MSIX Packaging format.
-            $process = Start-Process "powershell.exe" -ArgumentList($runJobScriptPath, "-jobId", $jobId, "-vmName", $vm.Name, "-vmsCount", $virtualMachines.Count, "-machinePassword", $password, "-templateFilePath", $templateFilePath, "-initialSnapshotName", $initialSnapshotName) -PassThru
+            $process = Start-Process "powershell.exe" -ArgumentList ($runJobScriptPath, "-jobId", $_jobId, "-vmName", $vm.Name, "-vmsCount", $virtualMachines.Count, "-machinePassword", $_password, "-templateFilePath", $_templateFilePath, "-initialSnapshotName", $initialSnapshotName) -PassThru
             $vmsCurrentJobMap[$vm.Name] = $process
         }
         else
@@ -137,11 +181,23 @@ function RunConversionJobs($conversionsParameters, $virtualMachines, $remoteMach
         Sleep(1)
     }
 
+    $OnceThrough = $true
+    ## Waits for the conversion on the Remote Machines to complete before exiting.
+    While ($(Get-Job | where state -eq running).count -gt 0)
+    {
+        If ($OnceThrough)
+        {
+            New-LogEntry -LogValue "Waiting for applications to complete on remote machines." -Component "bulk_convert.ps1:RunConversionJobs"
+            $OnceThrough = $false
+        }
+        Sleep(1)
+    }   
+
     New-LogEntry -LogValue "Finished scheduling all jobs" -Component "batch_convert:RunConversionJobs"
     $virtualMachines | foreach-object { if ($vmsCurrentJobMap[$_.Name]) { $vmsCurrentJobMap[$_.Name].WaitForExit() } }
     $semaphore.Dispose()
 
-    Read-Host -Prompt 'Press any key to continue '
+    #Read-Host -Prompt 'Press any key to continue '
     New-LogEntry -LogValue "Finished running all jobs" -Component "batch_convert:RunConversionJobs"
 }
 
