@@ -16,17 +16,19 @@ Param(
     [string]$Date = Get-Date -Format "MM-dd-yyyy"
 
     #Appends the newest log entry to the end of the log file in a Trace32 Formatting
-    $('<![LOG['+$LogValue+']LOG]!><time="'+$Time+'" date="'+$Date+'" component="'+$component+'" context="Empty" type="'+$severity+'" thread="Empty" file="'+"Empty"+'">') | out-file -FilePath $($Path+"\BulkConversion.log") -Append -NoClobber -encoding default -ErrorAction SilentlyContinue
+    $('<![LOG['+$LogValue+']LOG]!><time="'+$Time+'" date="'+$Date+'" component="'+$component+'" context="Empty" type="'+$severity+'" thread="Empty" file="'+"Empty"+'">') | out-file -FilePath $($Path+"\BulkConversion.log") -Append -NoClobber -encoding default -ErrorAction SilentlyContinue -ErrorVariable LogError
 
     ## If Writing to log file fails try again.
-    While ($($Error[0].toString()).Contains("The process cannot access the file") -and $($Error[0].toString()).Contains("because it is being used by another process."))
+    While ($Error.count -gt 0)
     {
         ## Gives a random amount of time to wait until next write attempt.
         $Error.Clear()
         Sleep($(get-random -Maximum 0.5 -Minimum 0.0))
 
+        #$('<![LOG['+$LogError+']LOG]!><time="'+$Time+'" date="'+$Date+'" component="'+$component+'" context="Empty" type="'+3+'" thread="Empty" file="'+"Empty"+'">') | out-file -FilePath $($Path+"\BulkConversion.log") -Append -NoClobber -encoding default -ErrorAction SilentlyContinue -ErrorVariable LogError
+
         #Appends the newest log entry to the end of the log file in a Trace32 Formatting
-        $('<![LOG['+$LogValue+']LOG]!><time="'+$Time+'" date="'+$Date+'" component="'+$component+'" context="Empty" type="'+$severity+'" thread="Empty" file="'+"Empty"+'">') | out-file -FilePath $($Path+"\BulkConversion.log") -Append -NoClobber -encoding default -ErrorAction SilentlyContinue        
+        $('<![LOG['+$LogValue+']LOG]!><time="'+$Time+'" date="'+$Date+'" component="'+$component+'" context="Empty" type="'+$severity+'" thread="Empty" file="'+"Empty"+'">') | out-file -FilePath $($Path+"\BulkConversion.log") -Append -NoClobber -encoding default -ErrorAction SilentlyContinue -ErrorVariable LogError
     }
 
     IF($WriteHost)
@@ -62,9 +64,9 @@ Function Set-JobProgress ($ConversionJobs, $TotalTasks)
     foreach ($job in $ConversionJobs)
     {
         If($job.State -ne "Running")
-            { Write-Progress -ID $job.id -Activity $job.Name -Status "Completed" -Completed -ParentID 0 }
+            { Write-Progress -ID $job.id -Activity $job.Name -Completed -ParentID 0 }
         Else
-            { Write-Progress -ID $job.id -Activity $job.Name -Status "Converting Application..." -PercentComplete -1 -ParentID 0 }
+            { Write-Progress -ID $job.id -Activity $job.Name -PercentComplete -1 -ParentID 0 }
     }
 
     $RunningJobs = $($($ConversionJobs | where-object State -eq "Running").count)/2
