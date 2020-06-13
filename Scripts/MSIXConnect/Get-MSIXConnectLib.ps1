@@ -115,10 +115,14 @@ function Format-MSIXAppExportDetails ($Application, $ApplicationDeploymentType, 
     $AppDetails = @()
     $AppName = $($Application.Instance.Property.Where({$_.Name -eq "LocalizedDisplayName"}).Value)
 
-     IF($($ApplicationDeploymentType.count -le 1))
+    IF($($ApplicationDeploymentType.count -le 1))
          { $XML = [XML]$($ApplicationDeploymentType) }
-     else 
+    Else 
          { $XML = [XML]$($ApplicationDeploymentType[0].SDMPackageXML) }
+
+    ## Needs to be tested. Could improve the usage of this script by allowing it to work with ConfigMgr Live, and Exported app information.
+    $CmdP1 = '$Application.Instance.Property.Where({$_.Name -eq "'
+    $CmdP2 = '"}).Value)'
     
     Foreach($Deployment IN $($XML.AppMgmtDigest.DeploymentType))
     {
@@ -127,18 +131,27 @@ function Format-MSIXAppExportDetails ($Application, $ApplicationDeploymentType, 
         $MSIXAppDetails = New-Object PSObject
         $XML = [XML]$($DeploymentType.SDMPackageXML)
 
-        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "PackageDisplayName" -Value $($Application.Instance.Property.Where({$_.Name -eq "LocalizedDisplayName"}).Value)
-        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "PackageName" -Value $(Format-MSIXPackagingName -AppName $($Application.Instance.Property.Where({$_.Name -eq "LocalizedDisplayName"}).Value))
-        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "PublisherName" -Value $("CN=" + $Application.Instance.Property.Where({$_.Name -eq "Manufacturer"}).Value)
-        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "PublisherDisplayName" -Value $($Application.Instance.Property.Where({$_.Name -eq "Manufacturer"}).Value)
-        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "PackageVersion" -Value $($Application.Instance.Property.Where({$_.Name -eq "SoftwareVersion"}).Value)
-        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "AppDescription" -Value $($Application.Instance.Property.Where({$_.Name -eq "LocalizedDescription"}).Value)
-        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "CMAppPackageID" -Value $($Application.Instance.Property.Where({$_.Name -eq "PackageID"}).Value)
+        ## Needs to be tested. Could improve the usage of this script by allowing it to work with ConfigMgr Live, and Exported app information.
+        Invoke-Expression $('$MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "PackageDisplayName"   -Value $(' + $CmdP1 + "LocalizedDisplayName"   + $CmdP2)
+        Invoke-Expression $('$MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "PublisherDisplayName" -Value $(' + $CmdP1 + "Manufacturer"           + $CmdP2)
+        Invoke-Expression $('$MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "PackageVersion"       -Value $(' + $CmdP1 + "SoftwareVersion"        + $CmdP2)
+        Invoke-Expression $('$MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "AppDescription"       -Value $(' + $CmdP1 + "LocalizedDescription"   + $CmdP2)
+        Invoke-Expression $('$MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "CMAppPackageID"       -Value $(' + $CmdP1 + "PackageID"              + $CmdP2)
+        Invoke-Expression $('$MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "PublisherName"        -Value $("CN=" + ' + $CmdP1 + "Manufacturer"   + $CmdP2)
+        Invoke-Expression $('$MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "PackageName"          -Value $(Format-MSIXPackagingName -AppName $(' + $CmdP1 + "LocalizedDisplayName" + $CmdP2 + ')')
+        
+        #$MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "PackageDisplayName"      -Value $($Application.Instance.Property.Where({$_.Name -eq "LocalizedDisplayName"}).Value)
+        #$MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "PackageName"             -Value $(Format-MSIXPackagingName -AppName $($Application.Instance.Property.Where({$_.Name -eq "LocalizedDisplayName"}).Value))
+        #$MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "PublisherName"           -Value $("CN=" + $Application.Instance.Property.Where({$_.Name -eq "Manufacturer"}).Value)
+        #$MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "PublisherDisplayName"    -Value $($Application.Instance.Property.Where({$_.Name -eq "Manufacturer"}).Value)
+        #$MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "PackageVersion"          -Value $($Application.Instance.Property.Where({$_.Name -eq "SoftwareVersion"}).Value)
+        #$MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "AppDescription"          -Value $($Application.Instance.Property.Where({$_.Name -eq "LocalizedDescription"}).Value)
+        #$MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "CMAppPackageID"          -Value $($Application.Instance.Property.Where({$_.Name -eq "PackageID"}).Value)
         $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "RequiresUserInteraction" -Value $($XML.AppMgmtDigest.DeploymentType.Installer.CustomData.RequiresUserInteraction)
-        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "AppFolderPath" -Value $($Deployment.Installer.Contents.Content.Location)
-        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "AppFileName" -Value $($Deployment.Installer.Contents.Content.File.Name)
-        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "AppIntallerType" -Value $($Deployment.Installer.Technology)
-        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "ContentID" -Value $($Deployment.Installer.Contents.Content.ContentID)
+        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "AppFolderPath"           -Value $($Deployment.Installer.Contents.Content.Location)
+        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "AppFileName"             -Value $($Deployment.Installer.Contents.Content.File.Name)
+        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "AppIntallerType"         -Value $($Deployment.Installer.Technology)
+        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "ContentID"               -Value $($Deployment.Installer.Contents.Content.ContentID)
 
         IF($CMExport -eq "")
             { $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "InstallerPath" -Value $("$($Deployment.Installer.Contents.Content.Location)" + "$($Deployment.Installer.Contents.Content.File.Name)") }
