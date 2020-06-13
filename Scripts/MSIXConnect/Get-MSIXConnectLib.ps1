@@ -3,8 +3,8 @@
 ############################
 
 #Script Libraries required to run this script.
-. $PSScriptRoot\batch_convert.ps1
-. $PSScriptRoot\sign_deploy_run.ps1
+. $PSScriptRoot\..\BulkConversion\bulk_convert.ps1
+. $PSScriptRoot\..\BulkConversion\sign_deploy_run.ps1
 
 $SupportedInstallerType = @("MSI")
 $SupportedConfigMgrVersion = ""
@@ -92,59 +92,14 @@ function Disconnect-CMEnvironment ([boolean]$ReturnPreviousLocation=$false)
     IF($ReturnPreviousLocation){Return $PreviousLocation}
 }
 
-Function Get-AppMetaData ([Parameter(Mandatory=$True, HelpMessage="Please provide the Name of the CM Application.", ParameterSetName=$('Execution'), Position=0)] [string]$AppName)
+Function Get-CMAppMetaData ([Parameter(Mandatory=$True, HelpMessage="Please provide the Name of the CM Application.", ParameterSetName=$('Execution'), Position=0)] [string]$AppName)
 {
+    New-LogEntry -LogValue "Collecting information from ConfigMgr for application: $AppName" -Component "Get-CMAppMetaData"
     $CMApplication = Get-CMApplication -Name $AppName
-    $CMApplicationDeploymentTypes = Get-CMDeploymentType -InputObject $CMApplication
-    
-    New-LogEntry -LogValue "Collecting information from ConfigMgr for application: $AppName" -Component "Get-AppMetaData"
     $CMApplicationDeploymentTypes = Get-CMDeploymentType -InputObject $CMApplication
     $AppDetails = @()
 
-    IF($($CMApplicationDeploymentTypes.count -le 1))
-    { $XML = [XML]$($CMApplicationDeploymentTypes.SDMPackageXML) }
-    else 
-    { $XML = [XML]$($CMApplicationDeploymentTypes[0].SDMPackageXML) }
-    
-    Foreach($Deployment IN $($XML.AppMgmtDigest.DeploymentType))
-    {
-        New-LogEntry -LogValue "Parsing through the Deployment Types of $AppName application." -Component "Get-AppMetaData" -WriteHost $VerboseLogging
-
-        $MSIXAppDetails = New-Object PSObject
-        $XML = [XML]$($DeploymentType.SDMPackageXML)
-
-        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "PackageDisplayName" -Value $($CMApplication.LocalizedDisplayName)
-        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "PackageName" -Value $(Format-MSIXPackagingName -AppName $($CMApplication.LocalizedDisplayName))
-        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "PublisherName" -Value $("CN=" + $CMApplication.Manufacturer)
-        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "PublisherDisplayName" -Value $($CMApplication.Manufacturer)
-        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "PackageVersion" -Value $($CMApplication.SoftwareVersion)
-        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "AppDescription" -Value $($CMApplication.LocalizedDescription)
-        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "CMAppPackageID" -Value $($CMApplication.PackageID)
-        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "RequiresUserInteraction" -Value $($XML.AppMgmtDigest.DeploymentType.Installer.CustomData.RequiresUserInteraction)
-        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "AppFolderPath" -Value $($Deployment.Installer.Contents.Content.Location)
-        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "AppFileName" -Value $($Deployment.Installer.Contents.Content.File.Name)
-        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "AppIntallerType" -Value $($Deployment.Installer.Technology)
-        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "InstallerPath" -Value $("$($Deployment.Installer.Contents.Content.Location)" + "$($Deployment.Installer.Contents.Content.File.Name)")
-
-        New-LogEntry -LogValue "Parsing Application: ""$($CMApplication.LocalizedDisplayName)"", currently recording information from ""$($DeploymentType.LocalizedDisplayName)"" Deployment Type." -Component "Get-AppMetaData" -WriteHost $VerboseLogging
-     
-        Foreach($Arg IN $($DeploymentInstaller.InstallAction.Args.Arg))
-        {
-            IF($Arg.Name -eq "InstallCommandLine") { $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "AppInstallString" -Value $($Arg.'#text') }
-            IF($Arg.Name -eq "ExecutionContext")   { $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "ExecutionContext" -Value $($Arg.'#text') }
-        }
-
-        New-LogEntry -LogValue "Adding the following information to the App XML:`n`n$MSIXAppDetails" -Component "Get-AppMetaData" -WriteHost $VerboseLogging
-        
-        IF ($SupportedInstallerType.Contains($($Deployment.Installer.Technology)))
-        {
-            $AppDetails += $MSIXAppDetails
-        }
-        ELSE
-        {
-            New-LogEntry -LogValue "The ""$($CMApplication.LocalizedDisplayName)"" application type is currently unsupported." -Component "Get-AppMetaData" -Severity 3
-        }
-    }
+    $AppDetails = Format-MSIXAppDetails -Application $CMApplication -ApplicationDeploymentType $CMApplicationDeploymentTypes
     
     Return $AppDetails
 }
@@ -154,6 +109,63 @@ Requirements
     - Name must be 3 Characters long
     - No Special Charachters
 #>
+
+function Format-MSIXAppDetails ($Application, $ApplicationDeploymentType, $CMExportAppPath="") 
+{
+    $AppDetails = @()
+
+    IF($($ApplicationDeploymentType.count -le 1))
+    { $XML = [XML]$($ApplicationDeploymentType.SDMPackageXML) }
+    else 
+    { $XML = [XML]$($ApplicationDeploymentType[0].SDMPackageXML) }
+    
+    Foreach($Deployment IN $($XML.AppMgmtDigest.DeploymentType))
+    {
+        New-LogEntry -LogValue "Parsing through the Deployment Types of $AppName application." -Component "Format-MSIXAppDetails" -WriteHost $VerboseLogging
+
+        $MSIXAppDetails = New-Object PSObject
+        $XML = [XML]$($DeploymentType.SDMPackageXML)
+
+        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "PackageDisplayName" -Value $($Application.LocalizedDisplayName)
+        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "PackageName" -Value $(Format-MSIXPackagingName -AppName $($Application.LocalizedDisplayName))
+        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "PublisherName" -Value $("CN=" + $Application.Manufacturer)
+        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "PublisherDisplayName" -Value $($Application.Manufacturer)
+        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "PackageVersion" -Value $($Application.SoftwareVersion)
+        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "AppDescription" -Value $($Application.LocalizedDescription)
+        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "CMAppPackageID" -Value $($Application.PackageID)
+        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "RequiresUserInteraction" -Value $($XML.AppMgmtDigest.DeploymentType.Installer.CustomData.RequiresUserInteraction)
+        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "AppFolderPath" -Value $($Deployment.Installer.Contents.Content.Location)
+        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "AppFileName" -Value $($Deployment.Installer.Contents.Content.File.Name)
+        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "AppIntallerType" -Value $($Deployment.Installer.Technology)
+        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "ContentID" -Value $($Deployment.Installer.Contents.Content.ContentID)
+
+        IF($CMExport -eq "")
+            { $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "InstallerPath" -Value $("$($Deployment.Installer.Contents.Content.Location)" + "$($Deployment.Installer.Contents.Content.File.Name)") }
+        else 
+            { $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "InstallerPath" -Value $("$CMExportAppPath\" + "$($Deployment.Installer.Contents.Content.File.Name)") }
+        
+        New-LogEntry -LogValue "Parsing Application: ""$($Application.LocalizedDisplayName)"", currently recording information from ""$($DeploymentType.LocalizedDisplayName)"" Deployment Type." -Component "Format-MSIXAppDetails" -WriteHost $VerboseLogging
+     
+        Foreach($Arg IN $($DeploymentInstaller.InstallAction.Args.Arg))
+        {
+            IF($Arg.Name -eq "InstallCommandLine") { $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "AppInstallString" -Value $($Arg.'#text') }
+            IF($Arg.Name -eq "ExecutionContext")   { $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "ExecutionContext" -Value $($Arg.'#text') }
+        }
+
+        New-LogEntry -LogValue "Adding the following information to the App XML:`n`n$MSIXAppDetails" -Component "Format-MSIXAppDetails" -WriteHost $VerboseLogging
+        
+        IF ($SupportedInstallerType.Contains($($Deployment.Installer.Technology)))
+        {
+            $AppDetails += $MSIXAppDetails
+        }
+        ELSE
+        {
+            New-LogEntry -LogValue "The ""$($Application.LocalizedDisplayName)"" application type is currently unsupported." -Component "Format-MSIXAppDetails" -Severity 3
+        }
+    }
+    
+    Return $AppDetails
+}
 
 Function Format-MSIXPackagingName ([Parameter(Mandatory=$True,Position=0)] [string]$AppName)
 {
@@ -202,7 +214,7 @@ Function New-MSIXConnectMakeApp ([Parameter(Mandatory=$True)] $SiteCode = "CM1",
 
     Test-PSArchitecture
     IF(!$(Connect-CMEnvironment $SiteCode)) {Return}
-    $MSIXAppMetaData = Get-AppMetaData $ApplicationName
+    $MSIXAppMetaData = Get-CMAppMetaData $ApplicationName
     Disconnect-CMEnvironment
 
     $workingDirectory = [System.IO.Path]::Combine($PSScriptRoot, "out")
@@ -211,4 +223,22 @@ Function New-MSIXConnectMakeApp ([Parameter(Mandatory=$True)] $SiteCode = "CM1",
 
     SignAndDeploy "$workingDirectory\MSIX"
 
+}
+
+Function Get-CMExportAppData ($CMAppContentPath="C:\Temp\ConfigMgrOutput_files", $CMAppMetaDataPath="C:\Temp\ConfigMgrOutput")
+{
+    # Identify the files exported from ConfigMgr
+    $CMAppMetaData = Get-Item -Path "$CMAppMetaDataPath\SMS_Application\*"
+    
+    $AppDetails = @()
+
+    Foreach($CMAppPath in $CMAppMetaData)
+    {
+        $CMApp = [xml](Get-Content -Path "$($CMAppPath.FullName)\object.xml")
+        $CMAppDeploymentType = [xml]($CMApp.Instance.Property.Where({$_.Name -eq "SDMPackageXML"}).Value.'#cdata-section')
+
+        $AppDetails += Format-MSIXAppDetails -Application $CMApp -ApplicationDeploymentType $CMAppDeploymentType -CMExportAppPath $CMAppContentPath
+    }
+
+    Return $AppDetails
 }
