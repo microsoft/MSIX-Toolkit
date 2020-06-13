@@ -14,6 +14,7 @@ Param
 
 Test-PSArchitecture
 IF(!$(Connect-CMEnvironment $SiteCode)) {Return}
+
 $MSIXAppMetaData = Get-CMAppMetaData $ApplicationName
 
 
