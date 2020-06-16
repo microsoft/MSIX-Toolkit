@@ -5,6 +5,7 @@
 #Script Libraries required to run this script.
 . $PSScriptRoot\..\BulkConversion\bulk_convert.ps1
 . $PSScriptRoot\..\BulkConversion\sign_deploy_run.ps1
+. $PSScriptRoot\..\BulkConversion\SharedScriptLib.ps1
 
 $SupportedInstallerType = @("MSI","Script")
 $SupportedConfigMgrVersion = ""
@@ -19,37 +20,37 @@ $VerboseLogging = $true
 ##    Processes the information that it receives and translates it into a Trace32
 ##    style log file configured with the appropriate values
 ##################################################################################
-Function New-LogEntry
-{
-Param(
-    [Parameter(Position=0)] [string]$LogValue,
-    [Parameter(Position=1)] [string]$Component = "",
-    [Parameter(Position=2)] [int]$Severity = 1,
-    [Parameter(Position=3)] [boolean]$WriteHost = $true,
-    [string]$Path = $InitialLocation
-)
-    #Records previously existing execution location to return back afterwards.
-    #$PreviousLocation = Get-Location
+# Function New-LogEntry
+# {
+# Param(
+#     [Parameter(Position=0)] [string]$LogValue,
+#     [Parameter(Position=1)] [string]$Component = "",
+#     [Parameter(Position=2)] [int]$Severity = 1,
+#     [Parameter(Position=3)] [boolean]$WriteHost = $true,
+#     [string]$Path = $InitialLocation
+# )
+#     #Records previously existing execution location to return back afterwards.
+#     #$PreviousLocation = Get-Location
 
-    #Sets the execution location to the FileSystem to allow for log entries to be made
-    $PreviousLocation = Disconnect-CMEnvironment -ReturnPreviousLocation $true
+#     #Sets the execution location to the FileSystem to allow for log entries to be made
+#     $PreviousLocation = Disconnect-CMEnvironment -ReturnPreviousLocation $true
     
-    #Formats the values required to enter for Trace32 Format
-    $TimeZoneBias = Get-WmiObject -Query "Select Bias from Win32_TimeZone"
-    [string]$Time = Get-Date -Format "HH:mm:ss.ffff"
-    [string]$Date = Get-Date -Format "MM-dd-yyyy"
+#     #Formats the values required to enter for Trace32 Format
+#     $TimeZoneBias = Get-WmiObject -Query "Select Bias from Win32_TimeZone"
+#     [string]$Time = Get-Date -Format "HH:mm:ss.ffff"
+#     [string]$Date = Get-Date -Format "MM-dd-yyyy"
 
-    #Appends the newest log entry to the end of the log file in a Trace32 Formatting
-    $('<![LOG['+$LogValue+']LOG]!><time="'+$Time+'" date="'+$Date+'" component="'+$component+'" context="Empty" type="'+$severity+'" thread="Empty" file="'+"Empty"+'">') | out-file -FilePath $($Path+"\MSIXConnect.log") -Append -NoClobber -encoding default
+#     #Appends the newest log entry to the end of the log file in a Trace32 Formatting
+#     $('<![LOG['+$LogValue+']LOG]!><time="'+$Time+'" date="'+$Date+'" component="'+$component+'" context="Empty" type="'+$severity+'" thread="Empty" file="'+"Empty"+'">') | out-file -FilePath $($Path+"\MSIXConnect.log") -Append -NoClobber -encoding default
 
-    IF($WriteHost)
-    {
-        Write-Host $LogValue -ForegroundColor $(switch ($Severity) {3 {"Red"} 2 {"Yellow"} 1 {"White"}})
-    }
+#     IF($WriteHost)
+#     {
+#         Write-Host $LogValue -ForegroundColor $(switch ($Severity) {3 {"Red"} 2 {"Yellow"} 1 {"White"}})
+#     }
 
-    #Returns to the original execution location
-    Set-Location $PreviousLocation
-}
+#     #Returns to the original execution location
+#     Set-Location $PreviousLocation
+# }
 
 Function Test-PSArchitecture
 {
@@ -129,8 +130,23 @@ function Format-MSIXAppExportDetails ($Application, $ApplicationDeploymentType, 
         New-LogEntry -LogValue "Parsing through the Deployment Types of $AppName application." -Component "Format-MSIXAppDetails" -WriteHost $VerboseLogging
 
         $MSIXAppDetails = New-Object PSObject
-        $XML = [XML]$($DeploymentType.SDMPackageXML)
+        $XML = [XML]$($DeploymentType.SDMPackageXML)  ## Not sure if this should be here or not.. needs to be tested with it removed.
 
+        IF($($Deployment.Installer.Technology) -eq "Script")
+        {
+            $InstallerFileName = [string]$($Deployment.Installer.Contents.Content.File.Name)
+            Write-Host "Installer FileName: $InstallerFileName `n`r"
+            $InstallerArgument = [string]$($Deployment.Installer.InstallAction.Args.Arg.Where({$_.Name -eq "InstallCommandLine"})).'#text'
+            Write-Host "Installer Argument: $InstallerArgument `n`r"
+            $InstallerArgument = $InstallerArgument.Substring($($InstallerFileName.Length)+3, $($InstallerArgument.Length)-$($($InstallerFileName.Length)+3))
+            Write-Host "Installer Argument: $InstallerArgument `n`r"
+            Write-Host "Installer Technology: $($Deployment.Installer.Technology) `n`r"
+        }
+        Else
+        {
+            $InstallerArgument = "" 
+        }
+            
         ## Needs to be tested. Could improve the usage of this script by allowing it to work with ConfigMgr Live, and Exported app information.
         Invoke-Expression $('$MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "PackageDisplayName"   -Value $(' + $CmdP1 + "LocalizedDisplayName"   + $CmdP2)
         Invoke-Expression $('$MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "PublisherDisplayName" -Value $(' + $CmdP1 + "Manufacturer"           + $CmdP2)
@@ -139,7 +155,7 @@ function Format-MSIXAppExportDetails ($Application, $ApplicationDeploymentType, 
         Invoke-Expression $('$MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "CMAppPackageID"       -Value $(' + $CmdP1 + "PackageID"              + $CmdP2)
         Invoke-Expression $('$MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "PublisherName"        -Value $("CN=" + ' + $CmdP1 + "Manufacturer"   + $CmdP2)
         Invoke-Expression $('$MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "PackageName"          -Value $(Format-MSIXPackagingName -AppName $(' + $CmdP1 + "LocalizedDisplayName" + $CmdP2 + ')')
-        
+
         #$MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "PackageDisplayName"      -Value $($Application.Instance.Property.Where({$_.Name -eq "LocalizedDisplayName"}).Value)
         #$MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "PackageName"             -Value $(Format-MSIXPackagingName -AppName $($Application.Instance.Property.Where({$_.Name -eq "LocalizedDisplayName"}).Value))
         #$MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "PublisherName"           -Value $("CN=" + $Application.Instance.Property.Where({$_.Name -eq "Manufacturer"}).Value)
@@ -152,7 +168,10 @@ function Format-MSIXAppExportDetails ($Application, $ApplicationDeploymentType, 
         $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "AppFileName"             -Value $($Deployment.Installer.Contents.Content.File.Name)
         $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "AppIntallerType"         -Value $($Deployment.Installer.Technology)
         $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "ContentID"               -Value $($Deployment.Installer.Contents.Content.ContentID)
+        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "InstallerArguments"      -Value $($InstallerArgument)
+        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "ExecutionContext"        -Value $($Arg.'#text')
 
+        ## Will want to change this out with Parameter Set Name, will need to set Parameter Set Names for this Function.
         IF($CMExport -eq "")
             { $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "InstallerPath" -Value $("$($Deployment.Installer.Contents.Content.Location)" + "$($Deployment.Installer.Contents.Content.File.Name)") }
         else 
@@ -160,22 +179,19 @@ function Format-MSIXAppExportDetails ($Application, $ApplicationDeploymentType, 
         
         New-LogEntry -LogValue "Parsing Application: ""$($Application.Instance.Property.Where({$_.Name -eq "LocalizedDisplayName"}).Value)"", currently recording information from ""$($DeploymentType.LocalizedDisplayName)"" Deployment Type." -Component "Format-MSIXAppDetails" -WriteHost $VerboseLogging
      
-        Foreach($Arg IN $($Deployment.Installer.InstallAction.Args.Arg))
-        {
-            IF($Arg.Name -eq "InstallCommandLine") { $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "AppInstallString" -Value $($Arg.'#text') }
-            IF($Arg.Name -eq "ExecutionContext")   { $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "ExecutionContext" -Value $($Arg.'#text') }
-        }
+        # Foreach($Arg IN $($Deployment.Installer.InstallAction.Args.Arg))
+        # {
+        #     IF($Arg.Name -eq "InstallCommandLine") { $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "AppInstallString" -Value $($Arg.'#text') }
+        #     IF($Arg.Name -eq "ExecutionContext")   { $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "ExecutionContext" -Value $($Arg.'#text') }
+        # }
 
         New-LogEntry -LogValue "Adding the following information to the App XML:`n`n$MSIXAppDetails" -Component "Format-MSIXAppDetails" -WriteHost $VerboseLogging
         
+        # SupportedInstallerType is at the top of this file. More file types will need to be included.
         IF ($SupportedInstallerType.Contains($($Deployment.Installer.Technology)))
-        {
-            $AppDetails += $MSIXAppDetails
-        }
+            { $AppDetails += $MSIXAppDetails }
         ELSE
-        {
-            New-LogEntry -LogValue "The ""$($Application.LocalizedDisplayName)"" application type is currently unsupported." -Component "Format-MSIXAppDetails" -Severity 3
-        }
+            { New-LogEntry -LogValue "The ""$($Application.LocalizedDisplayName)"" application type is currently unsupported." -Component "Format-MSIXAppDetails" -Severity 3 }
     }
     
     Return $AppDetails
@@ -280,8 +296,8 @@ Function New-MSIXConnectMakeApp ([Parameter(Mandatory=$True)] $SiteCode = "CM1",
         Return
     }
 
-    $virtualMachines = @( @{ Name = "MSIX Packaging Tool Environment1"; credential = $VMcredential } )
-    $remoteMachines =  @( @{ ComputerName = "YourVMNameHere.westus.cloudapp.azure.com"; Credential = $VMcredential } )
+#    $virtualMachines = @( @{ Name = "MSIX Packaging Tool Environment1"; credential = $VMcredential } )
+#    $remoteMachines =  @( @{ ComputerName = "YourVMNameHere.westus.cloudapp.azure.com"; Credential = $VMcredential } )
 
     Test-PSArchitecture
     IF(!$(Connect-CMEnvironment $SiteCode)) {Return}
