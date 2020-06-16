@@ -5,7 +5,7 @@ Param(
     [Parameter(Position=1)] [string]  $Component = "",
     [Parameter(Position=2)] [int]     $Severity  = 1,
     [Parameter(Position=3)] [boolean] $WriteHost = $true,
-                            [string]  $Path      = $($PSScriptRoot + "\Log")
+                            [string]  $Path      = $($workingDirectory + "\Log")
 )
     IF(!(Test-path -Path $Path)) {$Scratch = mkdir $Path}
     $Error.Clear()
