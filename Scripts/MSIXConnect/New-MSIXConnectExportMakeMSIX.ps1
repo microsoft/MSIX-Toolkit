@@ -40,8 +40,8 @@ $SigningCertificate = @{
 
 ## Virtual Machines to be used for converting applications to the MSIX Packaging format.
 $virtualMachines = @(
-    @{ Name = "MSIX Packaging Tool Environment 0"; Credential = $credential }
-    @{ Name = "MSIX Packaging Tool Environment 1"; Credential = $credential }
+#    @{ Name = "MSIX Packaging Tool Environment 0"; Credential = $credential }
+#    @{ Name = "MSIX Packaging Tool Environment 1"; Credential = $credential }
 #    @{ Name = "vm2"; Credential = $credential }
 )
 
@@ -53,8 +53,8 @@ $conversionsParameters = Get-CMExportAppData -CMAppContentPath $ExportedCMAppsPa
 
 ## Converts the identified applications to MSIX Packaging Format.
 Write-Host "`n###########  Packaging Applications  ###########" -BackgroundColor Black
-RunConversionJobs -conversionsParameters $conversionsParameters -virtualMachines $virtualMachines -remoteMachines $remoteMachines $workingDirectory
+#RunConversionJobs -conversionsParameters $conversionsParameters -virtualMachines $virtualMachines -remoteMachines $remoteMachines $workingDirectory
 
 ## Signs the previously created MSIX Apps with provided certificate.
 Write-Host "`n############  Signing Applications  ############" -BackgroundColor Black
-Set-MSIXSignApp -conversionsParameters $conversionsParameters -WorkingDirectory $workingDirectory -CertificatePath $($SigningCertificate.Path) -CertificatePassword $($SigningCertificate.Password)
+#Set-MSIXSignApp -conversionsParameters $conversionsParameters -WorkingDirectory $workingDirectory -CertificatePath $($SigningCertificate.Path) -CertificatePassword $($SigningCertificate.Password)
