@@ -2,12 +2,25 @@
 
 function CreateMPTTemplate($conversionParam, $jobId, $virtualMachine, $remoteMachine, $workingDirectory)
 {
+    ## Sets the default values for each field in the MPT Template
+    $objInstallerPath        = $conversionParam.InstallerPath
+    $objInstallerArguments   = $conversionParam.InstallerArguments
+    $objPackageName          = $conversionParam.PackageName
+    $objPackageDisplayName   = $conversionParam.PackageDisplayName
+    $objPublisherName        = $conversionParam.PublisherName
+    $objPublisherDisplayName = $conversionParam.PublisherDisplayName
+    $objPackageVersion       = $conversionParam.PackageVersion
+    $saveFolder              = $saveFolder = [System.IO.Path]::Combine($workingDirectory, "MSIX")
+    $workingDirectory        = [System.IO.Path]::Combine($($workingDirectory), "MPT_Templates")
+    $templateFilePath        = [System.IO.Path]::Combine($workingDirectory, "MsixPackagingToolTemplate_Job$($jobId).xml")
+    $conversionMachine       = ""
+
     ## Package File Path:
     ## If the Save Package Path has been specified, use this directory otherwise use the default working directory.
     If($($conversionParam.SavePackagePath))
         { $saveFolder = [System.IO.Path]::Combine($($conversionParam.SavePackagePath), "MSIX") }
-    Else
-        { $saveFolder = [System.IO.Path]::Combine($workingDirectory, "MSIX") }
+#    Else
+#        { $saveFolder = [System.IO.Path]::Combine($workingDirectory, "MSIX") }
 
     ## Detects if the provided custom path exists, if not creates the required path.
     IF(!$(Get-Item -Path $saveFolder -ErrorAction SilentlyContinue))
@@ -18,16 +31,16 @@ function CreateMPTTemplate($conversionParam, $jobId, $virtualMachine, $remoteMac
     ## If the Save Template Path has been specified, use this directory otherwise use the default working directory.
     If($($conversionParam.SaveTemplatePath))
         { $workingDirectory = [System.IO.Path]::Combine($($conversionParam.SaveTemplatePath), "MPT_Templates") }
-    Else
-        { $workingDirectory = [System.IO.Path]::Combine($($workingDirectory), "MPT_Templates") }
+#    Else
+#        { $workingDirectory = [System.IO.Path]::Combine($($workingDirectory), "MPT_Templates") }
 
     ## Detects if the MPT Template path exists, if not creates it.
     IF(!$(Get-Item -Path $workingDirectory -ErrorAction SilentlyContinue))
         { $Scratch = New-Item -Force -Type Directory $workingDirectory }
     
     # create template file for this conversion
-    $templateFilePath = [System.IO.Path]::Combine($workingDirectory, "MsixPackagingToolTemplate_Job$($jobId).xml")
-    $conversionMachine = ""
+#    $templateFilePath = [System.IO.Path]::Combine($workingDirectory, "MsixPackagingToolTemplate_Job$($jobId).xml")
+#    $conversionMachine = ""
 
     ## Determines the type of machine that will be connected to for conversion.
     if ($virtualMachine)
@@ -40,15 +53,15 @@ function CreateMPTTemplate($conversionParam, $jobId, $virtualMachine, $remoteMac
 <MsixPackagingToolTemplate
     xmlns="http://schemas.microsoft.com/appx/msixpackagingtool/template/2018"
     xmlns:mptv2="http://schemas.microsoft.com/msix/msixpackagingtool/template/1904">
-<Installer Path="$($conversionParam.InstallerPath)" Arguments="$($conversionParam.InstallerArguments)" />
+<Installer Path="$($objInstallerPath)" Arguments="$($objInstallerArguments)" />
 $conversionMachine
 <SaveLocation PackagePath="$saveFolder" />
 <PackageInformation
-    PackageName="$($conversionParam.PackageName)"
-    PackageDisplayName="$($conversionParam.PackageDisplayName)"
-    PublisherName="$($conversionParam.PublisherName)"
-    PublisherDisplayName="$($conversionParam.PublisherDisplayName)"
-    Version="$($conversionParam.PackageVersion)">
+    PackageName="$($objPackageName)"
+    PackageDisplayName="$($objPackageDisplayName)"
+    PublisherName="$($objPublisherName)"
+    PublisherDisplayName="$($objPublisherDisplayName)"
+    Version="$($objPackageVersion)">
 </PackageInformation>
 </MsixPackagingToolTemplate>
 "@
