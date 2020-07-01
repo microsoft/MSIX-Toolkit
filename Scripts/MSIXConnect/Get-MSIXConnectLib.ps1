@@ -137,7 +137,7 @@ function Format-MSIXAppExportDetails ($Application, $ApplicationDeploymentType, 
         ## Installer Filename
         $InstallerFileName = $($Deployment.Installer.InstallAction.Args.Arg.Where({$_.Name -eq "InstallCommandLine"})).'#text'
         
-        Write-Host "`t`t Installer Argument:   |$InstallerFileName|" -ForegroundColor Yellow
+        #Write-Host "`t`t Installer Argument:   |$InstallerFileName|" -ForegroundColor Yellow
 
         ## Identifies where the first encounter of an app type is located within the string. 
         ## ** Does not account for MSIExec.exe - maybe it does... accidentally **
@@ -154,7 +154,7 @@ function Format-MSIXAppExportDetails ($Application, $ApplicationDeploymentType, 
             { $InstallerFileName = $InstallerFileName.Substring(0, $($InstallerFileName.Length - 1)) }
 
 
-        Write-Host "`t`t Installer Filename:   |$InstallerFileName|" -ForegroundColor Yellow
+        #Write-Host "`t`t Installer Filename:   |$InstallerFileName|" -ForegroundColor Yellow
 
         ## Installer Arguments
         IF($($Deployment.Installer.Technology) -eq "Script")
@@ -169,8 +169,8 @@ function Format-MSIXAppExportDetails ($Application, $ApplicationDeploymentType, 
         $InstallerFileName = $InstallerFileName -replace ' ', ''
         $InstallerArgument = $InstallerArgument -replace '"', ''''
 
-        Write-Host "`t`t Installer Argument:   |$InstallerArgument|" -ForegroundColor Yellow
-        Write-Host "`t`t Installer Filename:   |$InstallerFileName|" -ForegroundColor Yellow
+        Write-Host "`t Installer Filename:   |$InstallerFileName|" -ForegroundColor Yellow
+        Write-Host "`t Installer Argument:   |$InstallerArgument|" -ForegroundColor Yellow
 
         ## If multiple files are located in the application source folder, compress and update installation instructions.
         IF($(Get-ChildItem $("$CMExportAppPath\$($Deployment.Installer.Contents.Content.ContentID)\")).Count -gt 1)
@@ -179,15 +179,13 @@ function Format-MSIXAppExportDetails ($Application, $ApplicationDeploymentType, 
             $InstallerFileName = $InstallInstructions.Filename
             $InstallerArgument = $InstallInstructions.Arguments
 
-            Write-Host "`t`t-------------------------------------------------------" -ForegroundColor Green
-            Write-Host "`t`t`t Installer Argument:   |$InstallerArgument|" -ForegroundColor Green
-            Write-Host "`t`t`t Installer Filename:   |$InstallerFileName|" -ForegroundColor Green
+            Write-Host "`t------------------------------------------------------------" -ForegroundColor Green
+            Write-Host "`t`t Installer Filename:   |$InstallerFileName|" -ForegroundColor Green
+            Write-Host "`t`t Installer Argument:   |$InstallerArgument|" -ForegroundColor Green
         }
 
         $msixAppContentID   = $($Deployment.Installer.Contents.Content.ContentID)
         $msixAppPackageName = $($(Format-MSIXPackagingName -AppName "$($Application.Instance.Property.Where({$_.Name -eq "LocalizedDisplayName" }).Value)-$($msixAppContentID.Substring($msixAppContentID.Length-6, 6))" ))
-
-        Write-Host $msixAppPackageName
         
         ## Needs to be tested. Could improve the usage of this script by allowing it to work with ConfigMgr Live, and Exported app information.
         Invoke-Expression $('$MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "PackageDisplayName"   -Value $(' + $CmdP1 + "LocalizedDisplayName"   + $CmdP2)
@@ -428,7 +426,10 @@ Function Compress-MSIXAppInstaller ($Path, $InstallerPath, $InstallerArgument)
     IF($Path[$Path.Length -1] -eq "\")
         { $Path = $Path.Substring(0, $($Path.Length -1)) }
 
+    Write-Host $Path -ForegroundColor Green -BackgroundColor Black
+
     ## Identifies the original structure, creating a plan which can be used to restore after extraction
+    $Path               = $(Get-Item $Path).FullName
     $ContainerPath      = $Path
     $ExportPath         = "C:\Temp\Output"
     $CMDScriptFilePath  = "$ContainerPath\MSIXCompressedExport.cmd"
@@ -472,12 +473,12 @@ Start-Process -FilePath "$($XMLData.MSIXCompressedExport.Items.exportpath)\$($XM
 '@)
 
     ## Exports the PowerShell script which will be used to restructure the content, and trigger the app install.
-    New-LogEntry -LogValue "Set-Content -Value ScriptContent -Path $ScriptFilePath -Force `n`r$ScriptContent" -Component "Compress-MSIXAppInstaller" -Severity 1 -WriteHost $false
+    New-LogEntry -LogValue "Creating the PS1 file:`n`nSet-Content -Value ScriptContent -Path $ScriptFilePath -Force `n`r$ScriptContent" -Component "Compress-MSIXAppInstaller" -Severity 1 -WriteHost $false
     Set-Content -Value $ScriptContent -Path $ScriptFilePath -Force
 
     ##############################  CMD  ########################################
     ## Exports the cmd script which will be used to run the PowerShell script. ##
-    New-LogEntry -LogValue "Set-Content -Value ScriptContent -Path $($CMDScriptFilePath.Replace($ContainerPath, '')) -Force `n`rPowerShell.exe $ScriptFilePath" -Component "Compress-MSIXAppInstaller" -Severity 1 -WriteHost $false
+    New-LogEntry -LogValue "Creating the CMD file:`n`nSet-Content -Value ScriptContent -Path $($CMDScriptFilePath.Replace($ContainerPath, '')) -Force `n`rPowerShell.exe $ScriptFilePath" -Component "Compress-MSIXAppInstaller" -Severity 1 -WriteHost $false
 #    Set-Content -Value "PowerShell.exe $("$ExportPath\$($ScriptFilePath.Replace($("$ContainerPath\"), ''))")" -Path $($CMDScriptFilePath) -Force
     Set-Content -Value "Start /Wait powershell.exe -executionpolicy Bypass -file $("$($ScriptFilePath.Replace($("$ContainerPath\"), ''))")" -Path $($CMDScriptFilePath) -Force
 
@@ -488,7 +489,7 @@ Start-Process -FilePath "$($XMLData.MSIXCompressedExport.Items.exportpath)\$($XM
     $iDirs = 1
     $XMLFiles += "`t`t<File Name=""$($templateFilePath.replace($("$ContainerPath\"), ''))"" ParentPath=""$ContainerPath\"" RelativePath=""$($templateFilePath.replace($ContainerPath, ''))"" Extension=""xlsx"" SEDFile=""FILE0"" />"
     $XMLDirectories += "`t`t<Directory Name=""root"" FullPath=""$Path"" RelativePath="""" SEDFolder=""SourceFiles0"" />"
-
+    Write-Host $Path -ForegroundColor Green -BackgroundColor Black
     foreach ($Item in $ChildItems) 
     {
         If($Item.Attributes -ne 'Directory')
@@ -521,7 +522,7 @@ $XMLFiles
 "@)
 
     ## Exports the XML file which contains the original file and folder structure.
-    New-LogEntry -LogValue "Set-Content -Value xmlContent -Path $templateFilePath -Force `n`r$xmlContent" -Component "Compress-MSIXAppInstaller" -Severity 1 -WriteHost $false
+    New-LogEntry -LogValue "Creating the XML file:`n`nSet-Content -Value xmlContent -Path $templateFilePath -Force `n`r$xmlContent" -Component "Compress-MSIXAppInstaller" -Severity 1 -WriteHost $false
     Set-Content -Value $xmlContent -Path $templateFilePath -Force
 
     ##############################  SED  ####################
@@ -588,7 +589,7 @@ $objSEDFileStructure
 "@)
 
     ## Exports the XML file which contains the original file and folder structure.
-    New-LogEntry -LogValue "Set-Content -Value xmlContent -Path $SEDOutPath -Force `n`r$SEDExportTemplate" -Component "Compress-MSIXAppInstaller" -Severity 1 -WriteHost $false
+    New-LogEntry -LogValue "Creating the SED file:`n`nSet-Content -Value xmlContent -Path $SEDOutPath -Force `n`r$SEDExportTemplate" -Component "Compress-MSIXAppInstaller" -Severity 1 -WriteHost $false
     Set-Content -Value $SEDExportTemplate -Path $SEDOutPath -Force
 
     ##############################  EXE  #######
