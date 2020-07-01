@@ -4,6 +4,8 @@ function CreateMPTTemplate($conversionParam, $jobId, $virtualMachine, $remoteMac
 {
     ## Sets the default values for each field in the MPT Template
     $objInstallerPath        = $conversionParam.InstallerPath
+    $objInstallerPathRoot    = $($(Get-Item -Path $($conversionParam.InstallerPath)).Directory).FullName
+    $objInstallerFileName    = $($(Get-Item -Path $objInstallerPath).Name)
     $objInstallerArguments   = $conversionParam.InstallerArguments
     $objPackageName          = $conversionParam.PackageName
     $objPackageDisplayName   = $conversionParam.PackageDisplayName
@@ -14,7 +16,20 @@ function CreateMPTTemplate($conversionParam, $jobId, $virtualMachine, $remoteMac
     $workingDirectory        = [System.IO.Path]::Combine($($workingDirectory), "MPT_Templates")
     $templateFilePath        = [System.IO.Path]::Combine($workingDirectory, "MsixPackagingToolTemplate_Job$($jobId).xml")
     $conversionMachine       = ""
+    $objlocalMachine         = $false
 
+    ## If multiple files in install dir, compress the contents into a wrapped executable
+    IF($($(Get-ChildItem $objInstallerPathRoot).Count -gt 1) -and $(!$objlocalMachine))
+    {
+        $InstallInstructions   = Compress-MSIXAppInstaller -Path $objInstallerPathRoot -InstallerPath $objInstallerFileName -InstallerArgument $objInstallerArguments
+        $objInstallerPath      = $InstallInstructions.Filename
+        $objInstallerArguments = $InstallInstructions.Arguments
+
+        Write-Host "`t------------------------------------------------------------" -ForegroundColor Green
+        Write-Host "`t`t Installer Filename:   |$objInstallerPath|" -ForegroundColor Green
+        Write-Host "`t`t Installer Argument:   |$objInstallerArguments|" -ForegroundColor Green
+    }
+   
     ## Package File Path:
     ## If the Save Package Path has been specified, use this directory otherwise use the default working directory.
     If($($conversionParam.SavePackagePath))
@@ -282,4 +297,192 @@ Function Test-RMConnection ($RemoteMachineName)
     ## Returns false, no network response was available.
     New-LogEntry -LogValue "Unable to Connect to $RemoteMachineName`r    - Ensure Firewall has been configured to allow remote connections and PING requests"  -Component "SharedScriptLib.ps1:Test-RMConnection" -Severity 3
     Return $false
+}
+
+Function Compress-MSIXAppInstaller ($Path, $InstallerPath, $InstallerArgument)
+{
+    IF($Path[$Path.Length -1] -eq "\")
+        { $Path = $Path.Substring(0, $($Path.Length -1)) }
+
+    ## Identifies the original structure, creating a plan which can be used to restore after extraction
+    $Path               = $(Get-Item $Path).FullName
+    $ContainerPath      = $Path
+    $ExportPath         = "C:\Temp\Output"
+    $CMDScriptFilePath  = "$ContainerPath\MSIXCompressedExport.cmd"
+    $ScriptFilePath     = "$ContainerPath\MSIXCompressedExport.ps1"
+    $templateFilePath   = "$ContainerPath\MSIXCompressedExport.xml"
+    $EXEOutPath         = "$ContainerPath\MSIXCompressedExport.EXE"
+    $SEDOutPath         = "$ContainerPath\MSIXCompressedExport.SED"
+    $EXEFriendlyName    = "MSIXCompressedExport"
+    $EXECmdline         = $CMDScriptFilePath
+    $FileDetails        = @()
+    $XML                = ""
+    $SEDFiles           = ""
+    $SEDFolders         = ""
+    $FileIncrement      = 0
+    $DirectoryIncrement = 0
+
+    IF($(Get-Item $EXEOutPath -ErrorAction SilentlyContinue).Exists -eq $true)
+        { Remove-Item $EXEOutPath -Force }
+
+    New-LogEntry -LogValue "Multiple files required for app install compressing all content into a self-extracting exe" -Component "Compress-MSIXAppInstaller" -Severity 2 -WriteHost $VerboseLogging
+
+    ##############################  PS1  ##################################################################################
+    ## Creates the PowerShell script which will export the contents to proper path and trigger application installation. ##
+    $($ScriptContent = @'
+$XMLData = [xml](Get-Content -Path ".\MSIXCompressedExport.xml")
+Write-Host "`nExport Path" -backgroundcolor Black
+Write-Host "$($XMLData.MSIXCompressedExport.Items.exportpath)"
+Write-Host "`nDirectories" -backgroundcolor Black
+$XMLData.MSIXCompressedExport.Items.Directory | ForEach-Object{Write-Host "$($_.Name.PadRight(40, ' '))$($_.RelativePath)" }
+Write-Host "`nFiles" -backgroundcolor Black
+$XMLData.MSIXCompressedExport.Items.File | ForEach-Object{Write-Host "$($_.Name.PadRight(40, ' '))$($_.RelativePath)" }
+
+IF($(Get-Item $($XMLData.MSIXCompressedExport.Items.exportpath -ErrorAction SilentlyContinue)).Exists -eq $true)
+    { Remove-Item $($XMLData.MSIXCompressedExport.Items.exportpath) -Recurse -Force }
+
+Foreach ($Item in $XMLData.MSIXCompressedExport.Items.Directory) {$Scratch = mkdir "$($XMLData.MSIXCompressedExport.Items.exportpath)$($Item.RelativePath)"}
+Foreach ($Item in $XMLData.MSIXCompressedExport.Items.File) {Copy-Item -Path ".\$($Item.Name)" -Destination "$($XMLData.MSIXCompressedExport.Items.exportpath)$($Item.RelativePath)"}
+
+Write-Host "Start-Process -FilePath ""$($XMLData.MSIXCompressedExport.Items.exportpath)\$($XMLData.MSIXCompressedExport.Installer.Path)"" -ArgumentList ""$($XMLData.MSIXCompressedExport.Installer.Arguments)"" -wait"
+Start-Process -FilePath "$($XMLData.MSIXCompressedExport.Items.exportpath)\$($XMLData.MSIXCompressedExport.Installer.Path)" -ArgumentList "$($XMLData.MSIXCompressedExport.Installer.Arguments)" -wait
+'@)
+
+    ## Exports the PowerShell script which will be used to restructure the content, and trigger the app install.
+    New-LogEntry -LogValue "Creating the PS1 file:`n`nSet-Content -Value ScriptContent -Path $ScriptFilePath -Force `n`r$ScriptContent" -Component "Compress-MSIXAppInstaller" -Severity 1 -WriteHost $false
+    Set-Content -Value $ScriptContent -Path $ScriptFilePath -Force
+
+    ##############################  CMD  ########################################
+    ## Exports the cmd script which will be used to run the PowerShell script. ##
+    New-LogEntry -LogValue "Creating the CMD file:`n`nSet-Content -Value ScriptContent -Path $($CMDScriptFilePath.Replace($ContainerPath, '')) -Force `n`rPowerShell.exe $ScriptFilePath" -Component "Compress-MSIXAppInstaller" -Severity 1 -WriteHost $false
+#    Set-Content -Value "PowerShell.exe $("$ExportPath\$($ScriptFilePath.Replace($("$ContainerPath\"), ''))")" -Path $($CMDScriptFilePath) -Force
+    Set-Content -Value "Start /Wait powershell.exe -executionpolicy Bypass -file $("$($ScriptFilePath.Replace($("$ContainerPath\"), ''))")" -Path $($CMDScriptFilePath) -Force
+
+    ##############################  XML  ##############################
+    ## Creates entries for each file and folder contained in the XML ##
+    $ChildItems = Get-ChildItem $Path -Recurse
+    $iFiles = 1
+    $iDirs = 1
+    $XMLFiles += "`t`t<File Name=""$($templateFilePath.replace($("$ContainerPath\"), ''))"" ParentPath=""$ContainerPath\"" RelativePath=""$($templateFilePath.replace($ContainerPath, ''))"" Extension=""xlsx"" SEDFile=""FILE0"" />"
+    $XMLDirectories += "`t`t<Directory Name=""root"" FullPath=""$Path"" RelativePath="""" SEDFolder=""SourceFiles0"" />"
+
+    foreach ($Item in $ChildItems) 
+    {
+        If($Item.Attributes -ne 'Directory')
+            { 
+                $XMLFiles += "`n`t`t<File Name=""$($Item.Name)"" ParentPath=""$($Item.FullName.Replace($($Item.Name), ''))"" RelativePath=""$($Item.FullName.Replace($Path, ''))"" Extension=""$($Item.Extension)"" SEDFile=""FILE$($iFiles)"" />" 
+                $iFiles++
+            }
+        Else 
+            { 
+                $XMLDirectories += "`n`t`t<Directory Name=""$($Item.Name)"" FullPath=""$($Item.FullName)"" RelativePath=""$($Item.FullName.Replace($Path, ''))"" SEDFolder=""SourceFiles$($iDirs)"" />" 
+                $iDirs++
+            }
+
+        $FileDetails += $ObjFileDetails
+    }
+
+    $templateFilePath   = "$ContainerPath\MSIXCompressedExport.xml"
+
+    ## Outputs the folder and file structure to an XML file.
+    $($xmlContent = @"
+<MSIXCompressedExport
+    xmlns="http://schemas.microsoft.com/appx/msixpackagingtool/template/2018"
+    xmlns:mptv2="http://schemas.microsoft.com/msix/msixpackagingtool/template/1904">
+    <Items exportpath="$($ExportPath)">
+$XMLDirectories
+$XMLFiles
+    </Items>
+    <Installer Path="$InstallerPath" Arguments="$InstallerArgument" />
+</MSIXCompressedExport>
+"@)
+
+    ## Exports the XML file which contains the original file and folder structure.
+    New-LogEntry -LogValue "Creating the XML file:`n`nSet-Content -Value xmlContent -Path $templateFilePath -Force `n`r$xmlContent" -Component "Compress-MSIXAppInstaller" -Severity 1 -WriteHost $false
+    Set-Content -Value $xmlContent -Path $templateFilePath -Force
+
+    ##############################  SED  ####################
+    ## Extracts the required files and folder information. ##
+    $ChildItems = Get-ChildItem $Path -Recurse
+    $SEDFolders = ""
+    $XMLData = [xml](Get-Content -Path "$templateFilePath")
+    $objSEDFileStructure = ""
+    $SEDFiles = ""
+
+    foreach($ObjFolder in $($XMLData.MSIXCompressedExport.Items.Directory))
+    {
+        If($(Get-ChildItem $($objFolder.FullPath)).Count -ne 0)
+            { 
+                $objSEDFileStructure += "[$($ObjFolder.SEDFolder)]`n"
+                $SEDFolders += "$($ObjFolder.SEDFolder)=$($objFolder.FullPath)`n" 
+            }
+        
+        foreach($objFile in $($XMLData.MSIXCompressedExport.Items.File.Where({$_.ParentPath -eq "$($ObjFolder.FullPath)\"})))
+            { $objSEDFileStructure += "%$($ObjFile.SEDFile)%=`n" }
+    }
+
+
+    foreach($objFile in $($XMLData.MSIXCompressedExport.Items.File))
+        { $SEDFiles += "$($ObjFile.SEDFile)=""$($ObjFile.Name)""`n" }
+
+    $($SEDExportTemplate = @"
+[Version]
+Class=IEXPRESS
+SEDVersion=3
+[Options]
+PackagePurpose=InstallApp
+ShowInstallProgramWindow=0
+HideExtractAnimation=1
+UseLongFileName=1
+InsideCompressed=0
+CAB_FixedSize=0
+CAB_ResvCodeSigning=0
+RebootMode=I
+InstallPrompt=%InstallPrompt%
+DisplayLicense=%DisplayLicense%
+FinishMessage=%FinishMessage%
+TargetName=%TargetName%
+FriendlyName=%FriendlyName%
+AppLaunched=%AppLaunched%
+PostInstallCmd=%PostInstallCmd%
+AdminQuietInstCmd=%AdminQuietInstCmd%
+UserQuietInstCmd=%UserQuietInstCmd%
+SourceFiles=SourceFiles
+[Strings]
+InstallPrompt=
+DisplayLicense=
+FinishMessage=
+TargetName=$EXEOutPath
+FriendlyName=$EXEFriendlyName
+AppLaunched=$($EXECmdline.Replace("$ContainerPath\", ''))
+PostInstallCmd=<None>
+AdminQuietInstCmd=
+UserQuietInstCmd=
+$SEDFiles
+[SourceFiles]
+$SEDFolders
+$objSEDFileStructure
+"@)
+
+    ## Exports the XML file which contains the original file and folder structure.
+    New-LogEntry -LogValue "Creating the SED file:`n`nSet-Content -Value xmlContent -Path $SEDOutPath -Force `n`r$SEDExportTemplate" -Component "Compress-MSIXAppInstaller" -Severity 1 -WriteHost $false
+    Set-Content -Value $SEDExportTemplate -Path $SEDOutPath -Force
+
+    ##############################  EXE  #######
+    ## Creates the self extracting executable ##
+
+    Start-Process -FilePath "iExpress.exe" -ArgumentList "/N $SEDOutPath" -wait
+    #Invoke-Expression "iexpress.exe /N $SEDOutPath"
+    
+    $ObjMSIXAppDetails = New-Object PSObject
+    $ObjMSIXAppDetails | Add-Member -MemberType NoteProperty -Name "Filename"  -Value $($EXEOutPath.Replace($("$ContainerPath\"), ''))
+    $ObjMSIXAppDetails | Add-Member -MemberType NoteProperty -Name "Arguments" -Value $("/C:$($EXECmdline.Replace("$ContainerPath\", ''))")
+
+    ## Clean-up
+    Remove-Item $CMDScriptFilePath -Force
+    Remove-Item $ScriptFilePath -Force
+    Remove-Item $templateFilePath -Force
+    Remove-Item $SEDOutPath -Force
+
+    Return $ObjMSIXAppDetails
 }
