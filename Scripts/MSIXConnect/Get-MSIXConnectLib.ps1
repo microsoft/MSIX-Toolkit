@@ -131,59 +131,35 @@ function Format-MSIXAppExportDetails ($Application, $ApplicationDeploymentType, 
 
         $XML                = [XML]$($DeploymentType.SDMPackageXML)  ## Not sure if this should be here or not.. needs to be tested with it removed.
         $MSIXAppDetails     = New-Object PSObject
-        $AppTypes           = @( ".exe", ".msi" )
+        # $AppTypes           = @( ".exe", ".msi" )
         $InstallerArgument  = ""
 
-        ## Installer Filename
-        $InstallerFileName = $($Deployment.Installer.InstallAction.Args.Arg.Where({$_.Name -eq "InstallCommandLine"})).'#text'
+        $objInstallerAction      = Get-MSIXConnectInstallInfo -DeploymentAction $($Deployment.Installer.InstallAction) -InstallerTechnology $($Deployment.Installer.Technology)
+        $objUninstallerAction    = Get-MSIXConnectInstallInfo -DeploymentAction $($Deployment.Installer.UninstallAction) -InstallerTechnology $($Deployment.Installer.Technology)
+        $objInstallerFileName    = $objInstallerAction.Filename
+        $objInstallerArgument    = $objInstallerAction.Argument
+        $objUninstallerFileName  = $objUninstallerAction.Filename
+        $objUninstallerArgument  = $objUninstallerAction.Argument
+
+        Write-Host "Fulled from the horses mouth: $($objUninstallerAction.Filename)"
+        Write-Host "Fulled from the horses mouth: $($objUninstallerAction.Argument)"
+
+        $InstallerFileName = $objInstallerFileName
+        $InstallerArgument = $objInstallerArgument
+
+         ## Will want to change this out with Parameter Set Name, will need to set Parameter Set Names for this Function.
+        $objContentPath = ""
+
+        IF($CMExport -eq "")
+            { $objContentPath = (Get-Item -Path $($Deployment.Installer.Contents.Content.Location)).FullName }
+        else 
+            { $objContentPath = (Get-Item -Path "$CMExportAppPath\$($Deployment.Installer.Contents.Content.ContentID)\").FullName }
+
+        $objTempInstallerFileName = $( Get-Item -Path $("$objContentPath\$InstallerFileName")).FullName
+        $objTempUninstallerFileName = $( Get-Item -Path $("$objContentPath\$objUninstallerFileName")).FullName
+
+        Write-Host "  Installer Filename:   |$InstallerFileName| |$InstallerArgument|" -ForegroundColor Yellow
         
-        #Write-Host "`t`t Installer Argument:   |$InstallerFileName|" -ForegroundColor Yellow
-
-        ## Identifies where the first encounter of an app type is located within the string. 
-        ## ** Does not account for MSIExec.exe - maybe it does... accidentally **
-        foreach($Extension in $AppTypes)
-        {
-            IF( $($InstallerFileName.IndexOf($Extension)) -gt 0 )
-            { 
-                IF($($InstallerFileName.Length) -gt $($InstallerFileName.IndexOf($Extension) + 5))
-                    { $InstallerFileName = $InstallerFileName.Substring(0, $($InstallerFileName.IndexOf($Extension) + 5)) }
-            }
-        }
-
-        IF($InstallerFileName.EndsWith(" "))
-            { $InstallerFileName = $InstallerFileName.Substring(0, $($InstallerFileName.Length - 1)) }
-
-
-        #Write-Host "`t`t Installer Filename:   |$InstallerFileName|" -ForegroundColor Yellow
-
-        ## Installer Arguments
-        IF($($Deployment.Installer.Technology) -eq "Script")
-        {
-            $InstallerArgumentTemp = [string]$($Deployment.Installer.InstallAction.Args.Arg.Where({$_.Name -eq "InstallCommandLine"})).'#text'
-            IF($($InstallerArgumentTemp.Length) -gt $($InstallerFileName.Length))
-                { $InstallerArgument = $InstallerArgumentTemp.Substring($($InstallerFileName.Length)+1, $($InstallerArgumentTemp.Length)-$($InstallerFileName.Length)-1) }
-        }
-
-        ## Removes the double quotes from the string
-        $InstallerFileName = $InstallerFileName -replace '"', ''
-        $InstallerFileName = $InstallerFileName -replace ' ', ''
-        $InstallerArgument = $InstallerArgument -replace '"', ''''
-
-        Write-Host "`t Installer Filename:   |$InstallerFileName|" -ForegroundColor Yellow
-        Write-Host "`t Installer Argument:   |$InstallerArgument|" -ForegroundColor Yellow
-
-        ## If multiple files are located in the application source folder, compress and update installation instructions.
-        # IF($(Get-ChildItem $("$CMExportAppPath\$($Deployment.Installer.Contents.Content.ContentID)\")).Count -gt 1)
-        # {
-        #     $InstallInstructions = Compress-MSIXAppInstaller -Path $("$CMExportAppPath\$($Deployment.Installer.Contents.Content.ContentID)\") -InstallerPath $InstallerFileName -InstallerArgument $InstallerArgument
-        #     $InstallerFileName = $InstallInstructions.Filename
-        #     $InstallerArgument = $InstallInstructions.Arguments
-
-        #     Write-Host "`t------------------------------------------------------------" -ForegroundColor Green
-        #     Write-Host "`t`t Installer Filename:   |$InstallerFileName|" -ForegroundColor Green
-        #     Write-Host "`t`t Installer Argument:   |$InstallerArgument|" -ForegroundColor Green
-        # }
-
         $msixAppContentID   = $($Deployment.Installer.Contents.Content.ContentID)
         $msixAppPackageName = $($(Format-MSIXPackagingName -AppName "$($Application.Instance.Property.Where({$_.Name -eq "LocalizedDisplayName" }).Value)-$($msixAppContentID.Substring($msixAppContentID.Length-6, 6))" ))
         
@@ -212,25 +188,13 @@ function Format-MSIXAppExportDetails ($Application, $ApplicationDeploymentType, 
         $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "ContentID"               -Value $($msixAppContentID)
         $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "InstallerArguments"      -Value $("$InstallerArgument")
         $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "ExecutionContext"        -Value $($Arg.'#text')
-
-        ## Will want to change this out with Parameter Set Name, will need to set Parameter Set Names for this Function.
-        IF($CMExport -eq "")
-#            { $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "InstallerPath" -Value $("$($Deployment.Installer.Contents.Content.Location)") }
-            { $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "InstallerPath" -Value $("$($Deployment.Installer.Contents.Content.Location)" + "$InstallerFileName") }
-        else 
-#            { $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "InstallerPath" -Value $("$CMExportAppPath\$($Deployment.Installer.Contents.Content.ContentID)") }
-            { $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "InstallerPath" -Value $("$CMExportAppPath\$($Deployment.Installer.Contents.Content.ContentID)\" + "$InstallerFileName") }
+        
+        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "InstallerPath"           -Value $($objTempInstallerFileName)
+        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "UninstallerPath"         -Value $($objTempUninstallerFileName)
+        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "UninstallerArgument"     -Value $($objUninstallerArgument)
         
         New-LogEntry -LogValue "Parsing Application: ""$($Application.Instance.Property.Where({$_.Name -eq "LocalizedDisplayName"}).Value)"", currently recording information from ""$($Deployment.Title.'#text')"" Deployment Type." -Component "Format-MSIXAppDetails" -WriteHost $VerboseLogging
      
-        # Foreach($Arg IN $($Deployment.Installer.InstallAction.Args.Arg))
-        # {
-        #     IF($Arg.Name -eq "InstallCommandLine") { $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "AppInstallString" -Value $($Arg.'#text') }
-        #     IF($Arg.Name -eq "ExecutionContext")   { $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "ExecutionContext" -Value $($Arg.'#text') }
-        # }
-
-        #New-LogEntry -LogValue "Adding the following information to the App XML:`n`n$MSIXAppDetails" -Component "Format-MSIXAppDetails" -WriteHost $VerboseLogging
-        
         # SupportedInstallerType is at the top of this file. More file types will need to be included.
         IF ($SupportedInstallerType.Contains($($Deployment.Installer.Technology)))
             { $AppDetails += $MSIXAppDetails }
@@ -239,6 +203,54 @@ function Format-MSIXAppExportDetails ($Application, $ApplicationDeploymentType, 
     }
     
     Return $AppDetails
+}
+
+Function Get-MSIXConnectInstallInfo ($DeploymentAction, $InstallerTechnology)
+{
+    $objInstallerAction   = $DeploymentAction.Args.Arg.Where({$_.Name -eq "InstallCommandLine"}).'#text'
+    $objInstallerFileName = $objInstallerAction
+    $objInstallerArgument = ""
+    $objTempInstallerArgument = $objInstallerAction
+    $AppTypes             = @( ".exe", ".msi" )
+    $objInstallerActions  = New-Object PSObject
+
+    IF($null -eq $objInstallerAction)
+        { Return }
+
+    Write-Host "Start" -ForegroundColor Yellow -BackgroundColor Black
+    Write-Host "InstallerAction $objInstallerAction" -ForegroundColor Green -BackgroundColor Black
+    Write-Host "InstallerFileName $objInstallerAction" -ForegroundColor Green -BackgroundColor Black
+
+    ## Installer FileName
+    IF($objInstallerFileName.EndsWith(" "))
+        { $objInstallerFileName = $objInstallerFileName.Substring(0, $($objInstallerFileName.Length - 1)) }
+
+    foreach($Extension in $AppTypes)
+    {
+        IF( $($objInstallerFileName.IndexOf($Extension)) -gt 0 )
+        { 
+            IF($($objInstallerFileName.Length) -gt $($objInstallerFileName.IndexOf($Extension) + 5))
+                { $objInstallerFileName = $objInstallerFileName.Substring(0, $($objInstallerFileName.IndexOf($Extension) + 5)) }
+        }
+    }
+
+    ## Installer Arguments
+    IF($InstallerTechnology -eq "Script")
+    {
+        IF($($objTempInstallerArgument.Length) -gt $($objInstallerFileName.Length))
+            { $objInstallerArgument = $objTempInstallerArgument.Substring($($objInstallerFileName.Length)+1, $($objTempInstallerArgument.Length)-$($objInstallerFileName.Length)-1) }
+#        $objInstallerArgument = $objInstallerArgument.Substring($($objInstallerFileName.Length)+1, $($objInstallerArgument.Length)-$($objInstallerFileName.Length)-1)
+    }
+
+    ## Removes the double quotes from the string
+    $objInstallerFileName = $objInstallerFileName -replace '"', ''
+    $objInstallerFileName = $objInstallerFileName -replace ' ', ''
+    $objInstallerArgument = $objInstallerArgument -replace '"', ''''
+
+    $objInstallerActions | Add-Member -MemberType NoteProperty -Name "FileName" -Value $($objInstallerFileName)
+    $objInstallerActions | Add-Member -MemberType NoteProperty -Name "Argument" -Value $($objInstallerArgument)
+
+    Return $objInstallerActions
 }
 
 function Format-MSIXAppDetails ($Application, $ApplicationDeploymentType, $CMExportAppPath="") 
