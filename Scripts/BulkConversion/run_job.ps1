@@ -27,10 +27,24 @@ try
 
     New-LogEntry -LogValue "MsixPackagingTool.exe create-package --template $templateFilePath --machinePassword $machinePassword" -Component "run_job.ps1:$($jobId+1)"
     ## Convert application to the MSIX Packaging format.
-    foreach($Entry in $(MsixPackagingTool.exe create-package --template $templateFilePath --machinePassword $machinePassword))
+
+    IF($machinePassword -eq "")
     {
-        Write-host $Entry
-        $Scratch += $Entry + "`n`r"
+        Write-Host "Password is Null"
+        foreach($Entry in $(MsixPackagingTool.exe create-package --template $templateFilePath))
+        {
+            Write-host $Entry
+            $Scratch += $Entry + "`n`r"
+        }
+    }
+    else 
+    {
+        Write-Host "Password is not Null"
+        foreach($Entry in $(MsixPackagingTool.exe create-package --template $templateFilePath --machinePassword $machinePassword))
+        {
+            Write-host $Entry
+            $Scratch += $Entry + "`n`r"
+        }
     }
 
     If ($Error)
@@ -55,4 +69,5 @@ if ($vmName)
 
 #Read-Host -Prompt 'Press any key to exit this window '
 New-LogEntry -LogValue "Conversion of application ($($TemplateFile.MsixPackagingToolTemplate.PackageInformation.PackageDisplayName)) completed" -Component "run_job.ps1:$($jobId+1)"
+
 Return $Scratch
