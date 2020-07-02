@@ -1,6 +1,6 @@
 . $psscriptroot\SharedScriptLib.ps1
 
-function CreateMPTTemplate($conversionParam, $jobId, $virtualMachine, $remoteMachine, $workingDirectory)
+function CreateMPTTemplate($conversionParam, $jobId, $virtualMachine, $remoteMachine, $targetMachine, $workingDirectory)
 {
     ## Sets the default values for each field in the MPT Template
     $objInstallerPath        = $conversionParam.InstallerPath
@@ -16,19 +16,19 @@ function CreateMPTTemplate($conversionParam, $jobId, $virtualMachine, $remoteMac
     $workingDirectory        = [System.IO.Path]::Combine($($workingDirectory), "MPT_Templates")
     $templateFilePath        = [System.IO.Path]::Combine($workingDirectory, "MsixPackagingToolTemplate_Job$($jobId).xml")
     $conversionMachine       = ""
-    $objlocalMachine         = $false
+    $objlocalMachine         = $targetMachine.Type
 
     ## If multiple files in install dir, compress the contents into a wrapped executable
-    IF($($(Get-ChildItem $objInstallerPathRoot).Count -gt 1) -and $(!$objlocalMachine))
-    {
-        $InstallInstructions   = Compress-MSIXAppInstaller -Path $objInstallerPathRoot -InstallerPath $objInstallerFileName -InstallerArgument $objInstallerArguments
-        $objInstallerPath      = $InstallInstructions.Filename
-        $objInstallerArguments = $InstallInstructions.Arguments
+    # IF($($(Get-ChildItem $objInstallerPathRoot).Count -gt 1) -and $($objlocalMachine -ne "LocalMachine") -and $($false))
+    # {
+    #     $InstallInstructions   = Compress-MSIXAppInstaller -Path $objInstallerPathRoot -InstallerPath $objInstallerFileName -InstallerArgument $objInstallerArguments
+    #     $objInstallerPath      = $InstallInstructions.Filename
+    #     $objInstallerArguments = $InstallInstructions.Arguments
 
-        Write-Host "`t------------------------------------------------------------" -ForegroundColor Green
-        Write-Host "`t`t Installer Filename:   |$objInstallerPath|" -ForegroundColor Green
-        Write-Host "`t`t Installer Argument:   |$objInstallerArguments|" -ForegroundColor Green
-    }
+    #     Write-Host "------------------------------------------------------------" -ForegroundColor Green
+    #     Write-Host "`t Installer Filename:   |$objInstallerPath|" -ForegroundColor Green
+    #     Write-Host "`t Installer Argument:   |$objInstallerArguments|" -ForegroundColor Green
+    # }
    
     ## Package File Path:
     ## If the Save Package Path has been specified, use this directory otherwise use the default working directory.
@@ -53,15 +53,13 @@ function CreateMPTTemplate($conversionParam, $jobId, $virtualMachine, $remoteMac
     IF(!$(Get-Item -Path $workingDirectory -ErrorAction SilentlyContinue))
         { $Scratch = New-Item -Force -Type Directory $workingDirectory }
     
-    # create template file for this conversion
-#    $templateFilePath = [System.IO.Path]::Combine($workingDirectory, "MsixPackagingToolTemplate_Job$($jobId).xml")
-#    $conversionMachine = ""
-
     ## Determines the type of machine that will be connected to for conversion.
-    if ($virtualMachine)
-        { $conversionMachine = "<VirtualMachine Name=""$($vm.Name)"" Username=""$($vm.Credential.UserName)"" />" }
-    else 
-        { $conversionMachine = "<mptv2:RemoteMachine ComputerName=""$($remoteMachine.ComputerName)"" Username=""$($remoteMachine.Credential.UserName)"" />" }
+    switch ($($targetMachine.Type))
+    {
+        "VirtualMachine" { $conversionMachine = "<VirtualMachine Name=""$($vm.Name)"" Username=""$($vm.Credential.UserName)"" />" }
+        "RemoteMachine"  { $conversionMachine = "<mptv2:RemoteMachine ComputerName=""$($remoteMachine.ComputerName)"" Username=""$($remoteMachine.Credential.UserName)"" />" }
+        "LocalMachine"   { $conversionMachine = "" }
+    }
 
     ## Generates the XML Content
     $xmlContent = @"
@@ -116,6 +114,9 @@ function RunConversionJobs($conversionsParameters, $virtualMachines, $remoteMach
         }
     }
 
+    ####################
+    ## Remote Machine ##
+    ####################
     $ConversionJobs = @()
 
     # first schedule jobs on the remote machines. These machines will be recycled and will not be re-used to run additional conversions
@@ -128,8 +129,12 @@ function RunConversionJobs($conversionsParameters, $virtualMachines, $remoteMach
             $conversionParam = $conversionsParameters[$remainingConversions[0]]
 
             # Capture the job index and update list of remaining conversions to run
+            $targetMachine = New-Object PSObject
+            $targetMachine | Add-Member -MemberType NoteProperty -Name "Type"         -Value $("RemoteMachine")
+            $targetMachine | Add-Member -MemberType NoteProperty -Name "MachineName"  -Value $($_)
+            
             $_jobId =            $remainingConversions[0]
-            $_templateFilePath = CreateMPTTemplate $conversionParam $jobId $nul $_ $workingDirectory
+            $_templateFilePath = CreateMPTTemplate $conversionParam $jobId $nul $_ $targetMachine $workingDirectory
             $_BSTR =             [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($_.Credential.Password)
             $_password =         [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($_BSTR)
 
@@ -147,6 +152,9 @@ function RunConversionJobs($conversionsParameters, $virtualMachines, $remoteMach
         }
     }
 
+    ######################
+    ## Virtual Machines ##
+    ######################
     $OnceThrough = $true
     If ($($virtualMachines.Count) -eq 0)
     {
@@ -198,7 +206,11 @@ function RunConversionJobs($conversionsParameters, $virtualMachines, $remoteMach
 #            Write-Progress -ID 0 -Status "Converting Applications..." -PercentComplete $($($_JobID)/$($conversionsParameters.count)*100) -Activity "Capture"
             New-LogEntry -LogValue "Dequeuing conversion job ($($_JobId+1)) for installer $($conversionParam.InstallerPath) on VM $($vm.Name)" -Component "batch_convert:RunConversionJobs"
 
-            $_templateFilePath = CreateMPTTemplate $conversionParam $_jobId $vm $nul $workingDirectory 
+            $targetMachine = New-Object PSObject
+            $targetMachine | Add-Member -MemberType NoteProperty -Name "Type"         -Value $("VirtualMachine")
+            $targetMachine | Add-Member -MemberType NoteProperty -Name "MachineName"  -Value $($vm)
+
+            $_templateFilePath = CreateMPTTemplate $conversionParam $_jobId $vm $nul $targetMachine $workingDirectory 
             $_BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($vm.Credential.Password)
             $_password = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($_BSTR)
             
@@ -243,6 +255,43 @@ function RunConversionJobs($conversionsParameters, $virtualMachines, $remoteMach
     New-LogEntry -LogValue "Finished running all jobs" -Component "batch_convert:RunConversionJobs"
 }
 
+
+function RunConversionJobsLocal($conversionsParameters, $workingDirectory)
+{
+    $_jobID              = 0
+    $ConversionJobs      = @()
+    $scratch             = New-Item -Force -Type Directory ([System.IO.Path]::Combine($workingDirectory, "MPT_Templates"))
+    $scratch             = New-Item -Force -Type Directory ([System.IO.Path]::Combine($workingDirectory, "MSIX"))
+    $initialSnapshotName = "BeforeMsixConversions_$(Get-Date -format yyyy-MM-dd)" 
+    $runJobScriptPath    = [System.IO.Path]::Combine($PSScriptRoot, "run_job.ps1")
+    $targetMachine       = New-Object PSObject
+    $_password           = ""
+
+    $targetMachine | Add-Member -MemberType NoteProperty -Name "Type"         -Value $("LocalMachine")
+    $targetMachine | Add-Member -MemberType NoteProperty -Name "MachineName"  -Value $("")
+
+    New-LogEntry -LogValue "Conversion Stats:`n    - Total Conversions:`t $($conversionsParameters.count)`n    - Running on Local Machine`n`n" -Component "bulk_convert:RunConversionJobsLocal" -Severity 1
+    
+    foreach ($AppConversionParameters in $conversionsParameters) 
+    {
+        $_templateFilePath = CreateMPTTemplate $AppConversionParameters $_jobID $nul $_ $targetMachine $workingDirectory
+
+        New-LogEntry -LogValue "Conversion Job ($_JobID)" -Component "bulk_convert:RunConversionJobsLocal" -Severity 1
+        New-LogEntry -LogValue "    Converting Application ($($AppConversionParameters.PackageDisplayName))`n        - Installer:  $($AppConversionParameters.InstallerPath)`n        - Argument:  $($AppConversionParameters.InstallerArguments)" -Component "bulk_convert:RunConversionJobsLocal" -Severity 1       
+        #Start-Process -FilePath $runJobScriptPath -ArgumentList $("-jobId $_JobId -vmName "" -vmsCount 0 -machinePassword $_password -templateFilePath $_templateFilePath -initialSnapshotName $initialSnapshotName -ScriptRoot $PSScriptRoot") -Wait
+        #Invoke-Command "$runJobScriptPath -jobId $_JobId -vmName "" -vmsCount 0 -machinePassword $_password -templateFilePath $_templateFilePath -initialSnapshotName $initialSnapshotName -ScriptRoot $PSScriptRoot"
+        $ConversionJobs = @(Start-Job -Name $("JobID: $($_JobId) - Converting $($conversionParam.PackageDisplayName)") -FilePath $runJobScriptPath -ArgumentList($_JobId, $VM.Name, $virtualMachines.Count, $_password, $_templateFilePath, $initialSnapshotName, $PSScriptRoot))
+        $ConversionJobs | Wait-Job
+
+        New-LogEntry -LogValue "    Uninstalling Application ($($AppConversionParameters.PackageDisplayName))`n        - Installer:  $($AppConversionParameters.UninstallerPath)`n        - Argument:  $($AppConversionParameters.UninstallerArguments)" -Component "bulk_convert:RunConversionJobsLocal" -Severity 1
+        New-LogEntry -LogValue "Uninstalling Application" -Component "bulk_convert:RunConversionJobsLocal" -Severity 1
+        #Start-Process -FilePath $($AppConversionParameters.UninstallerPath) -ArgumentList ($($AppConversionParameters.UninstallerArguments)) -Wait
+        $UninstallJobs = @(Start-Job -Name $("JobID: $($_JobId) - Uninstalling $($conversionParam.PackageDisplayName)") -FilePath $($AppConversionParameters.UninstallerPath) -ArgumentList($($AppConversionParameters.UninstallerArguments)))
+        $UninstallJobs | Wait-Job
+
+        $_jobID++
+    }
+}
 Function Test-VMConnection ([string]$VMName)
 {
     ## Retrieves a list of network interfaces for the machine.
