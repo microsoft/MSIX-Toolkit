@@ -1,7 +1,7 @@
 Param
 (
-        $ExportedCMAppsPath = "",
-        $ExportedCMAppMetaData = "")
+        $ExportedCMAppsPath = "C:\Temp\Demo\ConfigMgrExport_files\",
+        $ExportedCMAppMetaData = "C:\Temp\Demo\ConfigMgrExport\")
 
 
 ## Script Starts
@@ -53,7 +53,8 @@ $conversionsParameters = Get-CMExportAppData -CMAppContentPath $ExportedCMAppsPa
 
 ## Converts the identified applications to MSIX Packaging Format.
 Write-Host "`n###########  Packaging Applications  ###########" -BackgroundColor Black
-RunConversionJobs -conversionsParameters $conversionsParameters -virtualMachines $virtualMachines -remoteMachines $remoteMachines $workingDirectory
+#RunConversionJobs -conversionsParameters $conversionsParameters -virtualMachines $virtualMachines -remoteMachines $remoteMachines $workingDirectory
+RunConversionJobsLocal -conversionsParameters $conversionsParameters $workingDirectory
 
 ## Signs the previously created MSIX Apps with provided certificate.
 Write-Host "`n############  Signing Applications  ############" -BackgroundColor Black
