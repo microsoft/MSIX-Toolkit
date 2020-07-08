@@ -134,6 +134,8 @@ function Format-MSIXAppExportDetails ($Application, $ApplicationDeploymentType, 
         # $AppTypes           = @( ".exe", ".msi" )
         $InstallerArgument  = ""
 
+        Write-Host "  $($("Install String:").PadRight(22))  $($Deployment.Installer.InstallAction.Args.Arg.Where({$_.Name -eq "InstallCommandLine"}).'#text')" -ForegroundColor Yellow
+
         $objInstallerAction      = Get-MSIXConnectInstallInfo -DeploymentAction $($Deployment.Installer.InstallAction) -InstallerTechnology $($Deployment.Installer.Technology)
         $objUninstallerAction    = Get-MSIXConnectInstallInfo -DeploymentAction $($Deployment.Installer.UninstallAction) -InstallerTechnology $($Deployment.Installer.Technology)
         $objInstallerFileName    = $objInstallerAction.Filename
@@ -141,8 +143,8 @@ function Format-MSIXAppExportDetails ($Application, $ApplicationDeploymentType, 
         $objUninstallerFileName  = $objUninstallerAction.Filename
         $objUninstallerArgument  = $objUninstallerAction.Argument
 
-        Write-Host "Fulled from the horses mouth: $($objUninstallerAction.Filename)"
-        Write-Host "Fulled from the horses mouth: $($objUninstallerAction.Argument)"
+#        Write-Host "Fulled from the horses mouth: $($objUninstallerAction.Filename)"
+#        Write-Host "Fulled from the horses mouth: $($objUninstallerAction.Argument)"
 
         $InstallerFileName = $objInstallerFileName
         $InstallerArgument = $objInstallerArgument
@@ -158,7 +160,7 @@ function Format-MSIXAppExportDetails ($Application, $ApplicationDeploymentType, 
         $objTempInstallerFileName = $( Get-Item -Path $("$objContentPath\$InstallerFileName")).FullName
         $objTempUninstallerFileName = $( Get-Item -Path $("$objContentPath\$objUninstallerFileName")).FullName
 
-        Write-Host "  Installer Filename:   |$InstallerFileName| |$InstallerArgument|" -ForegroundColor Yellow
+        Write-Host "  $($("Installer Filename:").PadRight(22))  |$InstallerFileName| |$InstallerArgument|" -ForegroundColor Yellow
         
         $msixAppContentID   = $($Deployment.Installer.Contents.Content.ContentID)
         $msixAppPackageName = $($(Format-MSIXPackagingName -AppName "$($Application.Instance.Property.Where({$_.Name -eq "LocalizedDisplayName" }).Value)-$($msixAppContentID.Substring($msixAppContentID.Length-6, 6))" ))
@@ -182,6 +184,7 @@ function Format-MSIXAppExportDetails ($Application, $ApplicationDeploymentType, 
         #$MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "CMAppPackageID"          -Value $($Application.Instance.Property.Where({$_.Name -eq "PackageID"}).Value)
         $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "RequiresUserInteraction" -Value $($XML.AppMgmtDigest.DeploymentType.Installer.CustomData.RequiresUserInteraction)
         $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "AppFolderPath"           -Value $($Deployment.Installer.Contents.Content.Location)
+        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "AppInstallerFolderPath"  -Value $($objContentPath)
         $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "AppFileName"             -Value $($InstallerFileName)
         #$MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "AppFileName"             -Value $($Deployment.Installer.Contents.Content.File.Name)
         $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "AppIntallerType"         -Value $($Deployment.Installer.Technology)
@@ -200,6 +203,9 @@ function Format-MSIXAppExportDetails ($Application, $ApplicationDeploymentType, 
             { $AppDetails += $MSIXAppDetails }
         ELSE
             { New-LogEntry -LogValue "The ""$($Application.LocalizedDisplayName)"" application type is currently unsupported." -Component "Format-MSIXAppDetails" -Severity 3 }
+
+        ##Remove when testing is over
+        #Break
     }
     
     Return $AppDetails
@@ -217,9 +223,8 @@ Function Get-MSIXConnectInstallInfo ($DeploymentAction, $InstallerTechnology)
     IF($null -eq $objInstallerAction)
         { Return }
 
-    Write-Host "Start" -ForegroundColor Yellow -BackgroundColor Black
-    Write-Host "InstallerAction $objInstallerAction" -ForegroundColor Green -BackgroundColor Black
-    Write-Host "InstallerFileName $objInstallerAction" -ForegroundColor Green -BackgroundColor Black
+#    Write-Host "InstallerAction $objInstallerAction" -ForegroundColor Green -BackgroundColor Black
+#    Write-Host "InstallerFileName $objInstallerAction" -ForegroundColor Green -BackgroundColor Black
 
     ## Installer FileName
     IF($objInstallerFileName.EndsWith(" "))
@@ -238,7 +243,7 @@ Function Get-MSIXConnectInstallInfo ($DeploymentAction, $InstallerTechnology)
     IF($InstallerTechnology -eq "Script")
     {
         IF($($objTempInstallerArgument.Length) -gt $($objInstallerFileName.Length))
-            { $objInstallerArgument = $objTempInstallerArgument.Substring($($objInstallerFileName.Length)+1, $($objTempInstallerArgument.Length)-$($objInstallerFileName.Length)-1) }
+            { $objInstallerArgument = $objTempInstallerArgument.Substring($($objInstallerFileName.Length), $($objTempInstallerArgument.Length)-$($objInstallerFileName.Length)) }
 #        $objInstallerArgument = $objInstallerArgument.Substring($($objInstallerFileName.Length)+1, $($objInstallerArgument.Length)-$($objInstallerFileName.Length)-1)
     }
 
@@ -281,6 +286,7 @@ function Format-MSIXAppDetails ($Application, $ApplicationDeploymentType, $CMExp
         $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "AppFileName" -Value $($Deployment.Installer.Contents.Content.File.Name)
         $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "AppIntallerType" -Value $($Deployment.Installer.Technology)
         $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "ContentID" -Value $($Deployment.Installer.Contents.Content.ContentID)
+        
 
         IF($CMExport -eq "")
             { $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "InstallerPath" -Value $("$($Deployment.Installer.Contents.Content.Location)" + "$($Deployment.Installer.Contents.Content.File.Name)") }
