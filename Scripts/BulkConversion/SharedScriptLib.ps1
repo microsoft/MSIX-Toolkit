@@ -5,7 +5,7 @@ Param(
     [Parameter(Position=1)] [string]  $Component = "",
     [Parameter(Position=2)] [int]     $Severity  = 1,
     [Parameter(Position=3)] [boolean] $WriteHost = $true,
-                            [string]  $Path      = $($workingDirectory + "\Log")
+                            [string]  $Path      = $("C:\Temp\Log")
 )
     IF(!(Test-path -Path $Path)) {$Scratch = mkdir $Path}
     $Error.Clear()
@@ -56,6 +56,8 @@ Function Restore-InitialSnapshot ($SnapshotName, $VMName, $jobId="" )
     {
         New-LogEntry -LogValue "Reverting Virtual Machine to earlier snapshot ($initialSnapshotName)" -Component "run_job.ps1:$jobId"
         $Scratch = Restore-VMSnapshot -Name "$SnapshotName" -VMName $vmName -Confirm:$false
+
+        Start-Sleep -Seconds 10
     }
 }
 
