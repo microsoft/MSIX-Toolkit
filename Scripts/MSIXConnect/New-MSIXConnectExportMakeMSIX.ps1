@@ -1,8 +1,9 @@
 Param
 (
         $ExportedCMAppsPath = "C:\Temp\Demo\ConfigMgrExport_files\",
-        $ExportedCMAppMetaData = "C:\Temp\Demo\ConfigMgrExport\")
-
+        $ExportedCMAppMetaData = "C:\Temp\Demo\ConfigMgrExport\",
+        $CMAppParentPath = ""
+)
 
 ## Script Starts
 $workingDirectory = [System.IO.Path]::Combine($($PSScriptRoot), "out")
@@ -51,7 +52,8 @@ $remoteMachines = @(
 )
 
 $conversionsParameters = @()
-$conversionsParameters = Get-CMExportAppData -CMAppContentPath $ExportedCMAppsPath -CMAppMetaDataPath $ExportedCMAppMetaData
+#$conversionsParameters = Get-CMExportAppData -CMAppContentPath $ExportedCMAppsPath -CMAppMetaDataPath $ExportedCMAppMetaData
+$conversionsParameters = Get-CMExportAppData -CMAppParentPath $CMAppParentPath
 
 ## Converts the identified applications to MSIX Packaging Format.
 Write-Host "`n###########  Packaging Applications  ###########" -BackgroundColor Black
