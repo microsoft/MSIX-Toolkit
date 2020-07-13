@@ -120,13 +120,13 @@ $workingDirectory       = "$PSScriptRoot\Out\Log"
 $objVerbose             = $false
 
 #Write-Host "`n    run_job.ps1" -ForegroundColor White -BackgroundColor Black
-#New-LogEntry -WriteHost $true -LogValue "    #############`n`nJobID:  $jobId `nVMName:  $vmName `nVMCount:  $vmsCount `nMachinePassword:  $machinePassword `nTemplateFilePath:  $templateFilePath `nInitialSnapshotName:  $initialSnapshotName `nScriptRoot:  $ScriptRoot `nLocalMachine:  $localMachine `n`n#############" -Component "run_job.ps1:$($jobId+1)" -Path $workingDirectory
+#New-LogEntry -WriteHost $true -LogValue "    #############`n`nJobID:  $jobId `nVMName:  $vmName `nVMCount:  $vmsCount `nMachinePassword:  $machinePassword `nTemplateFilePath:  $templateFilePath `nInitialSnapshotName:  $initialSnapshotName `nScriptRoot:  $ScriptRoot `nLocalMachine:  $localMachine `n`n#############" -Component "run_job.ps1:$($jobId)" -Path $workingDirectory
 
-New-LogEntry -WriteHost $objVerbose -LogValue "    Variables:`n        - JobID:                $jobId `n        - VMName:               $vmName `n        - VMCount:              $vmsCount `n        - MachinePassword:      $machinePassword `n        - TemplateFilePath:     $templateFilePath `n        - InitialSnapshotName:  $initialSnapshotName `n        - ScriptRoot:           $ScriptRoot `n        - LocalMachine:         $localMachine `n" -Component "run_job.ps1:$($jobId+1)"
+New-LogEntry -WriteHost $objVerbose -LogValue "    Variables:`n        - JobID:                $jobId `n        - VMName:               $vmName `n        - VMCount:              $vmsCount `n        - MachinePassword:      $machinePassword `n        - TemplateFilePath:     $templateFilePath `n        - InitialSnapshotName:  $initialSnapshotName `n        - ScriptRoot:           $ScriptRoot `n        - LocalMachine:         $localMachine `n" -Component "run_job.ps1:$($jobId)"
 
 $Scratch = ""
 $TemplateFile = [xml](get-content $($templateFilePath))
-New-LogEntry -WriteHost $objVerbose -LogValue "    JOB: $($jobId+1) - $($TemplateFile.MsixPackagingToolTemplate.PackageInformation.PackageDisplayName)" -Component "run_job.ps1:$($jobId+1)"
+New-LogEntry -WriteHost $objVerbose -LogValue "    JOB: $($jobId) - $($TemplateFile.MsixPackagingToolTemplate.PackageInformation.PackageDisplayName)" -Component "run_job.ps1:$($jobId)"
 
 ## Validates that the conversion machine is a Virtual Machine.
 if ($vmName)
@@ -137,40 +137,47 @@ if ($vmName)
 
 ## Reads the Template file, and logs which application is being attempted.
 $Scratch +=  "`nInitiating capture of $($TemplateFile.MsixPackagingToolTemplate.PackageInformation.PackageDisplayName).`n"
-New-LogEntry -WriteHost $objVerbose -LogValue "    Initiating capture of $($TemplateFile.MsixPackagingToolTemplate.PackageInformation.PackageDisplayName)." -Component "run_job.ps1:$($jobId+1)"
+New-LogEntry -WriteHost $objVerbose -LogValue "    Initiating capture of $($TemplateFile.MsixPackagingToolTemplate.PackageInformation.PackageDisplayName)." -Component "run_job.ps1:$($jobId)"
+$ConversionLog = @()
 
 try
 {
 
-    #New-LogEntry -LogValue "MsixPackagingTool.exe create-package --template $templateFilePath --machinePassword $machinePassword" -Component "run_job.ps1:$($jobId+1)"
+    #New-LogEntry -LogValue "MsixPackagingTool.exe create-package --template $templateFilePath --machinePassword $machinePassword" -Component "run_job.ps1:$($jobId)"
     ## Convert application to the MSIX Packaging format.
 
     #IF($machinePassword -eq "")
     IF($localMachine -eq $true)
     {
-        New-LogEntry -WriteHost $objVerbose -LogValue "    MsixPackagingTool.exe create-package --template $templateFilePath" -Component "run_job.ps1:$($jobId+1)"
+        New-LogEntry -WriteHost $objVerbose -LogValue "    MsixPackagingTool.exe create-package --template $templateFilePath" -Component "run_job.ps1:$($jobId)"
         #Write-Host "Password is Null"
         foreach($Entry in $(MsixPackagingTool.exe create-package --template $templateFilePath))
         {
             #Write-host $Entry
-            $Scratch += $Entry + "`n`r"
+            #$ConversionLog += $Entry + "`n`r"
+            $ConversionLog += $Entry
         }
     }
     else 
     {
-        New-LogEntry -WriteHost $objVerbose -LogValue "    MsixPackagingTool.exe create-package --template $templateFilePath --machinePassword $machinePassword" -Component "run_job.ps1:$($jobId+1)" 
+        New-LogEntry -WriteHost $objVerbose -LogValue "    MsixPackagingTool.exe create-package --template $templateFilePath --machinePassword $machinePassword" -Component "run_job.ps1:$($jobId)" 
         #Write-Host "Password is not Null"
         foreach($Entry in $(MsixPackagingTool.exe create-package --template $templateFilePath --machinePassword $machinePassword))
         {
             #Write-host $Entry
-            $Scratch += $Entry + "`n`r"
+            #$ConversionLog += $Entry + "`n`r"
+            $ConversionLog += $Entry
         }
     }
 
+    $objErrorCapturing = $false
     If ($Error)
-        { New-LogEntry -LogValue "    $Scratch" -Component "run_job.ps1:$($jobId+1)" -WriteHost $objVerbose -Severity 3  }
+    { 
+        New-LogEntry -LogValue "    $($ConversionLog | ForEach-Object{$_ + "`n`r"})" -Component "run_job.ps1:$($jobId)" -WriteHost $objVerbose -Severity 3
+        $objErrorCapturing = $true
+    }
     Else
-        { New-LogEntry -LogValue "    $Scratch" -Component "run_job.ps1:$($jobId+1)" -WriteHost $objVerbose  }
+        { New-LogEntry -LogValue "    $($ConversionLog | ForEach-Object{$_ + "`n`r"})" -Component "run_job.ps1:$($jobId)" -WriteHost $objVerbose  }
     
 }
 Catch{}
@@ -179,7 +186,7 @@ Catch{}
 if ($vmName)
 {
     ## Restores the VM to pre-app installation setting
-#    Restore-InitialSnapshot -SnapshotName $initialSnapshotName -vmName $vmName -jobId $($jobId+1)
+#    Restore-InitialSnapshot -SnapshotName $initialSnapshotName -vmName $vmName -jobId $($jobId)
 
     ## If this is a VM that can be re-used, release the global semaphore after creating a semaphore handle for this process scope
     $semaphore = New-Object -TypeName System.Threading.Semaphore -ArgumentList @($vmsCount, $vmsCount, "Global\MPTBatchConversion")
@@ -188,8 +195,26 @@ if ($vmName)
 }
 
 #Read-Host -Prompt 'Press any key to exit this window '
-New-LogEntry -LogValue "    Conversion of application ($($TemplateFile.MsixPackagingToolTemplate.PackageInformation.PackageDisplayName)) completed" -Component "run_job.ps1:$($jobId+1)" 
+$ConversionLogPath = $($($($ConversionLog.Where({$_ -like "Log file is located under: *"})).Replace("Log file is located under: ", "")).Replace("%UserProfile%", "$env:USERPROFILE"))
+Copy-Item $ConversionLogPath -Destination "\\MSGenesis\Temp\Log\JobID$JobID.log"
 
+#New-LogEntry -LogValue "    Conversion Log:`n $ConversionLog" -Severity 1 -Component "run_job.ps1:$($jobId)"
+New-LogEntry -LogValue "    Conversion Log Path:  $ConversionLogPath" -Severity 1 -Component "run_job.ps1:$($jobId)"
+$ConversionLogContent = Get-Content $ConversionLogPath
 
+#New-LogEntry -LogValue "    RPM Says" -Severity 2 -Component "run_job.ps1:$($JobID)"
+#New-LogEntry -LogValue "    ROY SAYS: App Conversion Log:`n$ConversionLogContent" -Severity 1 -Component "run_job.ps1:$($jobId)" 
+
+IF($objErrorCapturing)
+{ 
+    New-LogEntry -LogValue "    App Conversion Log:`n$ConversionLogContent" -Severity 3 -Component "run_job.ps1:$($jobId)" 
+    New-LogEntry -LogValue "    $($ConversionLogContent.Where({$_ -like "*ERROR*"}))" -Severity 3 -Component "run_job.ps1:$($jobId)"
+    Throw "    $($ConversionLogContent.Where({$_ -like "*ERROR*"}))" 
+}
+else 
+{
+    New-LogEntry -LogValue "    App Conversion Log:`n$ConversionLogContent" -Severity 1 -Component "run_job.ps1:$($jobId)" 
+    New-LogEntry -LogValue "    Conversion of application ($($TemplateFile.MsixPackagingToolTemplate.PackageInformation.PackageDisplayName)) completed" -Severity 1 -Component "run_job.ps1:$($jobId)" 
+}
 
 Return $Scratch
