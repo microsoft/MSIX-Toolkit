@@ -31,7 +31,7 @@ function Set-MSIXSignApp($conversionsParameters, $WorkingDirectory, $Certificate
 
         New-LogEntry -LogValue "Searching the ""$msixFolder"" for ""$($ConvertParam.PackageName)_$($ConvertParam.PackageVersion)""" -Component "sign_deploy_run.ps1:Set-MSIXSignApp"
 
-        ForEach ($File in $(Get-ChildItem $msixFolder))
+        ForEach ($File in $(Get-ChildItem -Recurse $msixFolder))
         {
             $msixPath = $File.FullName
 
