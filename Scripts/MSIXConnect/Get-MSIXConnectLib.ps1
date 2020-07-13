@@ -2,6 +2,12 @@
 ##  Variable Declaration  ##
 ############################
 
+## Work on AppV
+## Selective App conversions
+##   - List of Folder
+##   - individual, or selective apps
+
+
 #Script Libraries required to run this script.
 . $PSScriptRoot\..\BulkConversion\bulk_convert.ps1
 . $PSScriptRoot\..\BulkConversion\sign_deploy_run.ps1
@@ -51,6 +57,12 @@ $VerboseLogging = $true
 #     #Returns to the original execution location
 #     Set-Location $PreviousLocation
 # }
+
+#Function Get-CMAppConversionData ([Parameter(Mandatory=$True,HelpMessage="Please Enter CM SiteCode.",ParameterSetName=$('CMServer'),Position=0)] [String]$CMSiteCode,
+#                                  [Parameter(Mandatory=$True,HelpMessage="Please Enter CM SiteCode.",ParameterSetName=$('Execution'),Position=0)] [String]$CMSiteCode)
+#{
+#
+#}
 
 Function Test-PSArchitecture
 {
@@ -111,7 +123,7 @@ Requirements
     - No Special Charachters
 #>
 
-function Format-MSIXAppExportDetails ($Application, $ApplicationDeploymentType, $CMExportAppPath="") 
+function Format-MSIXAppExportDetails ($Application, $ApplicationDeploymentType, $CMExportAppPath="", $CMAppPath="") 
 {
     $AppDetails = @()
     $AppName = $($Application.Instance.Property.Where({$_.Name -eq "LocalizedDisplayName"}).Value)
@@ -124,17 +136,20 @@ function Format-MSIXAppExportDetails ($Application, $ApplicationDeploymentType, 
     ## Needs to be tested. Could improve the usage of this script by allowing it to work with ConfigMgr Live, and Exported app information.
     $CmdP1 = '$Application.Instance.Property.Where({$_.Name -eq "'
     $CmdP2 = '"}).Value)'
-    
+
+    #Write-Host "Parsing through the Deployment Types of $AppName application." -ForegroundColor DarkCyan
+    New-LogEntry -LogValue "Parsing through the Deployment Types of $AppName application." -Component "Format-MSIXAppDetails" -WriteHost $true
+
     Foreach($Deployment IN $($XML.AppMgmtDigest.DeploymentType))
     {
-        New-LogEntry -LogValue "Parsing through the Deployment Types of $AppName application." -Component "Format-MSIXAppDetails" -WriteHost $VerboseLogging
+        New-LogEntry -LogValue "  Parsing the Application (""$AppName""), currently recording information from Deployment Type:  ""$($Deployment.Title.'#text')""" -Component "Format-MSIXAppDetails" -WriteHost $true -textcolor "Cyan"
 
         $XML                = [XML]$($DeploymentType.SDMPackageXML)  ## Not sure if this should be here or not.. needs to be tested with it removed.
         $MSIXAppDetails     = New-Object PSObject
         # $AppTypes           = @( ".exe", ".msi" )
         $InstallerArgument  = ""
 
-        Write-Host "  $($("Install String:").PadRight(22))  $($Deployment.Installer.InstallAction.Args.Arg.Where({$_.Name -eq "InstallCommandLine"}).'#text')" -ForegroundColor Yellow
+        New-LogEntry -LogValue "    $($("Install String:").PadRight(22))  $($Deployment.Installer.InstallAction.Args.Arg.Where({$_.Name -eq "InstallCommandLine"}).'#text')" -Severity 1 -Component "Format-MSIXAppDetails"
 
         $objInstallerAction      = Get-MSIXConnectInstallInfo -DeploymentAction $($Deployment.Installer.InstallAction) -InstallerTechnology $($Deployment.Installer.Technology)
         $objUninstallerAction    = Get-MSIXConnectInstallInfo -DeploymentAction $($Deployment.Installer.UninstallAction) -InstallerTechnology $($Deployment.Installer.Technology)
@@ -155,12 +170,13 @@ function Format-MSIXAppExportDetails ($Application, $ApplicationDeploymentType, 
         IF($CMExport -eq "")
             { $objContentPath = (Get-Item -Path $($Deployment.Installer.Contents.Content.Location)).FullName }
         else 
-            { $objContentPath = (Get-Item -Path "$CMExportAppPath\$($Deployment.Installer.Contents.Content.ContentID)\").FullName }
+#            { $objContentPath = (Get-Item -Path "$CMExportAppPath\$($Deployment.Installer.Contents.Content.ContentID)\").FullName }
+            { $objContentPath = (Get-Item -Path $($CMExportAppPath.Where({$_.FullName -like "*$($CMAppPath.Directory.Parent.Parent.Name)*$($Deployment.Installer.Contents.Content.ContentID)"})).FullName) }
 
         $objTempInstallerFileName = $( Get-Item -Path $("$objContentPath\$InstallerFileName")).FullName
         $objTempUninstallerFileName = $( Get-Item -Path $("$objContentPath\$objUninstallerFileName")).FullName
 
-        Write-Host "  $($("Installer Filename:").PadRight(22))  |$InstallerFileName| |$InstallerArgument|" -ForegroundColor Yellow
+        New-LogEntry -LogValue "    $($("Installer Filename:").PadRight(22))  |$InstallerFileName| |$InstallerArgument|" -Severity 1 -Component "Format-MSIXAppExportDetails"
         
         $msixAppContentID   = $($Deployment.Installer.Contents.Content.ContentID)
         $msixAppPackageName = $($(Format-MSIXPackagingName -AppName "$($Application.Instance.Property.Where({$_.Name -eq "LocalizedDisplayName" }).Value)-$($msixAppContentID.Substring($msixAppContentID.Length-6, 6))" ))
@@ -184,19 +200,19 @@ function Format-MSIXAppExportDetails ($Application, $ApplicationDeploymentType, 
         #$MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "CMAppPackageID"          -Value $($Application.Instance.Property.Where({$_.Name -eq "PackageID"}).Value)
         $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "RequiresUserInteraction" -Value $($XML.AppMgmtDigest.DeploymentType.Installer.CustomData.RequiresUserInteraction)
         $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "AppFolderPath"           -Value $($Deployment.Installer.Contents.Content.Location)
-        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "AppInstallerFolderPath"  -Value $($objContentPath)
+        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "AppInstallerFolderPath"  -Value $("$objContentPath\")
         $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "AppFileName"             -Value $($InstallerFileName)
         #$MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "AppFileName"             -Value $($Deployment.Installer.Contents.Content.File.Name)
         $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "AppIntallerType"         -Value $($Deployment.Installer.Technology)
         $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "ContentID"               -Value $($msixAppContentID)
         $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "InstallerArguments"      -Value $("$InstallerArgument")
         $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "ExecutionContext"        -Value $($Arg.'#text')
-        
+        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "ContentParentRoot"       -Value $($CMAppPath.Directory.Parent.Parent.Name)
+
         $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "InstallerPath"           -Value $($objTempInstallerFileName)
         $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "UninstallerPath"         -Value $($objTempUninstallerFileName)
         $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "UninstallerArgument"     -Value $($objUninstallerArgument)
-        
-        New-LogEntry -LogValue "Parsing Application: ""$($Application.Instance.Property.Where({$_.Name -eq "LocalizedDisplayName"}).Value)"", currently recording information from ""$($Deployment.Title.'#text')"" Deployment Type." -Component "Format-MSIXAppDetails" -WriteHost $VerboseLogging
+        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "DeploymentType"          -Value $($Deployment.Title.'#text')
      
         # SupportedInstallerType is at the top of this file. More file types will need to be included.
         IF ($SupportedInstallerType.Contains($($Deployment.Installer.Technology)))
@@ -206,6 +222,7 @@ function Format-MSIXAppExportDetails ($Application, $ApplicationDeploymentType, 
 
         ##Remove when testing is over
         #Break
+        Write-Host ""
     }
     
     Return $AppDetails
@@ -286,7 +303,6 @@ function Format-MSIXAppDetails ($Application, $ApplicationDeploymentType, $CMExp
         $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "AppFileName" -Value $($Deployment.Installer.Contents.Content.File.Name)
         $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "AppIntallerType" -Value $($Deployment.Installer.Technology)
         $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "ContentID" -Value $($Deployment.Installer.Contents.Content.ContentID)
-        
 
         IF($CMExport -eq "")
             { $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "InstallerPath" -Value $("$($Deployment.Installer.Contents.Content.Location)" + "$($Deployment.Installer.Contents.Content.File.Name)") }
@@ -318,11 +334,15 @@ function Format-MSIXAppDetails ($Application, $ApplicationDeploymentType, $CMExp
 
 Function Format-MSIXPackagingName ([Parameter(Mandatory=$True,Position=0)] [string]$AppName)
 {
-    New-LogEntry -LogValue "Removing Special Characters from the Application Package Name.
-    " -Component "Format-MSIXPackagingName" -Severity 1 -WriteHost $VerboseLogging
+    New-LogEntry -LogValue "    Removing Special Characters from the Application Package Name." -Component "Format-MSIXPackagingName" -Severity 1 -WriteHost $VerboseLogging
     $MSIXPackageName = $AppName -replace '[!,@,#,$,%,^,&,*,(,),+,=,~,`]',''
     $MSIXPackageName = $MSIXPackageName -replace '_','-'
     $MSIXPackageName = $MSIXPackageName -replace ' ','-'
+
+    IF($MSIXPackageName.Length -gt 43)
+    {
+        $MSIXPackageName = $MSIXPackageName.Substring(0,43)
+    }
 
     Return $MSIXPackageName
 }
@@ -352,11 +372,13 @@ Function Format-MSIXPackagingVersion ([Parameter(Mandatory=$True,Position=0)] [s
     ## Ensures the version is 4 octets.
     Foreach ($VerIndex in $($MSIXPackageVersion.Split('.')))
     {
+        ## By declaring this as Int, removes leading zeros.
+        [int]$Version = $VerIndex
         ## Adds the values for each octet into its octet.
         If($Index -le 2)
-            { $NewPackageVersion += $($VerIndex + ".") }
+            { $NewPackageVersion += $("$Version.") }
         If($Index -eq 3)
-            { $NewPackageVersion += $($VerIndex) }
+            { $NewPackageVersion += $("$Version") }
 
         ## Incremets the octet counter.
         $Index++
@@ -421,22 +443,47 @@ Function New-MSIXConnectMakeApp ([Parameter(Mandatory=$True)] $SiteCode = "CM1",
 
 }
 
-Function Get-CMExportAppData ($CMAppContentPath="C:\Temp\ConfigMgrOutput_files", $CMAppMetaDataPath="C:\Temp\ConfigMgrOutput")
+Function Get-CMExportAppData ($CMAppContentPath="C:\Temp\ConfigMgrOutput_files", $CMAppMetaDataPath="C:\Temp\ConfigMgrOutput", $CMAppParentPath="")
 {
-    # Identify the files exported from ConfigMgr
-    $CMAppMetaData = Get-Item -Path "$CMAppMetaDataPath\SMS_Application\*"
     
-    $AppDetails = @()
+    #Sets Variables based on provided details
+    IF($CMAppParentPath -ne "")
+    { 
+        ## If querying multiple exported sources all at once
+        $CMAppMetaData = Get-ChildItem -Recurse -Path $CMAppParentPath
+        $CMAppContent  = Get-ChildItem -Recurse -Path $CMAppParentPath
+    }
+    else 
+    { 
+        ## If querying a single exported source.
+        $CMAppMetaData = Get-ChildItem -Recurse -Path $CMAppParentPath
+        $CMAppContent  = Get-ChildItem -Recurse -Path $CMAppContentPath
+    }
 
-    Foreach($CMAppPath in $CMAppMetaData)
+    ## Collects app Details
+    foreach($CMAppPath in $($CMAppMetaData.Where({$_.FullName -like "*SMS_Application*object.xml"})))
     {
-        $CMApp = [xml](Get-Content -Path "$($CMAppPath.FullName)\object.xml")
+        $CMApp = [xml](Get-Content -Path $($CMAppPath.FullName))
         $CMAppDeploymentType = [xml]($CMApp.Instance.Property.Where({$_.Name -eq "SDMPackageXML"}).Value.'#cdata-section')
 
-        $AppDetails += Format-MSIXAppExportDetails -Application $CMApp -ApplicationDeploymentType $CMAppDeploymentType -CMExportAppPath $CMAppContentPath
+        $AppDetails += Format-MSIXAppExportDetails -Application $CMApp -ApplicationDeploymentType $CMAppDeploymentType -CMExportAppPath $CMAppContent -CMAppPath $CMAppPath
     }
 
     Return $AppDetails
+
+    # # Identify the files exported from ConfigMgr
+    # $CMAppMetaData = Get-Item -Path "$CMAppMetaDataPath\SMS_Application\*"
+    # $AppDetails = @()
+    #
+    # Foreach($CMAppPath in $CMAppMetaData)
+    # {
+    #     $CMApp = [xml](Get-Content -Path "$($CMAppPath.FullName)\object.xml")
+    #     $CMAppDeploymentType = [xml]($CMApp.Instance.Property.Where({$_.Name -eq "SDMPackageXML"}).Value.'#cdata-section')
+    #
+    #     $AppDetails += Format-MSIXAppExportDetails -Application $CMApp -ApplicationDeploymentType $CMAppDeploymentType -CMExportAppPath $CMAppContentPath
+    # }
+    #
+    # Return $AppDetails
 }
 
 # Function Compress-MSIXAppInstaller ($Path, $InstallerPath, $InstallerArgument)
