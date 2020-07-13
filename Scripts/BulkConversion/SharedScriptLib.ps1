@@ -5,7 +5,8 @@ Param(
     [Parameter(Position=1)] [string]  $Component = "",
     [Parameter(Position=2)] [int]     $Severity  = 1,
     [Parameter(Position=3)] [boolean] $WriteHost = $true,
-                            [string]  $Path      = $("C:\Temp\Log")
+                            [string]  $Path      = $("C:\Temp\Log"),
+                            [string]  $textcolor = "White"
 )
     IF(!(Test-path -Path $Path)) {$Scratch = mkdir $Path}
     $Error.Clear()
@@ -31,9 +32,11 @@ Param(
         $('<![LOG['+$LogValue+']LOG]!><time="'+$Time+'" date="'+$Date+'" component="'+$component+'" context="Empty" type="'+$severity+'" thread="Empty" file="'+"Empty"+'">') | out-file -FilePath $($Path+"\BulkConversion.log") -Append -NoClobber -encoding default -ErrorAction SilentlyContinue -ErrorVariable LogError
     }
 
+    $LogValue | Out-File -Append -FilePath "$Path\BulkConversion-Log.txt"
     IF($WriteHost)
     {
-        Write-Host $("" + $LogValue) -ForegroundColor $(switch ($Severity) {1 {"White"} 2 {"Yellow"} 3 {"Red"}})
+        $LogValue | Out-File -Append -FilePath "$Path\BulkConversion-Display.txt"
+        Write-Host $("" + $LogValue) -ForegroundColor $(switch ($Severity) {1 {$textcolor} 2 {"Yellow"} 3 {"Red"}})
     }
 }
 Function New-InitialSnapshot ($SnapshotName, $VMName, $jobId="" )
