@@ -78,7 +78,8 @@ Catch{}
 if ($vmName)
 {
     ## Restores the VM to pre-app installation setting
-#    Restore-InitialSnapshot -SnapshotName $initialSnapshotName -vmName $vmName -jobId $($jobId+1)
+    IF($localMachine -eq $false)
+        { Restore-InitialSnapshot -SnapshotName $initialSnapshotName -vmName $vmName -jobId $($jobId+1) }
 
     ## If this is a VM that can be re-used, release the global semaphore after creating a semaphore handle for this process scope
     $semaphore = New-Object -TypeName System.Threading.Semaphore -ArgumentList @($vmsCount, $vmsCount, "Global\MPTBatchConversion")
