@@ -163,7 +163,7 @@ function RunConversionJobs($conversionsParameters, $virtualMachines, $remoteMach
             New-LogEntry -LogValue "Dequeuing conversion job ($($_JobId+1)) for installer $($conversionParam.InstallerPath) on remote machine $($_.ComputerName)" -Component "batch_convert:RunConversionJobs"
             
 #            $process = Start-Process "powershell.exe" -ArgumentList ($runJobScriptPath, "-jobId", $_jobId, "-machinePassword", $_password, "-templateFilePath", $_templateFilePath, "-workingDirectory", $workingDirectory) -PassThru
-            $ConversionJobs += @(Start-Job -Name $("JobID: $($_JobId+1) - Converting $($conversionParam.PackageDisplayName)") -FilePath $runJobScriptPath -ArgumentList($_JobId, "", 0, $_password, $_templateFilePath, $initialSnapshotName, $PSScriptRoot))
+            $ConversionJobs += @(Start-Job -Name $("JobID: $($_JobId+1) - Converting $($conversionParam.PackageDisplayName)") -FilePath $runJobScriptPath -ArgumentList($_JobId, "", 0, $_password, $_templateFilePath, $initialSnapshotName, $PSScriptRoot, $false))
 #                "-jobId", $_jobId, "-machinePassword", $_password, "-templateFilePath", $_templateFilePath, "-workingDirectory", $workingDirectory)
 
             $remainingConversions = $remainingConversions | where { $_ -ne $remainingConversions[0] }
@@ -238,7 +238,7 @@ function RunConversionJobs($conversionsParameters, $virtualMachines, $remoteMach
             
             ## Converts the Application to the MSIX Packaging format.
 #            $process = Start-Process "powershell.exe" -ArgumentList ($runJobScriptPath, "-jobId", $_jobId, "-vmName", $vm.Name, "-vmsCount", $virtualMachines.Count, "-machinePassword", $_password, "-templateFilePath", $_templateFilePath, "-initialSnapshotName", $initialSnapshotName) -PassThru
-            $ConversionJobs += @(Start-Job -Name $("JobID: $($_JobId+1) - Converting $($conversionParam.PackageDisplayName)") -FilePath $runJobScriptPath -ArgumentList($_JobId, $VM.Name, $virtualMachines.Count, $_password, $_templateFilePath, $initialSnapshotName, $PSScriptRoot))
+            $ConversionJobs += @(Start-Job -Name $("JobID: $($_JobId+1) - Converting $($conversionParam.PackageDisplayName)") -FilePath $runJobScriptPath -ArgumentList($_JobId, $VM.Name, $virtualMachines.Count, $_password, $_templateFilePath, $initialSnapshotName, $PSScriptRoot, $false))
             $vmsCurrentJobMap[$vm.Name] = $process
         }
         else
@@ -315,7 +315,7 @@ function RunConversionJobsLocal-Uninstall($conversionsParameters, $workingDirect
     }
 }
 
-function RunConversionJobsVMLocal($conversionsParameters, $remoteMachines, $virtualMachines, $workingDirectory)
+function RunConversionJobsVMLocal($conversionsParameters, $remoteMachines, $virtualMachines, $workingDirectory, $ScriptRepository=$PSScriptRoot)
 {
     $_jobID              = 0
     $ConversionJobs      = @()
@@ -356,64 +356,20 @@ function RunConversionJobsVMLocal($conversionsParameters, $remoteMachines, $virt
             $objSavePath        = $objConversionInfo.SavePath
             $objTemplatePath    = $objConversionInfo.TemplatePath
 
-
-            ################# Creating Script Folder #################
-            $objScriptBlock = "New-Item ""$($PSScriptRoot)"" -Force -Type Directory"
-            New-LogEntry -LogValue "    Creating Folder ($PSScriptRoot) for the local powershell script on VM ($($virtualMachines.Name))" -Severity 1 -Component "RunConversionJobsVMLocal"
-            New-LogEntry -LogValue "        ScriptBlock: $($objScriptBlock)" -Severity 1 -Component "RunConversionJobsVMLocal" -writeHost $false
-
-            $Job = Invoke-Command -VMName $($VirtualMachines.name) -AsJob -ScriptBlock $([scriptblock]::Create($objScriptBlock)) -Credential $($RemoteMachines.Credential) -InformationAction SilentlyContinue
-            $Scratch = $($Job | Wait-Job -InformationAction SilentlyContinue)
-            #$Job | Receive-Job
-
-
-            ################# Copying Scripts #################
-            $objScriptBlock = "Copy-Item -Path ""$($PSScriptRoot.Replace("C:\Temp", "\\MSGenesis\Temp"))\*"" -Destination ""$($PSScriptRoot)"" -Force"
-            New-LogEntry -LogValue "    Copying PowerShell Scripts to VM ($($virtualMachines.Name))" -Severity 1 -Component "RunConversionJobsVMLocal"
-            New-LogEntry -LogValue "        ScriptBlock: $($objScriptBlock)" -Severity 1 -Component "RunConversionJobsVMLocal" -writeHost $false
+            ## Enables Guest Service on VM
+            Enable-VMIntegrationService -Name "Guest Service Interface" -VMName $($VirtualMachines.Name) -ErrorAction SilentlyContinue
+            Start-Sleep -Seconds 5
             
-            $Job = Invoke-Command -VMName $($VirtualMachines.name) -AsJob -ScriptBlock $([scriptblock]::Create($objScriptBlock)) -Credential $($RemoteMachines.Credential) -InformationAction SilentlyContinue
-            $Scratch = $($Job | Wait-Job -InformationAction SilentlyContinue)
 
+            ################# Creating / Copying Script Folder #################
+            Get-ChildItem -Recurse $ScriptRepository | ForEach-Object { Copy-VMFile -Name $($VirtualMachines.Name) -Force -SourcePath $($_.FullName) -DestinationPath $($_.FullName) -FileSource Host -CreateFullPath }
             
-            ################# Creating Template Folder #################
-            $objScriptBlock = "New-Item ""$($objTemplatePath)"" -Force -Type Directory"
-            New-LogEntry -LogValue "    Creating AppConversion Template Folder on VM ($($virtualMachines.Name))" -Severity 1 -Component "RunConversionJobsVMLocal" -WriteHost $false
-            New-LogEntry -LogValue "        ScriptBlock: $($objScriptBlock)" -Severity 1 -Component "RunConversionJobsVMLocal" -writeHost $false
+            ################# Creating / Copying Template Folder #################
+            $Job = Copy-VMFile -Name $($VirtualMachines.Name) -Force -SourcePath $($_templateFilePath) -DestinationPath $($_templateFilePath) -FileSource Host -CreateFullPath
+
+            ################# Creating / Copying Installer Folder #################
+            Get-ChildItem -Recurse $($AppConversionParameters.AppInstallerFolderPath) | ForEach-Object { Copy-VMFile -Name $($VirtualMachines.Name) -Force -SourcePath $($_.FullName) -DestinationPath $($_.FullName) -FileSource Host -CreateFullPath -ErrorAction SilentlyContinue }
             
-            $Job = Invoke-Command -VMName $($VirtualMachines.name) -AsJob -ScriptBlock $([scriptblock]::Create($objScriptBlock)) -Credential $($RemoteMachines.Credential) -InformationAction SilentlyContinue
-            $Scratch = $($Job | Wait-Job -InformationAction SilentlyContinue)
-            #$Job | Receive-Job
-
-
-            ################# Creating Template #################
-            $objScriptBlock = "Set-Content -Value '$($objXMLContent)' -Path ""$_templateFilePath"""
-            New-LogEntry -LogValue "    Creating the application template file for conversion on VM ($($virtualMachines.Name))" -Severity 1 -Component "RunConversionJobsVMLocal" -WriteHost $false
-            New-LogEntry -LogValue "        ScriptBlock: $($objScriptBlock)" -Severity 1 -Component "RunConversionJobsVMLocal" -writeHost $false
-
-            $Job = Invoke-Command -VMName $($VirtualMachines.name) -AsJob -ScriptBlock $([scriptblock]::Create($objScriptBlock)) -Credential $($RemoteMachines.Credential) -InformationAction SilentlyContinue
-            $Scratch = $($Job | Wait-Job -InformationAction SilentlyContinue)
-            #$Job | Receive-Job
-
-
-            ################# Creating Installer Folder #################
-            $objScriptBlock = "New-Item ""$($AppConversionParameters.AppInstallerFolderPath.Substring(0, $AppConversionParameters.AppInstallerFolderPath.length -1))"" -Force -Type Directory"
-            New-LogEntry -LogValue "    Creating the folder for the application installation media ($($AppConversionParameters.AppInstallerFolderPath)) on VM ($($virtualMachines.Name))" -Severity 1 -Component "RunConversionJobsVMLocal"
-            New-LogEntry -LogValue "        ScriptBlock: $($objScriptBlock)" -Severity 1 -Component "RunConversionJobsVMLocal" -writeHost $false
-
-            $Job = Invoke-Command -VMName $($VirtualMachines.name) -AsJob -ScriptBlock $([scriptblock]::Create($objScriptBlock)) -Credential $($RemoteMachines.Credential) -InformationAction SilentlyContinue
-            $Scratch = $($Job | Wait-Job -InformationAction SilentlyContinue)
-            #$Job | Receive-Job
-
-
-            ################# Copying Installer #################
-            $objScriptBlock = "Copy-Item -Path ""$($AppConversionParameters.AppInstallerFolderPath.Replace("C:\Temp", "\\MSGenesis\Temp"))*"" -Destination ""$($AppConversionParameters.AppInstallerFolderPath)"" -Force -Recurse"
-            New-LogEntry -LogValue "    Copying Application Installers to the VM ($($virtualMachines.Name))" -Severity 1 -Component "RunConversionJobsVMLocal"
-            New-LogEntry -LogValue "        ScriptBlock: $($objScriptBlock)" -Severity 1 -Component "RunConversionJobsVMLocal" -writeHost $false
-
-            $Job = Invoke-Command -VMName $($VirtualMachines.name) -AsJob -ScriptBlock $([scriptblock]::Create($objScriptBlock)) -Credential $($RemoteMachines.Credential) -InformationAction SilentlyContinue
-            $Scratch = $($Job | Wait-Job -InformationAction SilentlyContinue)
-
 
             ################# Converting App #################
             $RemoteTemplateParentDir = $([String]$($(Get-Item -Path $_templateFilePath).Directory))
@@ -423,6 +379,7 @@ function RunConversionJobsVMLocal($conversionsParameters, $remoteMachines, $virt
             New-LogEntry -LogValue "        - Remote Template Parent Dir: $RemoteTemplateParentDir`n        - Remote Template File Path:  $RemoteTemplateFilePath`n        - runJobScriptPath:           $runJobScriptPath`n        - PS Scriptroot:              $RemoteScriptRoot" -Severity 1 -Component "RunConversionJobsVMLocal:$JobID" -WriteHost $false
             New-LogEntry -LogValue "    Invoking the localbulk_conversion.ps1 script" -Severity 1 -Component "RunConversionJobsVMLocal:$JobID"
             
+            ## Initiates the Application install and capture on remote machine.
             $Job = Invoke-Command -vmName $($VirtualMachines.name) -AsJob -Credential $remoteMachines.Credential -FilePath $("$PSScriptRoot\localbulk_conversion.ps1") -ArgumentList($_JobId, "", 0, $_password, $RemoteTemplateFilePath, $initialSnapshotName, $RemoteScriptRoot, $true, $RemoteTemplateParentDir, $runJobScriptPath, $objxmlContent, $workingDirectory, $remoteMachines) -InformationAction SilentlyContinue
             
             ## Sets a timeout for the installer.
@@ -452,15 +409,23 @@ function RunConversionJobsVMLocal($conversionsParameters, $remoteMachines, $virt
             ELSE
             {
                 ################# Exporting Converted App #################
+                New-LogEntry -LogValue "    Creating PS Remoting Session." -Severity 1 -Component "RunConversionJobsVMLocal"
+                $Session = New-PSSession -VMName $($Virtualmachines.Name) -Credential $($VirtualMachines.Credential)
+
                 New-LogEntry -LogValue "    Creating the export folder." -Severity 1 -Component "RunConversionJobsVMLocal"
                 New-Item -Path $objSavePath -Force -ErrorAction SilentlyContinue
 
                 New-LogEntry -LogValue "    Exporting the completed app to host computer" -Severity 1 -Component "RunConversionJobsVMLocal"
-                $objScriptBlock = "Copy-Item -Path ""$objSavePath\*"" -Destination ""$($objSavePath.Replace("C:\Temp", "\\MSGenesis\Temp"))"""
-                New-LogEntry -LogValue "    $objScriptBlock" -Severity 1 -Component "RunConversionJobsVMLocal" -WriteHost $false
+                $objScriptBlock = "Get-ChildItem -Path ""$objSavePath"""
+                $objConvertedAppPath = Invoke-Command -Session $Session -ScriptBlock $([scriptblock]::Create($objScriptBlock))
+                New-LogEntry -LogValue "        Script Block:  $objScriptBlock" -Severity 1 -Component "RunConversionJobsVMLocal" -WriteHost $true
+                New-LogEntry -LogValue "        App Path:      $($objConvertedAppPath.FullName)" -Severity 1 -Component "RunConversionJobsVMLocal" -WriteHost $true                
 
-                $Job = Invoke-Command -VMName $($VirtualMachines.name) -AsJob -ScriptBlock $([scriptblock]::Create($objScriptBlock)) -Credential $($RemoteMachines.Credential) -InformationAction SilentlyContinue
-                $Scratch = $($Job | Wait-Job -InformationAction SilentlyContinue)
+                Copy-Item -Path $($objConvertedAppPath.FullName) -Destination $($objConvertedAppPath.FullName) -FromSession $Session
+
+                #New-LogEntry -LogValue "    $objScriptBlock" -Severity 1 -Component "RunConversionJobsVMLocal" -WriteHost $false
+                #$Job = Invoke-Command -VMName $($VirtualMachines.name) -AsJob -ScriptBlock $([scriptblock]::Create($objScriptBlock)) -Credential $($RemoteMachines.Credential) -InformationAction SilentlyContinue
+                #$Scratch = $($Job | Wait-Job -InformationAction SilentlyContinue)
                 #$Job | Receive-Job
             }
 
