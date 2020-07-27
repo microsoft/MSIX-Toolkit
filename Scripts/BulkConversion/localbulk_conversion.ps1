@@ -8,7 +8,7 @@ Param(
     [Parameter(Position=1)] [string]  $Component = "",
     [Parameter(Position=2)] [int]     $Severity  = 1,
     [Parameter(Position=3)] [boolean] $WriteHost = $true,
-                            [string]  $Path      = $("\\MSGenesis\Temp\Log")
+                            [string]  $Path      = $("C:\Temp\Log")
 )
     IF(!(Test-path -Path $Path)) {$Scratch = mkdir $Path}
     $Error.Clear()
@@ -39,74 +39,32 @@ Param(
         Write-Host $("" + $LogValue) -ForegroundColor $(switch ($Severity) {1 {"White"} 2 {"Yellow"} 3 {"Red"}})
     }
 }
-
-
-
-
 #Write-Host "PSDrive (Scripting):  $(Get-PSDrive -Name Scripting)"
 Write-Host "`n    LOCALBULK_Conversion.ps1" -ForegroundColor White -BackgroundColor Black
 
-$whoamI = whoami.exe
-Write-Host "    Connected to: $($(gwmi -namespace root\cimv2 -class win32_computersystem -Property Name).Name)"
-Write-Host "    Connected as: $whoamI"
-#Write-Host "    Permissions:  `n$(whoami /priv)"
+## Updates the Network Connection Profiles to Private Network
+Get-NetConnectionProfile | Set-NetConnectionProfile -NetworkCategory Private -ErrorVariable Err -InformationAction Info
 
-#Write-Host "    Validating if a new PS Drive will be created..."
-#IF($null -eq $(Get-PSDrive -Name "Scripting" -ErrorAction SilentlyContinue))
-#{
-#    Write-Host "    Creating a new PSDrive"
-#    $Scratch = New-PSDrive -Root "C:\Temp" -PSProvider FileSystem -Name "Scripting" -ErrorAction SilentlyContinue -InformationAction SilentlyContinue
-#}
-#$Scratch = New-PSDrive -Root "\\MSGenesis\Temp" -PSProvider FileSystem -Name "Scripting" -ErrorAction SilentlyContinue -InformationAction SilentlyContinue
+IF($null -ne $Err)
+    { New-LogEntry -LogValue "Updating NetConnection Profile: Failed`n`n$Err" -Severity 3 -Component "localbulk_conversion" }
+ElseIF($null -ne $Info)
+    { New-LogEntry -LogValue "Updating NetConnection Profile: Success`n`n$Info" -Severity 3 -Component "localbulk_conversion" }
 
-#Write-Host "PSDrive (Scripting):  $(Get-PSDrive -Name Scripting)"
+$Err  = $null
+$Info = $null
 
-#mkdir $RemoteTemplateParentDir
-#Write-Host "    New-Item $RemoteTemplateParentDir"
-#New-Item $RemoteTemplateParentDir -Force
+#### Create method to enable -PSRemoting.
+Enable-PSRemoting -Force -ErrorVariable $Err -InformationAction $Info
 
-#Write-Host "Set-Content -Value $objxmlContent -Path $RemoteTemplateFilePath -Force" -ForegroundColor Black -BackgroundColor Yellow
-#$Scratch = Set-Content -Value $objxmlContent -Path $RemoteTemplateFilePath -Force
+IF($null -ne $Err)
+    { New-LogEntry -LogValue "Enabling PS Remoting: Failed`n`n$Err" -Severity 3 -Component "localbulk_conversion" }
+ElseIF($null -ne $Info)
+    { New-LogEntry -LogValue "Enabling PS Remoting: Success`n`n$Info" -Severity 3 -Component "localbulk_conversion" }
 
-#Write-Host "Try Harder..."
+$Err  = $null
+$Info = $null
 
-#New-PSDrive -Name "Scripting" -PSProvider FileSystem -Root "\\DESKTOP-RUGEAND\Temp"
 
-#Write-Host "        - Something:                $RemoteTemplateFilePath"
-#Write-Host "        - JobID:                    $_JobId`n        - VMName:                   $VMName`n        - VMCount:                  $VMCount`n        - Password:                 $_password`n        - RemoteTemplate FilePath:  $RemoteTemplateFilePath`n        - SnapshotName:             $initialSnapshotName`n        - RemoteScriptRoot:         $RemoteScriptRoot`n        - Var2:                     $Var2`n        - RemoteTemp ParentDir:     $RemoteTemplateParentDir`n        - RemoteTemp FilePath:      $RemoteTemplateFilePath`n"
-
-#$whoamI = $(Invoke-Command -RunAsAdministrator C:\Temp\whoami.ps1 -ContainerId Var)
-#$whoamI = whoami.exe
-
-#Write-Host "    Creating new folder:            $WorkingDirectory"
-#$Scratch = New-Item $workingDirectory
-
-#Write-Host "    Configuring the Execution Policy"
-#Set-ExecutionPolicy Bypass -Force
-
-#Invoke-Command -RunAsAdministrator -ContainerId Var -ScriptBlock(whoami.exe)
-
-#Write-Host "    ""$_JobId"" ""$VMName"" ""$VMCount"" ""$_password"" ""$RemoteTemplateFilePath"" ""$initialSnapshotName"" ""$RemoteScriptRoot"" ""$Var2"""
-
-#Write-Host "    Running Conversion job on local VM."
-#Write-Host "    Invoke-Command -FilePath ""$runJobScriptPath"" -ArgumentList("-jobId ""$_JobId"" -vmName ""$VMName"" -vmscount ""$VMCount"" -MachinePassword ""$_password"" -templateFilePath ""$RemoteTemplateFilePath"" -initialSnapshotName ""$initialSnapshotName"" -ScriptRoot ""$RemoteScriptRoot"" -localMachine ""$Var2""") -AsJob -Credential ""$($remoteMachines.Credential)"""
-#Write-Host "    Invoke-Command -Credential $($remoteMachines.Credential) -FilePath ""$runJobScriptPath"" -ArgumentList(""$_JobId"" ""$VMName"" ""$VMCount"" ""$_password"" ""$RemoteTemplateFilePath"" ""$initialSnapshotName"" ""$RemoteScriptRoot"" ""$Var2"" ""C:\Temp"") -AsJob"
-#Invoke-Command -FilePath $runJobScriptPath -ArgumentList($_JobId, $VMName, $VMCount, $_password, $RemoteTemplateFilePath, $initialSnapshotName, $RemoteScriptRoot, $Var2, "C:\Temp")
-#Invoke-Command -FilePath $runJobScriptPath -ArgumentList("0", "", "0", "", "C:\Temp\Projects2\MSIX-Toolkit\Scripts\MSIXConnect\out\MPT_Templates\MsixPackagingToolTemplate_Job0.xml", "BeforeMsixConversions_2020-07-06", "C:\Temp\Projects2\MSIX-Toolkit\Scripts\BulkConversion", "True") -VMName "MSIX Packaging Tool Environment" -AsJob -Credential $Credentials
-#$ConversionJobs = $(Invoke-Command -FilePath $runJobScriptPath -ArgumentList("-jobId ""$_JobId"" -vmName ""$VMName"" -vmscount ""$VMCount"" -MachinePassword ""$_password"" -templateFilePath ""$RemoteTemplateFilePath"" -initialSnapshotName ""$initialSnapshotName"" -ScriptRoot ""$RemoteScriptRoot"" -localMachine ""$Var2""") -AsJob -Credential $($remoteMachines.Credential))
-#$jobId, $vmName, $vmsCount, $machinePassword, $templateFilePath, $initialSnapshotName, $ScriptRoot, $localMachine=$true
-#$runJobScriptPath $_JobId, $VMName, $VMCount, $_password, $RemoteTemplateFilePath, $initialSnapshotName, $RemoteScriptRoot, $Var2, "C:\Temp"
-#Invoke-Command -RunAsAdministrator -ContainerId var -FilePath $runJobScriptPath -ArgumentList($_JobId, $VMName, $VMCount, $_password, $RemoteTemplateFilePath, $initialSnapshotName, $RemoteScriptRoot, $Var2)
-#Write-Host $Var
-#$ConversionJobs = @(Start-Job -Credential $($remoteMachines.Credential) -FilePath $runJobScriptPath -ArgumentList("-JobID ""0"" -VMName """" -VMCount ""0"" -machinePassword """" -templateFilePath ""C:\Temp\Projects2\MSIX-Toolkit\Scripts\MSIXConnect\out\MPT_Templates\MsixPackagingToolTemplate_Job0.xml"" -initialSnapshotName ""BeforeMsixConversions_2020-07-06"" -ScriptRoot ""C:\Temp\Projects2\MSIX-Toolkit\Scripts\BulkConversion"" -localMachine ""True"""))
-#$ConversionJobs = @(Start-Job -Credential $($remoteMachines.Credential) -FilePath $runJobScriptPath -ArgumentList($_JobId, $VMName, $VMCount, $_password, $RemoteTemplateFilePath, $initialSnapshotName, $RemoteScriptRoot, $Var2))
-
-#Write-Host "    Waiting for job to complete..."
-#$ConversionJobs | Wait-Job
-#Write-Host "`n    Job Completed."
-
-#$ConversionJobs | Receive-Job
-#.\BulkConversion\run_job.ps1 -JobID "0" -VMName "" -VMCount "0" -machinePassword "" -templateFilePath "C:\Temp\Projects2\MSIX-Toolkit\Scripts\MSIXConnect\out\MPT_Templates\MsixPackagingToolTemplate_Job0.xml" -initialSnapshotName "BeforeMsixConversions_2020-07-06" -ScriptRoot "C:\Temp\Projects2\MSIX-Toolkit\Scripts\BulkConversion" -localMachine "True"
 
 $jobId                  = $_JobId
 $vmName                 = $VMName
