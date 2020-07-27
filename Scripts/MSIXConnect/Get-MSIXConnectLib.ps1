@@ -174,7 +174,7 @@ function Format-MSIXAppExportDetails ($Application, $ApplicationDeploymentType, 
             { $objContentPath = (Get-Item -Path $($CMExportAppPath.Where({$_.FullName -like "*$($CMAppPath.Directory.Parent.Parent.Name)*$($Deployment.Installer.Contents.Content.ContentID)"})).FullName) }
 
         $objTempInstallerFileName = $( Get-Item -Path $("$objContentPath\$InstallerFileName")).FullName
-        $objTempUninstallerFileName = $( Get-Item -Path $("$objContentPath\$objUninstallerFileName")).FullName
+        $objTempUninstallerFileName = $( Get-Item -Path $("$objContentPath\$objUninstallerFileName") -ErrorAction SilentlyContinue).FullName
 
         New-LogEntry -LogValue "    $($("Installer Filename:").PadRight(22))  |$InstallerFileName| |$InstallerArgument|" -Severity 1 -Component "Format-MSIXAppExportDetails"
         
@@ -450,13 +450,17 @@ Function Get-CMExportAppData ($CMAppContentPath="C:\Temp\ConfigMgrOutput_files",
     IF($CMAppParentPath -ne "")
     { 
         ## If querying multiple exported sources all at once
+        New-LogEntry -LogValue "Identied source is targetting parent directory" -Severity 1 -Component "Get-CMExportAppData"
+
         $CMAppMetaData = Get-ChildItem -Recurse -Path $CMAppParentPath
         $CMAppContent  = Get-ChildItem -Recurse -Path $CMAppParentPath
     }
     else 
     { 
         ## If querying a single exported source.
-        $CMAppMetaData = Get-ChildItem -Recurse -Path $CMAppParentPath
+        New-LogEntry -LogValue "Identified source is targetting a single export directory" -Severity 1 -Component "Get-CMExportAppData"
+
+        $CMAppMetaData = Get-ChildItem -Recurse -Path $CMAppMetaDataPath
         $CMAppContent  = Get-ChildItem -Recurse -Path $CMAppContentPath
     }
 
