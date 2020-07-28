@@ -25,27 +25,12 @@ function CreateMPTTemplate($conversionParam, $jobId, $virtualMachine, $remoteMac
         New-LogEntry -LogValue "    Updating the Save path to: $saveFolder" -Severity 1 -Component CreateMPTTemplate
     }
 
-#    Write-Host "`n    CreateMPTTemplate" -BackgroundColor Black
     New-LogEntry -LogValue "        - Installer Path:                 $objInstallerPath`n        - Installer Path Root:            $objInstallerPathRoot`n        - Installer FileName:             $objInstallerFileName`n        - Installer Arguments:            $objInstallerArguments`n        - Package Name:                   $objPackageName`n        - Package Display Name:           $objPackageDisplayName`n        - Package Publisher Name:         $objPublisherName`n        - Package Publisher Display Name: $objPublisherDisplayName`n        - Package Version:                $objPackageVersion`n        - Save Folder:                    $saveFolder`n        - Working Directory:              $workingDirectory`n        - Template File Path:             $templateFilePath`n        - Conversion Machine:             $conversionMachine`n        - Local Machine:                  $objlocalMachine`n" -Severity 1 -Component "MPT_Templates:$JobID" -writeHost $false
 
-    ## If multiple files in install dir, compress the contents into a wrapped executable
-    # IF($($(Get-ChildItem $objInstallerPathRoot).Count -gt 1) -and $($objlocalMachine -ne "LocalMachine") -and $($false))
-    # {
-    #     $InstallInstructions   = Compress-MSIXAppInstaller -Path $objInstallerPathRoot -InstallerPath $objInstallerFileName -InstallerArgument $objInstallerArguments
-    #     $objInstallerPath      = $InstallInstructions.Filename
-    #     $objInstallerArguments = $InstallInstructions.Arguments
-
-    #     Write-Host "------------------------------------------------------------" -ForegroundColor Green
-    #     Write-Host "`t Installer Filename:   |$objInstallerPath|" -ForegroundColor Green
-    #     Write-Host "`t Installer Argument:   |$objInstallerArguments|" -ForegroundColor Green
-    # }
-   
     ## Package File Path:
     ## If the Save Package Path has been specified, use this directory otherwise use the default working directory.
     If($($conversionParam.SavePackagePath))
         { $saveFolder = [System.IO.Path]::Combine($($conversionParam.SavePackagePath), "$MSIXSavePath") }
-#    Else
-#        { $saveFolder = [System.IO.Path]::Combine($workingDirectory, "MSIX") }
 
     New-LogEntry -LogValue "    Current Save Directory is: $saveFolder" -Severity 1 -Component "CreateMPTTemplate" 
 
@@ -58,8 +43,6 @@ function CreateMPTTemplate($conversionParam, $jobId, $virtualMachine, $remoteMac
     ## If the Save Template Path has been specified, use this directory otherwise use the default working directory.
     If($($conversionParam.SaveTemplatePath))
         { $workingDirectory = [System.IO.Path]::Combine($($conversionParam.SaveTemplatePath), "MPT_Templates") }
-#    Else
-#        { $workingDirectory = [System.IO.Path]::Combine($($workingDirectory), "MPT_Templates") }
 
     ## Detects if the MPT Template path exists, if not creates it.
     IF(!$(Get-Item -Path $workingDirectory -ErrorAction SilentlyContinue))
@@ -93,7 +76,6 @@ $conversionMachine
 
     ## Creates the XML file with the above content.
     Set-Content -Value $xmlContent -Path $templateFilePath
-    #$templateFilePath
 
     $ConversionInfo = New-Object PSObject
     $ConversionInfo | Add-Member -MemberType NoteProperty -Name "Content"      -Value $($xmlContent)
@@ -159,12 +141,9 @@ function RunConversionJobs($conversionsParameters, $virtualMachines, $remoteMach
             $_BSTR =             [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($_.Credential.Password)
             $_password =         [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($_BSTR)
 
-#            Write-Progress -ID 0 -Status "Converting Applications..." -PercentComplete $($($_JobID+1)/$($conversionsParameters.count)*100) -Activity "Capture"
             New-LogEntry -LogValue "Dequeuing conversion job ($($_JobId+1)) for installer $($conversionParam.InstallerPath) on remote machine $($_.ComputerName)" -Component "batch_convert:RunConversionJobs"
             
-#            $process = Start-Process "powershell.exe" -ArgumentList ($runJobScriptPath, "-jobId", $_jobId, "-machinePassword", $_password, "-templateFilePath", $_templateFilePath, "-workingDirectory", $workingDirectory) -PassThru
             $ConversionJobs += @(Start-Job -Name $("JobID: $($_JobId+1) - Converting $($conversionParam.PackageDisplayName)") -FilePath $runJobScriptPath -ArgumentList($_JobId, "", 0, $_password, $_templateFilePath, $initialSnapshotName, $PSScriptRoot, $false))
-#                "-jobId", $_jobId, "-machinePassword", $_password, "-templateFilePath", $_templateFilePath, "-workingDirectory", $workingDirectory)
 
             $remainingConversions = $remainingConversions | where { $_ -ne $remainingConversions[0] }
 
@@ -224,7 +203,6 @@ function RunConversionJobs($conversionsParameters, $virtualMachines, $remoteMach
             $_jobId = $remainingConversions[0]
             $remainingConversions = $remainingConversions | where { $_ -ne $remainingConversions[0] }
 
-#            Write-Progress -ID 0 -Status "Converting Applications..." -PercentComplete $($($_JobID)/$($conversionsParameters.count)*100) -Activity "Capture"
             New-LogEntry -LogValue "Dequeuing conversion job ($($_JobId+1)) for installer $($conversionParam.InstallerPath) on VM $($vm.Name)" -Component "batch_convert:RunConversionJobs"
 
             $targetMachine = New-Object PSObject
@@ -237,7 +215,6 @@ function RunConversionJobs($conversionsParameters, $virtualMachines, $remoteMach
             $_password = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($_BSTR)
             
             ## Converts the Application to the MSIX Packaging format.
-#            $process = Start-Process "powershell.exe" -ArgumentList ($runJobScriptPath, "-jobId", $_jobId, "-vmName", $vm.Name, "-vmsCount", $virtualMachines.Count, "-machinePassword", $_password, "-templateFilePath", $_templateFilePath, "-initialSnapshotName", $initialSnapshotName) -PassThru
             $ConversionJobs += @(Start-Job -Name $("JobID: $($_JobId+1) - Converting $($conversionParam.PackageDisplayName)") -FilePath $runJobScriptPath -ArgumentList($_JobId, $VM.Name, $virtualMachines.Count, $_password, $_templateFilePath, $initialSnapshotName, $PSScriptRoot, $false))
             $vmsCurrentJobMap[$vm.Name] = $process
         }
@@ -300,14 +277,11 @@ function RunConversionJobsLocal-Uninstall($conversionsParameters, $workingDirect
 
         New-LogEntry -LogValue "Conversion Job ($_JobID)" -Component "bulk_convert:RunConversionJobsLocal" -Severity 1
         New-LogEntry -LogValue "    Converting Application ($($AppConversionParameters.PackageDisplayName))`n        - Installer:  $($AppConversionParameters.InstallerPath)`n        - Argument:  $($AppConversionParameters.InstallerArguments)" -Component "bulk_convert:RunConversionJobsLocal" -Severity 1       
-        #Start-Process -FilePath $runJobScriptPath -ArgumentList $("-jobId $_JobId -vmName "" -vmsCount 0 -machinePassword $_password -templateFilePath $_templateFilePath -initialSnapshotName $initialSnapshotName -ScriptRoot $PSScriptRoot") -Wait
-        #Invoke-Command "$runJobScriptPath -jobId $_JobId -vmName "" -vmsCount 0 -machinePassword $_password -templateFilePath $_templateFilePath -initialSnapshotName $initialSnapshotName -ScriptRoot $PSScriptRoot"
         $ConversionJobs = @(Start-Job -Name $("JobID: $($_JobId) - Converting $($conversionParam.PackageDisplayName)") -FilePath $runJobScriptPath -ArgumentList($_JobId, $VM.Name, $virtualMachines.Count, $_password, $_templateFilePath, $initialSnapshotName, $PSScriptRoot))
         $ConversionJobs | Wait-Job
 
         New-LogEntry -LogValue "    Uninstalling Application ($($AppConversionParameters.PackageDisplayName))`n        - Installer:  $($AppConversionParameters.UninstallerPath)`n        - Argument:  $($AppConversionParameters.UninstallerArguments)" -Component "bulk_convert:RunConversionJobsLocal" -Severity 1
         New-LogEntry -LogValue "Uninstalling Application" -Component "bulk_convert:RunConversionJobsLocal" -Severity 1
-        #Start-Process -FilePath $($AppConversionParameters.UninstallerPath) -ArgumentList ($($AppConversionParameters.UninstallerArguments)) -Wait
         $UninstallJobs = @(Start-Job -Name $("JobID: $($_JobId) - Uninstalling $($conversionParam.PackageDisplayName)") -FilePath $($AppConversionParameters.UninstallerPath) -ArgumentList($($AppConversionParameters.UninstallerArguments)))
         $UninstallJobs | Wait-Job
 
@@ -323,8 +297,6 @@ function RunConversionJobsVMLocal($conversionsParameters, $remoteMachines, $virt
     $scratch             = New-Item -Force -Type Directory ([System.IO.Path]::Combine($workingDirectory, "MSIX"))
     $scratch             = New-Item -Force -Type Directory ([System.IO.Path]::Combine($workingDirectory, "ErrorLogs"))
     $initialSnapshotName = "BeforeMsixConversions_$(Get-Date -format yyyy-MM-dd)" 
-    #$runJobScriptPath    = [System.IO.Path]::Combine($PSScriptRoot, "run_job.ps1")
-#    $runJobScriptPath    = "Scripting:\Projects2\MSIX-Toolkit\Scripts\BulkConversion\run_job.ps1"
     $runJobScriptPath    = "C:\Temp\Projects2\MSIX-Toolkit\Scripts\BulkConversion\run_job.ps1"
     $targetMachine       = New-Object PSObject
     $_password           = ""
@@ -338,14 +310,12 @@ function RunConversionJobsVMLocal($conversionsParameters, $remoteMachines, $virt
     foreach ($AppConversionParameters in $conversionsParameters) 
     {
         $objSeverity = 1
-#        IF($($($AppConversionParameters.InstallerArguments) -eq "") -or $($($AppConversionParameters.InstallerArguments).EndsWith(".ps1")))
         IF($($($AppConversionParameters.InstallerArguments) -eq ""))
             { $objSeverity = 2 }
         Write-Host "`nConversion Job ($_JobID)" -backgroundcolor Black
         New-LogEntry -LogValue "Conversion Job ($_JobID)" -Component "bulk_convert:RunConversionJobsLocal" -Severity 1 -WriteHost $false
         New-LogEntry -LogValue "    Converting Application ($($AppConversionParameters.PackageDisplayName))`n        - Deployment Type:      $($AppConversionParameters.DeploymentType)`n        - Installer Full Path:  $($AppConversionParameters.InstallerPath)`n        - Installer Filename:   $($AppConversionParameters.AppFileName)`n        - Installer Argument:   $($AppConversionParameters.InstallerArguments)" -Component "bulk_convert:RunConversionJobsLocal" -Severity $objSeverity
 
-#        IF($($($AppConversionParameters.InstallerArguments) -ne "") -and !$($($AppConversionParameters.InstallerArguments).EndsWith(".ps1")))
         IF($($($AppConversionParameters.InstallerArguments) -ne ""))
         {
             New-LogEntry -LogValue "    Working Directory:  $WorkingDirectory" -Severity 1 -Component "RunConversionJobsVMLocal" -writeHost $false
@@ -383,7 +353,7 @@ function RunConversionJobsVMLocal($conversionsParameters, $remoteMachines, $virt
             $Job = Invoke-Command -vmName $($VirtualMachines.name) -AsJob -Credential $remoteMachines.Credential -FilePath $("$PSScriptRoot\localbulk_conversion.ps1") -ArgumentList($_JobId, "", 0, $_password, $RemoteTemplateFilePath, $initialSnapshotName, $RemoteScriptRoot, $true, $RemoteTemplateParentDir, $runJobScriptPath, $objxmlContent, $workingDirectory, $remoteMachines) -InformationAction SilentlyContinue
             
             ## Sets a timeout for the installer.
-            $objTimerSeconds = 300    ## 600 = 10 minutes
+            $objTimerSeconds = 1800    ## 600 = 10 minutes
             $objJobStatus = ""
             do {
                 $objJobStatus = $($Job | Get-Job -InformationAction SilentlyContinue).State
@@ -422,11 +392,6 @@ function RunConversionJobsVMLocal($conversionsParameters, $remoteMachines, $virt
                 New-LogEntry -LogValue "        App Path:      $($objConvertedAppPath.FullName)" -Severity 1 -Component "RunConversionJobsVMLocal" -WriteHost $true                
 
                 Copy-Item -Path $($objConvertedAppPath.FullName) -Destination $($objConvertedAppPath.FullName) -FromSession $Session
-
-                #New-LogEntry -LogValue "    $objScriptBlock" -Severity 1 -Component "RunConversionJobsVMLocal" -WriteHost $false
-                #$Job = Invoke-Command -VMName $($VirtualMachines.name) -AsJob -ScriptBlock $([scriptblock]::Create($objScriptBlock)) -Credential $($RemoteMachines.Credential) -InformationAction SilentlyContinue
-                #$Scratch = $($Job | Wait-Job -InformationAction SilentlyContinue)
-                #$Job | Receive-Job
             }
 
             #Pause
@@ -551,7 +516,6 @@ Start-Process -FilePath "$($XMLData.MSIXCompressedExport.Items.exportpath)\$($XM
     ##############################  CMD  ########################################
     ## Exports the cmd script which will be used to run the PowerShell script. ##
     New-LogEntry -LogValue "Creating the CMD file:`n`nSet-Content -Value ScriptContent -Path $($CMDScriptFilePath.Replace($ContainerPath, '')) -Force `n`rPowerShell.exe $ScriptFilePath" -Component "Compress-MSIXAppInstaller" -Severity 1 -WriteHost $false
-#    Set-Content -Value "PowerShell.exe $("$ExportPath\$($ScriptFilePath.Replace($("$ContainerPath\"), ''))")" -Path $($CMDScriptFilePath) -Force
     Set-Content -Value "Start /Wait powershell.exe -executionpolicy Bypass -file $("$($ScriptFilePath.Replace($("$ContainerPath\"), ''))")" -Path $($CMDScriptFilePath) -Force
 
     ##############################  XML  ##############################
@@ -668,7 +632,6 @@ $objSEDFileStructure
     ## Creates the self extracting executable ##
 
     Start-Process -FilePath "iExpress.exe" -ArgumentList "/N $SEDOutPath" -wait
-    #Invoke-Expression "iexpress.exe /N $SEDOutPath"
     
     $ObjMSIXAppDetails = New-Object PSObject
     $ObjMSIXAppDetails | Add-Member -MemberType NoteProperty -Name "Filename"  -Value $($EXEOutPath.Replace($("$ContainerPath\"), ''))
