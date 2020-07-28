@@ -19,44 +19,6 @@ $InitialLocation = Get-Location
 $VerboseLogging = $true
 
 
-##################################################################################
-## Function: LogEntry
-##
-## Description:
-##    Processes the information that it receives and translates it into a Trace32
-##    style log file configured with the appropriate values
-##################################################################################
-# Function New-LogEntry
-# {
-# Param(
-#     [Parameter(Position=0)] [string]$LogValue,
-#     [Parameter(Position=1)] [string]$Component = "",
-#     [Parameter(Position=2)] [int]$Severity = 1,
-#     [Parameter(Position=3)] [boolean]$WriteHost = $true,
-#     [string]$Path = $InitialLocation
-# )
-#     #Records previously existing execution location to return back afterwards.
-#     #$PreviousLocation = Get-Location
-#
-#     #Sets the execution location to the FileSystem to allow for log entries to be made
-#     $PreviousLocation = Disconnect-CMEnvironment -ReturnPreviousLocation $true
-#    
-#     #Formats the values required to enter for Trace32 Format
-#     $TimeZoneBias = Get-WmiObject -Query "Select Bias from Win32_TimeZone"
-#     [string]$Time = Get-Date -Format "HH:mm:ss.ffff"
-#     [string]$Date = Get-Date -Format "MM-dd-yyyy"
-#
-#     #Appends the newest log entry to the end of the log file in a Trace32 Formatting
-#     $('<![LOG['+$LogValue+']LOG]!><time="'+$Time+'" date="'+$Date+'" component="'+$component+'" context="Empty" type="'+$severity+'" thread="Empty" file="'+"Empty"+'">') | out-file -FilePath $($Path+"\MSIXConnect.log") -Append -NoClobber -encoding default
-#
-#     IF($WriteHost)
-#     {
-#         Write-Host $LogValue -ForegroundColor $(switch ($Severity) {3 {"Red"} 2 {"Yellow"} 1 {"White"}})
-#     }
-#
-#     #Returns to the original execution location
-#     Set-Location $PreviousLocation
-# }
 
 #Function Get-CMAppConversionData ([Parameter(Mandatory=$True,HelpMessage="Please Enter CM SiteCode.",ParameterSetName=$('CMServer'),Position=0)] [String]$CMSiteCode,
 #                                  [Parameter(Mandatory=$True,HelpMessage="Please Enter CM SiteCode.",ParameterSetName=$('Execution'),Position=0)] [String]$CMSiteCode)
@@ -117,13 +79,7 @@ Function Get-CMAppMetaData ([Parameter(Mandatory=$True, HelpMessage="Please prov
     Return $AppDetails
 }
 
-<#
-Requirements
-    - Name must be 3 Characters long
-    - No Special Charachters
-#>
-
-function Format-MSIXAppExportDetails ($Application, $ApplicationDeploymentType, $CMExportAppPath="", $CMAppPath="") 
+function Format-MSIXAppExportDetails ($Application, $ApplicationDeploymentType, $CMExportAppPath="", $CMAppPath="", $SigningCertificatePublisher) 
 {
     $AppDetails = @()
     $AppName = $($Application.Instance.Property.Where({$_.Name -eq "LocalizedDisplayName"}).Value)
@@ -137,7 +93,6 @@ function Format-MSIXAppExportDetails ($Application, $ApplicationDeploymentType, 
     $CmdP1 = '$Application.Instance.Property.Where({$_.Name -eq "'
     $CmdP2 = '"}).Value)'
 
-    #Write-Host "Parsing through the Deployment Types of $AppName application." -ForegroundColor DarkCyan
     New-LogEntry -LogValue "Parsing through the Deployment Types of $AppName application." -Component "Format-MSIXAppDetails" -WriteHost $true
 
     Foreach($Deployment IN $($XML.AppMgmtDigest.DeploymentType))
@@ -146,7 +101,6 @@ function Format-MSIXAppExportDetails ($Application, $ApplicationDeploymentType, 
 
         $XML                = [XML]$($DeploymentType.SDMPackageXML)  ## Not sure if this should be here or not.. needs to be tested with it removed.
         $MSIXAppDetails     = New-Object PSObject
-        # $AppTypes           = @( ".exe", ".msi" )
         $InstallerArgument  = ""
 
         New-LogEntry -LogValue "    $($("Install String:").PadRight(22))  $($Deployment.Installer.InstallAction.Args.Arg.Where({$_.Name -eq "InstallCommandLine"}).'#text')" -Severity 1 -Component "Format-MSIXAppDetails"
@@ -158,19 +112,15 @@ function Format-MSIXAppExportDetails ($Application, $ApplicationDeploymentType, 
         $objUninstallerFileName  = $objUninstallerAction.Filename
         $objUninstallerArgument  = $objUninstallerAction.Argument
 
-#        Write-Host "Fulled from the horses mouth: $($objUninstallerAction.Filename)"
-#        Write-Host "Fulled from the horses mouth: $($objUninstallerAction.Argument)"
-
         $InstallerFileName = $objInstallerFileName
         $InstallerArgument = $objInstallerArgument
 
-         ## Will want to change this out with Parameter Set Name, will need to set Parameter Set Names for this Function.
+        ## Will want to change this out with Parameter Set Name, will need to set Parameter Set Names for this Function.
         $objContentPath = ""
 
         IF($CMExport -eq "")
             { $objContentPath = (Get-Item -Path $($Deployment.Installer.Contents.Content.Location)).FullName }
         else 
-#            { $objContentPath = (Get-Item -Path "$CMExportAppPath\$($Deployment.Installer.Contents.Content.ContentID)\").FullName }
             { $objContentPath = (Get-Item -Path $($CMExportAppPath.Where({$_.FullName -like "*$($CMAppPath.Directory.Parent.Parent.Name)*$($Deployment.Installer.Contents.Content.ContentID)"})).FullName) }
 
         $objTempInstallerFileName = $( Get-Item -Path $("$objContentPath\$InstallerFileName")).FullName
@@ -184,25 +134,16 @@ function Format-MSIXAppExportDetails ($Application, $ApplicationDeploymentType, 
         ## Needs to be tested. Could improve the usage of this script by allowing it to work with ConfigMgr Live, and Exported app information.
         Invoke-Expression $('$MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "PackageDisplayName"   -Value $(' + $CmdP1 + "LocalizedDisplayName"   + $CmdP2)
         Invoke-Expression $('$MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "PublisherDisplayName" -Value $(' + $CmdP1 + "Manufacturer"           + $CmdP2)
-#        Invoke-Expression $('$MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "PackageVersion"       -Value $(' + $CmdP1 + "SoftwareVersion"        + $CmdP2)
         Invoke-Expression $('$MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "AppDescription"       -Value $(' + $CmdP1 + "LocalizedDescription"   + $CmdP2)
         Invoke-Expression $('$MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "CMAppPackageID"       -Value $(' + $CmdP1 + "PackageID"              + $CmdP2)
-#        Invoke-Expression $('$MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "PublisherName"        -Value $("CN=" + ' + $CmdP1 + "Manufacturer"   + $CmdP2)
-        #Invoke-Expression $('$MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "PackageName"          -Value $($(Format-MSIXPackagingName -AppName $(' + $CmdP1 + "LocalizedDisplayName" + $CmdP2 + ')')
 
-        #$MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "PackageDisplayName"      -Value $($Application.Instance.Property.Where({$_.Name -eq "LocalizedDisplayName"}).Value)
-        #$MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "PackageName"             -Value $(Format-MSIXPackagingName -AppName $($Application.Instance.Property.Where({$_.Name -eq "LocalizedDisplayName"}).Value))
         $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "PackageName"             -Value $($msixAppPackageName)
-        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "PublisherName"           -Value $("CN=Contoso Software (FOR LAB USE ONLY), O=Contoso Corporation, C=US")
-        #$MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "PublisherDisplayName"    -Value $($Application.Instance.Property.Where({$_.Name -eq "Manufacturer"}).Value)
+        $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "PublisherName"           -Value $($SigningCertificatePublisher)
         $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "PackageVersion"          -Value $(Format-MSIXPackagingVersion $($Application.Instance.Property.Where({$_.Name -eq "SoftwareVersion"}).Value))
-        #$MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "AppDescription"          -Value $($Application.Instance.Property.Where({$_.Name -eq "LocalizedDescription"}).Value)
-        #$MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "CMAppPackageID"          -Value $($Application.Instance.Property.Where({$_.Name -eq "PackageID"}).Value)
         $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "RequiresUserInteraction" -Value $($XML.AppMgmtDigest.DeploymentType.Installer.CustomData.RequiresUserInteraction)
         $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "AppFolderPath"           -Value $($Deployment.Installer.Contents.Content.Location)
         $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "AppInstallerFolderPath"  -Value $("$objContentPath\")
         $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "AppFileName"             -Value $($InstallerFileName)
-        #$MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "AppFileName"             -Value $($Deployment.Installer.Contents.Content.File.Name)
         $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "AppIntallerType"         -Value $($Deployment.Installer.Technology)
         $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "ContentID"               -Value $($msixAppContentID)
         $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "InstallerArguments"      -Value $("$InstallerArgument")
@@ -220,8 +161,6 @@ function Format-MSIXAppExportDetails ($Application, $ApplicationDeploymentType, 
         ELSE
             { New-LogEntry -LogValue "The ""$($Application.LocalizedDisplayName)"" application type is currently unsupported." -Component "Format-MSIXAppDetails" -Severity 3 }
 
-        ##Remove when testing is over
-        #Break
         Write-Host ""
     }
     
@@ -239,9 +178,6 @@ Function Get-MSIXConnectInstallInfo ($DeploymentAction, $InstallerTechnology)
 
     IF($null -eq $objInstallerAction)
         { Return }
-
-#    Write-Host "InstallerAction $objInstallerAction" -ForegroundColor Green -BackgroundColor Black
-#    Write-Host "InstallerFileName $objInstallerAction" -ForegroundColor Green -BackgroundColor Black
 
     ## Installer FileName
     IF($objInstallerFileName.EndsWith(" "))
@@ -261,7 +197,6 @@ Function Get-MSIXConnectInstallInfo ($DeploymentAction, $InstallerTechnology)
     {
         IF($($objTempInstallerArgument.Length) -gt $($objInstallerFileName.Length))
             { $objInstallerArgument = $objTempInstallerArgument.Substring($($objInstallerFileName.Length), $($objTempInstallerArgument.Length)-$($objInstallerFileName.Length)) }
-#        $objInstallerArgument = $objInstallerArgument.Substring($($objInstallerFileName.Length)+1, $($objInstallerArgument.Length)-$($objInstallerFileName.Length)-1)
     }
 
     ## Removes the double quotes from the string
@@ -374,6 +309,7 @@ Function Format-MSIXPackagingVersion ([Parameter(Mandatory=$True,Position=0)] [s
     {
         ## By declaring this as Int, removes leading zeros.
         [int]$Version = $VerIndex
+
         ## Adds the values for each octet into its octet.
         If($Index -le 2)
             { $NewPackageVersion += $("$Version.") }
@@ -427,9 +363,6 @@ Function New-MSIXConnectMakeApp ([Parameter(Mandatory=$True)] $SiteCode = "CM1",
         Return
     }
 
-#    $virtualMachines = @( @{ Name = "MSIX Packaging Tool Environment1"; credential = $VMcredential } )
-#    $remoteMachines =  @( @{ ComputerName = "YourVMNameHere.westus.cloudapp.azure.com"; Credential = $VMcredential } )
-
     Test-PSArchitecture
     IF(!$(Connect-CMEnvironment $SiteCode)) {Return}
     $MSIXAppMetaData = Get-CMAppMetaData $ApplicationName
@@ -443,7 +376,7 @@ Function New-MSIXConnectMakeApp ([Parameter(Mandatory=$True)] $SiteCode = "CM1",
 
 }
 
-Function Get-CMExportAppData ($CMAppContentPath="C:\Temp\ConfigMgrOutput_files", $CMAppMetaDataPath="C:\Temp\ConfigMgrOutput", $CMAppParentPath="")
+Function Get-CMExportAppData ($CMAppContentPath="C:\Temp\ConfigMgrOutput_files", $CMAppMetaDataPath="C:\Temp\ConfigMgrOutput", $CMAppParentPath="", $SigningCertificatePublisher)
 {
     
     #Sets Variables based on provided details
@@ -470,210 +403,8 @@ Function Get-CMExportAppData ($CMAppContentPath="C:\Temp\ConfigMgrOutput_files",
         $CMApp = [xml](Get-Content -Path $($CMAppPath.FullName))
         $CMAppDeploymentType = [xml]($CMApp.Instance.Property.Where({$_.Name -eq "SDMPackageXML"}).Value.'#cdata-section')
 
-        $AppDetails += Format-MSIXAppExportDetails -Application $CMApp -ApplicationDeploymentType $CMAppDeploymentType -CMExportAppPath $CMAppContent -CMAppPath $CMAppPath
+        $AppDetails += Format-MSIXAppExportDetails -Application $CMApp -ApplicationDeploymentType $CMAppDeploymentType -CMExportAppPath $CMAppContent -CMAppPath $CMAppPath -SigningCertificatePublisher $SigningCertificatePublisher
     }
 
     Return $AppDetails
-
-    # # Identify the files exported from ConfigMgr
-    # $CMAppMetaData = Get-Item -Path "$CMAppMetaDataPath\SMS_Application\*"
-    # $AppDetails = @()
-    #
-    # Foreach($CMAppPath in $CMAppMetaData)
-    # {
-    #     $CMApp = [xml](Get-Content -Path "$($CMAppPath.FullName)\object.xml")
-    #     $CMAppDeploymentType = [xml]($CMApp.Instance.Property.Where({$_.Name -eq "SDMPackageXML"}).Value.'#cdata-section')
-    #
-    #     $AppDetails += Format-MSIXAppExportDetails -Application $CMApp -ApplicationDeploymentType $CMAppDeploymentType -CMExportAppPath $CMAppContentPath
-    # }
-    #
-    # Return $AppDetails
 }
-
-# Function Compress-MSIXAppInstaller ($Path, $InstallerPath, $InstallerArgument)
-# {
-#     IF($Path[$Path.Length -1] -eq "\")
-#         { $Path = $Path.Substring(0, $($Path.Length -1)) }
-#
-#     ## Identifies the original structure, creating a plan which can be used to restore after extraction
-#     $Path               = $(Get-Item $Path).FullName
-#     $ContainerPath      = $Path
-#     $ExportPath         = "C:\Temp\Output"
-#     $CMDScriptFilePath  = "$ContainerPath\MSIXCompressedExport.cmd"
-#     $ScriptFilePath     = "$ContainerPath\MSIXCompressedExport.ps1"
-#     $templateFilePath   = "$ContainerPath\MSIXCompressedExport.xml"
-#     $EXEOutPath         = "$ContainerPath\MSIXCompressedExport.EXE"
-#     $SEDOutPath         = "$ContainerPath\MSIXCompressedExport.SED"
-#     $EXEFriendlyName    = "MSIXCompressedExport"
-#     $EXECmdline         = $CMDScriptFilePath
-#     $FileDetails        = @()
-#     $XML                = ""
-#     $SEDFiles           = ""
-#     $SEDFolders         = ""
-#     $FileIncrement      = 0
-#     $DirectoryIncrement = 0
-#
-#     IF($(Get-Item $EXEOutPath -ErrorAction SilentlyContinue).Exists -eq $true)
-#         { Remove-Item $EXEOutPath -Force }
-#
-#     New-LogEntry -LogValue "Multiple files required for app install compressing all content into a self-extracting exe" -Component "Compress-MSIXAppInstaller" -Severity 2 -WriteHost $VerboseLogging
-#
-#     ##############################  PS1  ##################################################################################
-#     ## Creates the PowerShell script which will export the contents to proper path and trigger application installation. ##
-#     $($ScriptContent = @'
-# $XMLData = [xml](Get-Content -Path ".\MSIXCompressedExport.xml")
-# Write-Host "`nExport Path" -backgroundcolor Black
-# Write-Host "$($XMLData.MSIXCompressedExport.Items.exportpath)"
-# Write-Host "`nDirectories" -backgroundcolor Black
-# $XMLData.MSIXCompressedExport.Items.Directory | ForEach-Object{Write-Host "$($_.Name.PadRight(40, ' '))$($_.RelativePath)" }
-# Write-Host "`nFiles" -backgroundcolor Black
-# $XMLData.MSIXCompressedExport.Items.File | ForEach-Object{Write-Host "$($_.Name.PadRight(40, ' '))$($_.RelativePath)" }
-#
-# IF($(Get-Item $($XMLData.MSIXCompressedExport.Items.exportpath -ErrorAction SilentlyContinue)).Exists -eq $true)
-#     { Remove-Item $($XMLData.MSIXCompressedExport.Items.exportpath) -Recurse -Force }
-#
-# Foreach ($Item in $XMLData.MSIXCompressedExport.Items.Directory) {$Scratch = mkdir "$($XMLData.MSIXCompressedExport.Items.exportpath)$($Item.RelativePath)"}
-# Foreach ($Item in $XMLData.MSIXCompressedExport.Items.File) {Copy-Item -Path ".\$($Item.Name)" -Destination "$($XMLData.MSIXCompressedExport.Items.exportpath)$($Item.RelativePath)"}
-#
-# Write-Host "Start-Process -FilePath ""$($XMLData.MSIXCompressedExport.Items.exportpath)\$($XMLData.MSIXCompressedExport.Installer.Path)"" -ArgumentList ""$($XMLData.MSIXCompressedExport.Installer.Arguments)"" -wait"
-# Start-Process -FilePath "$($XMLData.MSIXCompressedExport.Items.exportpath)\$($XMLData.MSIXCompressedExport.Installer.Path)" -ArgumentList "$($XMLData.MSIXCompressedExport.Installer.Arguments)" -wait
-# '@)
-#
-#     ## Exports the PowerShell script which will be used to restructure the content, and trigger the app install.
-#     New-LogEntry -LogValue "Creating the PS1 file:`n`nSet-Content -Value ScriptContent -Path $ScriptFilePath -Force `n`r$ScriptContent" -Component "Compress-MSIXAppInstaller" -Severity 1 -WriteHost $false
-#     Set-Content -Value $ScriptContent -Path $ScriptFilePath -Force
-#
-#     ##############################  CMD  ########################################
-#     ## Exports the cmd script which will be used to run the PowerShell script. ##
-#     New-LogEntry -LogValue "Creating the CMD file:`n`nSet-Content -Value ScriptContent -Path $($CMDScriptFilePath.Replace($ContainerPath, '')) -Force `n`rPowerShell.exe $ScriptFilePath" -Component "Compress-MSIXAppInstaller" -Severity 1 -WriteHost $false
-# #    Set-Content -Value "PowerShell.exe $("$ExportPath\$($ScriptFilePath.Replace($("$ContainerPath\"), ''))")" -Path $($CMDScriptFilePath) -Force
-#     Set-Content -Value "Start /Wait powershell.exe -executionpolicy Bypass -file $("$($ScriptFilePath.Replace($("$ContainerPath\"), ''))")" -Path $($CMDScriptFilePath) -Force
-#
-#     ##############################  XML  ##############################
-#     ## Creates entries for each file and folder contained in the XML ##
-#     $ChildItems = Get-ChildItem $Path -Recurse
-#     $iFiles = 1
-#     $iDirs = 1
-#     $XMLFiles += "`t`t<File Name=""$($templateFilePath.replace($("$ContainerPath\"), ''))"" ParentPath=""$ContainerPath\"" RelativePath=""$($templateFilePath.replace($ContainerPath, ''))"" Extension=""xlsx"" SEDFile=""FILE0"" />"
-#     $XMLDirectories += "`t`t<Directory Name=""root"" FullPath=""$Path"" RelativePath="""" SEDFolder=""SourceFiles0"" />"
-#
-#     foreach ($Item in $ChildItems) 
-#     {
-#         If($Item.Attributes -ne 'Directory')
-#             { 
-#                 $XMLFiles += "`n`t`t<File Name=""$($Item.Name)"" ParentPath=""$($Item.FullName.Replace($($Item.Name), ''))"" RelativePath=""$($Item.FullName.Replace($Path, ''))"" Extension=""$($Item.Extension)"" SEDFile=""FILE$($iFiles)"" />" 
-#                 $iFiles++
-#             }
-#         Else 
-#             { 
-#                 $XMLDirectories += "`n`t`t<Directory Name=""$($Item.Name)"" FullPath=""$($Item.FullName)"" RelativePath=""$($Item.FullName.Replace($Path, ''))"" SEDFolder=""SourceFiles$($iDirs)"" />" 
-#                 $iDirs++
-#             }
-#
-#         $FileDetails += $ObjFileDetails
-#     }
-#
-#     $templateFilePath   = "$ContainerPath\MSIXCompressedExport.xml"
-#
-#     ## Outputs the folder and file structure to an XML file.
-#     $($xmlContent = @"
-# <MSIXCompressedExport
-#     xmlns="http://schemas.microsoft.com/appx/msixpackagingtool/template/2018"
-#     xmlns:mptv2="http://schemas.microsoft.com/msix/msixpackagingtool/template/1904">
-#     <Items exportpath="$($ExportPath)">
-# $XMLDirectories
-# $XMLFiles
-#     </Items>
-#     <Installer Path="$InstallerPath" Arguments="$InstallerArgument" />
-# </MSIXCompressedExport>
-# "@)
-#
-#     ## Exports the XML file which contains the original file and folder structure.
-#     New-LogEntry -LogValue "Creating the XML file:`n`nSet-Content -Value xmlContent -Path $templateFilePath -Force `n`r$xmlContent" -Component "Compress-MSIXAppInstaller" -Severity 1 -WriteHost $false
-#     Set-Content -Value $xmlContent -Path $templateFilePath -Force
-#
-#     ##############################  SED  ####################
-#     ## Extracts the required files and folder information. ##
-#     $ChildItems = Get-ChildItem $Path -Recurse
-#     $SEDFolders = ""
-#     $XMLData = [xml](Get-Content -Path "$templateFilePath")
-#     $objSEDFileStructure = ""
-#     $SEDFiles = ""
-#
-#     foreach($ObjFolder in $($XMLData.MSIXCompressedExport.Items.Directory))
-#     {
-#         If($(Get-ChildItem $($objFolder.FullPath)).Count -ne 0)
-#             { 
-#                 $objSEDFileStructure += "[$($ObjFolder.SEDFolder)]`n"
-#                 $SEDFolders += "$($ObjFolder.SEDFolder)=$($objFolder.FullPath)`n" 
-#             }
-#        
-#         foreach($objFile in $($XMLData.MSIXCompressedExport.Items.File.Where({$_.ParentPath -eq "$($ObjFolder.FullPath)\"})))
-#             { $objSEDFileStructure += "%$($ObjFile.SEDFile)%=`n" }
-#     }
-#
-#
-#     foreach($objFile in $($XMLData.MSIXCompressedExport.Items.File))
-#         { $SEDFiles += "$($ObjFile.SEDFile)=""$($ObjFile.Name)""`n" }
-#
-#     $($SEDExportTemplate = @"
-# [Version]
-# Class=IEXPRESS
-# SEDVersion=3
-# [Options]
-# PackagePurpose=InstallApp
-# ShowInstallProgramWindow=0
-# HideExtractAnimation=1
-# UseLongFileName=1
-# InsideCompressed=0
-# CAB_FixedSize=0
-# CAB_ResvCodeSigning=0
-# RebootMode=I
-# InstallPrompt=%InstallPrompt%
-# DisplayLicense=%DisplayLicense%
-# FinishMessage=%FinishMessage%
-# TargetName=%TargetName%
-# FriendlyName=%FriendlyName%
-# AppLaunched=%AppLaunched%
-# PostInstallCmd=%PostInstallCmd%
-# AdminQuietInstCmd=%AdminQuietInstCmd%
-# UserQuietInstCmd=%UserQuietInstCmd%
-# SourceFiles=SourceFiles
-# [Strings]
-# InstallPrompt=
-# DisplayLicense=
-# FinishMessage=
-# TargetName=$EXEOutPath
-# FriendlyName=$EXEFriendlyName
-# AppLaunched=$($EXECmdline.Replace("$ContainerPath\", ''))
-# PostInstallCmd=<None>
-# AdminQuietInstCmd=
-# UserQuietInstCmd=
-# $SEDFiles
-# [SourceFiles]
-# $SEDFolders
-# $objSEDFileStructure
-# "@)
-#
-#     ## Exports the XML file which contains the original file and folder structure.
-#     New-LogEntry -LogValue "Creating the SED file:`n`nSet-Content -Value xmlContent -Path $SEDOutPath -Force `n`r$SEDExportTemplate" -Component "Compress-MSIXAppInstaller" -Severity 1 -WriteHost $false
-#     Set-Content -Value $SEDExportTemplate -Path $SEDOutPath -Force
-#
-#     ##############################  EXE  #######
-#     ## Creates the self extracting executable ##
-#
-#     Start-Process -FilePath "iExpress.exe" -ArgumentList "/N $SEDOutPath" -wait
-#     #Invoke-Expression "iexpress.exe /N $SEDOutPath"
-#    
-#     $ObjMSIXAppDetails = New-Object PSObject
-#     $ObjMSIXAppDetails | Add-Member -MemberType NoteProperty -Name "Filename"  -Value $($EXEOutPath.Replace($("$ContainerPath\"), ''))
-#     $ObjMSIXAppDetails | Add-Member -MemberType NoteProperty -Name "Arguments" -Value $("/C:$($EXECmdline.Replace("$ContainerPath\", ''))")
-#
-#     ## Clean-up
-#     Remove-Item $CMDScriptFilePath -Force
-#     Remove-Item $ScriptFilePath -Force
-#     Remove-Item $templateFilePath -Force
-#     Remove-Item $SEDOutPath -Force
-#
-#     Return $ObjMSIXAppDetails
-# }
