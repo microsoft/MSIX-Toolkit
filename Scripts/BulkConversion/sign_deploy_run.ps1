@@ -19,9 +19,6 @@ function Set-MSIXSignApp($conversionsParameters, $WorkingDirectory, $Certificate
     $IntialLocation = Get-Location
     Set-Location -Path $SignToolPath
 
-    ## Parses through all files in the identified MSIX Folder to sign all files.
-#    Get-ChildItem $msixFolder | foreach-object 
-
     ForEach ($ConvertParam in $conversionsParameters)
     {
         IF($ConvertParam.SavePackagePath)
