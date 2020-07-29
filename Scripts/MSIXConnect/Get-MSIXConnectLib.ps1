@@ -308,72 +308,6 @@ function Format-MSIXAppDetails ($Application, $ApplicationDeploymentType, $CMExp
     Return $AppDetails
 }
 
-# Function Format-MSIXPackagingName ([Parameter(Mandatory=$True,Position=0)] [string]$AppName)
-# {
-#     New-LogEntry -LogValue "    Removing Special Characters from the Application Package Name." -Component "Format-MSIXPackagingName" -Severity 1 -WriteHost $VerboseLogging
-#     $MSIXPackageName = $AppName -replace '[!,@,#,$,%,^,&,*,(,),+,=,~,`]',''
-#     $MSIXPackageName = $MSIXPackageName -replace '_','-'
-#     $MSIXPackageName = $MSIXPackageName -replace ' ','-'
-#
-#     IF($MSIXPackageName.Length -gt 43)
-#     {
-#         $MSIXPackageName = $MSIXPackageName.Substring(0,43)
-#     }
-#
-#     Return $MSIXPackageName
-# }
-#
-# Function Format-MSIXPackagingArgument ([Parameter(Mandatory=$True,Position=0)] [string]$AppArgument)
-# {
-# #    New-LogEntry -LogValue "Removing Special Characters from the Application Package Name.
-# #    " -Component "Format-MSIXPackagingName" -Severity 1 -WriteHost $VerboseLogging
-# #    $MSIXPackageArguement = $AppArgument -replace '[!,@,#,$,%,^,&,*,(,),+,=,~,`]',''
-# #    $MSIXPackageArguement = $MSIXPackageArguement -replace '_','-'
-# #    $MSIXPackageArguement = $MSIXPackageArguement -replace ' ','-'
-#
-# #    Return $MSIXPackageArguement
-# }
-#
-# Function Format-MSIXPackagingVersion ([Parameter(Mandatory=$True,Position=0)] [string]$AppVer)
-# {
-#     ## Removes the less-desirable characters.
-#     $MSIXPackageVersion = $AppVer -replace '[!,@,#,$,%,^,&,*,),+,=,~,`]',''
-#     $MSIXPackageVersion = $MSIXPackageVersion -replace '[_,(]','.'
-#     $MSIXPackageVersion = $MSIXPackageVersion -replace ' ',''
-#     $MSIXPackageVersion = $MSIXPackageVersion -replace '[a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z]',''
-#
-#     $Index = 0
-#     $NewPackageVersion = ""
-#    
-#     ## Ensures the version is 4 octets.
-#     Foreach ($VerIndex in $($MSIXPackageVersion.Split('.')))
-#     {
-#         ## By declaring this as Int, removes leading zeros.
-#         [int]$Version = $VerIndex
-#
-#         ## Adds the values for each octet into its octet.
-#         If($Index -le 2)
-#             { $NewPackageVersion += $("$Version.") }
-#         If($Index -eq 3)
-#             { $NewPackageVersion += $("$Version") }
-#
-#         ## Incremets the octet counter.
-#         $Index++
-#     }
-#
-#     ## Appends the correct number of 0's to tne end of the version.
-#     switch ($Index) {
-#         3 { $NewPackageVersion += "0" }
-#         2 { $NewPackageVersion += "0.0" }
-#         1 { $NewPackageVersion += "0.0.0" }
-#         0 { $NewPackageVersion += "0.0.0.0" }
-#         Default {}
-#     }
-#
-#     ## Returns the newly updated version octet adhereing to the specified requirements.
-#     Return $NewPackageVersion
-# }
-
 Function Format-MSIXPackageInfo ([Parameter(Mandatory=$True,ParameterSetName=$('PackageVersion'),Position=0)]  $AppVersion,
                                  [Parameter(Mandatory=$True,ParameterSetName=$('PackageArgument'),Position=1)] $AppArgument,
                                  [Parameter(Mandatory=$True,ParameterSetName=$('PackageName'),Position=2)]     $AppName)
@@ -488,7 +422,7 @@ Function New-MSIXConnectMakeApp ([Parameter(Mandatory=$True)] $SiteCode = "CM1",
 }
 
 Function Get-CMExportAppData ($SigningCertificatePublisher,
-                              [string]$AppName,
+                              [string]$AppName="*",
                               [Parameter(Mandatory=$True,ParameterSetName=$('CMExportPathTarget'),Position=0)]  [string]$CMAppContentPath,
                               [Parameter(Mandatory=$True,ParameterSetName=$('CMExportPathTarget'),Position=1)]  [string]$CMAppMetaDataPath,
                               [Parameter(Mandatory=$True,ParameterSetName=$('CMExportPathParent'),Position=0)]  [string]$CMAppParentPath,
@@ -539,11 +473,15 @@ Function Get-CMExportAppData ($SigningCertificatePublisher,
         IF($PSCmdlet.ParameterSetName -like "CMExportPath*")
         {
             $CMAppPath = $CMApp
-            $CMApp = [xml](Get-Content -Path $($CMApp.FullName))
+            $CMApp     = [xml](Get-Content -Path $($CMApp.FullName))
+            $XMLAppName   = $($Application.Instance.Property.Where({$_.Name -eq "LocalizedDisplayName"}).Value)
 
-            ## App Content was exported.
-            $CMAppDeploymentType = [xml]($CMApp.Instance.Property.Where({$_.Name -eq "SDMPackageXML"}).Value.'#cdata-section')
-            $AppDetails += Format-MSIXAppExportDetails -Application $CMApp -ApplicationDeploymentType $CMAppDeploymentType -CMExportAppPath $CMAppContent -CMAppPath $CMAppPath -SigningCertificatePublisher $SigningCertificatePublisher
+            IF($XMLAppName -like $AppName)
+            {
+                ## App Content was exported.
+                $CMAppDeploymentType = [xml]($CMApp.Instance.Property.Where({$_.Name -eq "SDMPackageXML"}).Value.'#cdata-section')
+                $AppDetails += Format-MSIXAppExportDetails -Application $CMApp -ApplicationDeploymentType $CMAppDeploymentType -CMExportAppPath $CMAppContent -CMAppPath $CMAppPath -SigningCertificatePublisher $SigningCertificatePublisher
+            }
         }
         ELSEIF($PSCmdlet.ParameterSetName -eq "CMServer")
         {
