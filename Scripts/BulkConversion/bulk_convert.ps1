@@ -1,6 +1,11 @@
 . $psscriptroot\SharedScriptLib.ps1
 
-function CreateMPTTemplate($conversionParam, $jobId, $virtualMachine, $remoteMachine, $targetMachine, $workingDirectory)
+function CreateMPTTemplate([Parameter(Mandatory=$True,ParameterSetName=$('VirtualMachine'),Position=0)]$virtualMachine, 
+                           [Parameter(Mandatory=$True,ParameterSetName=$('RemoteMachine'), Position=0)]$remoteMachine, 
+                           [Parameter(Mandatory=$True,ParameterSetName=$('VMLocal'),       Position=0)][Switch]$VMLocal,
+                           [Parameter(Mandatory=$False,Position=1)]$conversionParam, 
+                           [Parameter(Mandatory=$False,Position=2)]$jobId, 
+                           [Parameter(Mandatory=$False,Position=3)]$workingDirectory)
 {
     ## Sets the default values for each field in the MPT Template
     $objInstallerPath        = $conversionParam.InstallerPath
@@ -12,34 +17,22 @@ function CreateMPTTemplate($conversionParam, $jobId, $virtualMachine, $remoteMac
     $objPublisherName        = $conversionParam.PublisherName
     $objPublisherDisplayName = $conversionParam.PublisherDisplayName
     $objPackageVersion       = $conversionParam.PackageVersion
+
     $saveFolder              = [System.IO.Path]::Combine($workingDirectory, "MSIX")
-    $workingDirectory        = [System.IO.Path]::Combine($($workingDirectory), "MPT_Templates")
+    $workingDirectory        = [System.IO.Path]::Combine($workingDirectory, "MPT_Templates")
     $templateFilePath        = [System.IO.Path]::Combine($workingDirectory, "MsixPackagingToolTemplate_Job$($jobId).xml")
     $conversionMachine       = ""
-    $objlocalMachine         = $targetMachine.Type
-    $MSIXSavePath            = "MSIX"
 
     IF($null -ne $conversionParam.ContentParentRoot)
-    { 
-        $saveFolder              = [System.IO.Path]::Combine($saveFolder, "$($conversionParam.ContentParentRoot)")
-        New-LogEntry -LogValue "    Updating the Save path to: $saveFolder" -Severity 1 -Component CreateMPTTemplate
-    }
+        { $saveFolder              = [System.IO.Path]::Combine($saveFolder, "$($conversionParam.ContentParentRoot)") }
 
     New-LogEntry -LogValue "        - Installer Path:                 $objInstallerPath`n        - Installer Path Root:            $objInstallerPathRoot`n        - Installer FileName:             $objInstallerFileName`n        - Installer Arguments:            $objInstallerArguments`n        - Package Name:                   $objPackageName`n        - Package Display Name:           $objPackageDisplayName`n        - Package Publisher Name:         $objPublisherName`n        - Package Publisher Display Name: $objPublisherDisplayName`n        - Package Version:                $objPackageVersion`n        - Save Folder:                    $saveFolder`n        - Working Directory:              $workingDirectory`n        - Template File Path:             $templateFilePath`n        - Conversion Machine:             $conversionMachine`n        - Local Machine:                  $objlocalMachine`n" -Severity 1 -Component "MPT_Templates:$JobID" -writeHost $false
-
-    ## Package File Path:
-    ## If the Save Package Path has been specified, use this directory otherwise use the default working directory.
-    If($($conversionParam.SavePackagePath))
-        { $saveFolder = [System.IO.Path]::Combine($($conversionParam.SavePackagePath), "$MSIXSavePath") }
-
     New-LogEntry -LogValue "    Current Save Directory is: $saveFolder" -Severity 1 -Component "CreateMPTTemplate" 
 
     ## Detects if the provided custom path exists, if not creates the required path.
     IF(!$(Get-Item -Path $saveFolder -ErrorAction SilentlyContinue))
         { $Scratch = New-Item -Force -Type Directory $saveFolder }
 
-
-    ## Package Template Path:
     ## If the Save Template Path has been specified, use this directory otherwise use the default working directory.
     If($($conversionParam.SaveTemplatePath))
         { $workingDirectory = [System.IO.Path]::Combine($($conversionParam.SaveTemplatePath), "MPT_Templates") }
@@ -49,11 +42,11 @@ function CreateMPTTemplate($conversionParam, $jobId, $virtualMachine, $remoteMac
         { $Scratch = New-Item -Force -Type Directory $workingDirectory }
     
     ## Determines the type of machine that will be connected to for conversion.
-    switch ($($targetMachine.Type))
+    switch ($PSCmdlet.ParameterSetName)
     {
         "VirtualMachine" { $conversionMachine = "<VirtualMachine Name=""$($vm.Name)"" Username=""$($vm.Credential.UserName)"" />" }
         "RemoteMachine"  { $conversionMachine = "<mptv2:RemoteMachine ComputerName=""$($remoteMachine.ComputerName)"" Username=""$($remoteMachine.Credential.UserName)"" />" }
-        "LocalMachine"   { $conversionMachine = "" }
+        "VMLocal"        { $conversionMachine = "" }
     }
 
     ## Generates the XML Content
@@ -136,7 +129,8 @@ function RunConversionJobs($conversionsParameters, $virtualMachines, $remoteMach
             $targetMachine | Add-Member -MemberType NoteProperty -Name "MachineName"  -Value $($_)
             
             $_jobId =            $remainingConversions[0]
-            $ConversionInfo    = CreateMPTTemplate $conversionParam $jobId $nul $_ $targetMachine $workingDirectory
+            $ConversionInfo    = CreateMPTTemplate -remoteMachine $_ $conversionParam $jobId $workingDirectory                       
+            #$ConversionInfo    = CreateMPTTemplate $conversionParam $jobId $nul $_ $targetMachine $workingDirectory
             $_templateFilePath = $ConversionInfo.Path
             $_BSTR =             [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($_.Credential.Password)
             $_password =         [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($_BSTR)
@@ -209,7 +203,8 @@ function RunConversionJobs($conversionsParameters, $virtualMachines, $remoteMach
             $targetMachine | Add-Member -MemberType NoteProperty -Name "Type"         -Value $("VirtualMachine")
             $targetMachine | Add-Member -MemberType NoteProperty -Name "MachineName"  -Value $($vm)
 
-            $ConversionInfo = CreateMPTTemplate $conversionParam $_jobId $vm $nul $targetMachine $workingDirectory 
+            $ConversionInfo    = CreateMPTTemplate -virtualMachine $vm $conversionParam $jobId $workingDirectory                       
+            #$ConversionInfo = CreateMPTTemplate $conversionParam $_jobId $vm $nul $targetMachine $workingDirectory 
             $_templateFilePath = $ConversionInfo.Path
             $_BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($vm.Credential.Password)
             $_password = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($_BSTR)
@@ -273,7 +268,8 @@ function RunConversionJobsLocal-Uninstall($conversionsParameters, $workingDirect
     
     foreach ($AppConversionParameters in $conversionsParameters) 
     {
-        $_templateFilePath = CreateMPTTemplate $AppConversionParameters $_jobID $nul $_ $targetMachine $workingDirectory
+        $_templateFilePath    = CreateMPTTemplate -VMLocal $AppConversionParameters $jobId $workingDirectory                       
+        #$_templateFilePath = CreateMPTTemplate $AppConversionParameters $_jobID $nul $_ $targetMachine $workingDirectory
 
         New-LogEntry -LogValue "Conversion Job ($_JobID)" -Component "bulk_convert:RunConversionJobsLocal" -Severity 1
         New-LogEntry -LogValue "    Converting Application ($($AppConversionParameters.PackageDisplayName))`n        - Installer:  $($AppConversionParameters.InstallerPath)`n        - Argument:  $($AppConversionParameters.InstallerArguments)" -Component "bulk_convert:RunConversionJobsLocal" -Severity 1       
@@ -319,7 +315,9 @@ function RunConversionJobsVMLocal($conversionsParameters, $remoteMachines, $virt
         IF($($($AppConversionParameters.InstallerArguments) -ne ""))
         {
             New-LogEntry -LogValue "    Working Directory:  $WorkingDirectory" -Severity 1 -Component "RunConversionJobsVMLocal" -writeHost $false
-            $objConversionInfo = CreateMPTTemplate $AppConversionParameters $_jobID $nul $_ $targetMachine $($workingDirectory)
+            
+            $objConversionInfo    = CreateMPTTemplate -VMLocal $AppConversionParameters $jobId $workingDirectory                       
+            #$objConversionInfo = CreateMPTTemplate $AppConversionParameters $_jobID $nul $_ $targetMachine $($workingDirectory)
 
             $_templateFilePath  = $objConversionInfo.Path
             $objXMLContent      = $($objConversionInfo.Content).Replace("'", "")
@@ -338,7 +336,7 @@ function RunConversionJobsVMLocal($conversionsParameters, $remoteMachines, $virt
             $Job = Copy-VMFile -Name $($VirtualMachines.Name) -Force -SourcePath $($_templateFilePath) -DestinationPath $($_templateFilePath) -FileSource Host -CreateFullPath
 
             ################# Creating / Copying Installer Folder #################
-            Get-ChildItem -Recurse $($AppConversionParameters.AppInstallerFolderPath) | ForEach-Object { Copy-VMFile -Name $($VirtualMachines.Name) -Force -SourcePath $($_.FullName) -DestinationPath $($_.FullName) -FileSource Host -CreateFullPath -ErrorAction SilentlyContinue }
+            Get-ChildItem -Recurse $($AppConversionParameters.AppInstallerFolderPath) | ForEach-Object { Copy-VMFile -Name $($VirtualMachines.Name) -Force -SourcePath $($_.FullName) -DestinationPath $($_.FullName.Replace($($AppConversionParameters.AppInstallerFolderPath), $($AppConversionParameters.InstallerFolderPath))) -FileSource Host -CreateFullPath -ErrorAction SilentlyContinue }
             
 
             ################# Converting App #################
@@ -394,7 +392,7 @@ function RunConversionJobsVMLocal($conversionsParameters, $remoteMachines, $virt
                 Copy-Item -Path $($objConvertedAppPath.FullName) -Destination $($objConvertedAppPath.FullName) -FromSession $Session
             }
 
-            #Pause
+            Pause
             Start-Sleep -Seconds 5
 
             New-LogEntry -LogValue "    Reverting VM ($($virtualMachines.Name)" -Component "bulk_convert:RunConversionJobsVMLocal" -Severity 1
