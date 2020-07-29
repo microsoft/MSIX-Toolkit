@@ -392,7 +392,7 @@ function RunConversionJobsVMLocal($conversionsParameters, $remoteMachines, $virt
                 Copy-Item -Path $($objConvertedAppPath.FullName) -Destination $($objConvertedAppPath.FullName) -FromSession $Session
             }
 
-            Pause
+            #Pause
             Start-Sleep -Seconds 5
 
             New-LogEntry -LogValue "    Reverting VM ($($virtualMachines.Name)" -Component "bulk_convert:RunConversionJobsVMLocal" -Severity 1
