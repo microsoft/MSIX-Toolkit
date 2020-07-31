@@ -39,25 +39,28 @@ Param(
         Write-Host $("" + $LogValue) -ForegroundColor $(switch ($Severity) {1 {$textcolor} 2 {"Yellow"} 3 {"Red"}})
     }
 }
-Function New-InitialSnapshot ($SnapshotName, $VMName, $jobId="" )
+
+Function New-InitialSnapshot ($SnapshotName, $VMName, $jobId="-" )
 {
+    $FunctionName = Get-FunctionName
     ## Verifies if the script snapshot exists, if not exists snapshot is created.
     IF ($SnapshotName -cnotin $(Get-VMSnapshot -VMName $vmName).Name)
     {
-        New-LogEntry -LogValue "Creating VM Snap for VM ($VMName): $SnapshotName" -Component "run_job.ps1:$jobId" 
+        New-LogEntry -LogValue "Creating VM Snap for VM ($VMName): $SnapshotName" -Component "JobID($JobID) - $FunctionName" 
         $Scratch = Checkpoint-VM -Name $vmName -SnapshotName "$SnapshotName"
     }
     Else
     {
-        New-LogEntry -LogValue "Snapshot ($SnapshotName) for VM ($VMName) already exists. " -Component "run_job.ps1:$jobId"
+        New-LogEntry -LogValue "Snapshot ($SnapshotName) for VM ($VMName) already exists. " -Component "JobID($JobID) - $FunctionName"
     }
 }
 
 Function Restore-InitialSnapshot ($SnapshotName, $VMName, $jobId="" )
 {
+    $FunctionName = Get-FunctionName
     IF ($SnapshotName -in $(Get-VMSnapshot -VMName $vmName).Name)
     {
-        New-LogEntry -LogValue "Reverting Virtual Machine to earlier snapshot ($initialSnapshotName)" -Component "run_job.ps1:$jobId"
+        New-LogEntry -LogValue "Reverting Virtual Machine to earlier snapshot ($initialSnapshotName)" -Component "JobID($jobId) - $FunctionName"
         $Scratch = Restore-VMSnapshot -Name "$SnapshotName" -VMName $vmName -Confirm:$false
 
         Start-Sleep -Seconds 10
@@ -81,4 +84,8 @@ Function Set-JobProgress ($ConversionJobs, $TotalTasks)
         { Write-Progress -ID 0 -Status "Completed" -Completed -Activity "Capture" }
     Else
         { Write-Progress -ID 0 -Status "Converting Applications..." -PercentComplete $($($($RunningJobs + $CompletedJobs)/$TotalTasks)*100) -Activity "Capture" }
+}
+
+function Get-FunctionName ([int]$StackNumber = 1) {
+    return [string]$(Get-PSCallStack)[$StackNumber].FunctionName
 }
