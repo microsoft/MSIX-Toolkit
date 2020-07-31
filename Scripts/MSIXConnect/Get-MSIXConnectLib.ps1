@@ -20,12 +20,6 @@ $VerboseLogging = $true
 $__JobID = 0
 
 
-#Function Get-CMAppConversionData ([Parameter(Mandatory=$True,HelpMessage="Please Enter CM SiteCode.",ParameterSetName=$('CMServer'),Position=0)] [String]$CMSiteCode,
-#                                  [Parameter(Mandatory=$True,HelpMessage="Please Enter CM SiteCode.",ParameterSetName=$('Execution'),Position=0)] [String]$CMSiteCode)
-#{
-#
-#}
-
 Function Test-PSArchitecture
 {
     $FunctionName = Get-FunctionName
