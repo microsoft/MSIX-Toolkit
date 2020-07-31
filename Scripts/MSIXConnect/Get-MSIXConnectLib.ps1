@@ -17,7 +17,7 @@ $SupportedInstallerType = @("MSI","Script")
 $SupportedConfigMgrVersion = ""
 $InitialLocation = Get-Location
 $VerboseLogging = $true
-
+$__JobID = 0
 
 
 #Function Get-CMAppConversionData ([Parameter(Mandatory=$True,HelpMessage="Please Enter CM SiteCode.",ParameterSetName=$('CMServer'),Position=0)] [String]$CMSiteCode,
@@ -28,15 +28,17 @@ $VerboseLogging = $true
 
 Function Test-PSArchitecture
 {
-    If([intPtr]::size -eq 4) { New-LogEntry "PowerShell Architecture matches." -Component Test-PSArchitecture }
+    $FunctionName = Get-FunctionName
+    If([intPtr]::size -eq 4) { New-LogEntry "PowerShell Architecture matches." -Component $FunctionName = Get-FunctionName }
     ELSE { Throw "Incorrect PowerShell Architecture, please review ReadMe for requirements." }
 }
 
 function Connect-CMEnvironment ([Parameter(Mandatory=$True,Position=0)] [String]$CMSiteCode,
                                 [Parameter(Mandatory=$False,Position=1)] [String]$CMSiteServer)
 {
+    $FunctionName = Get-FunctionName
     Import-Module $ENV:SMS_ADMIN_UI_PATH.replace("bin\i386","bin\ConfigurationManager.psd1")
-    New-LogEntry -LogValue "Connecting to the $($CMSiteCode) ConfigMgr PowerShell Environment..." -Component "Connect-CMEnvironment"
+    New-LogEntry -LogValue "Connecting to the $($CMSiteCode) ConfigMgr PowerShell Environment..." -Component $FunctionName
 
     ## If No Site exists in PS Drive, it will create it.
     if((Get-PSDrive -Name $CMSiteCode -PSProvider CMSite -ErrorAction SilentlyContinue) -eq $null) 
@@ -52,18 +54,18 @@ function Connect-CMEnvironment ([Parameter(Mandatory=$True,Position=0)] [String]
         Set-Location "$($SiteLocation):"
         IF($(Get-Location) -like "$($SiteLocation.Name)*") 
         {
-            New-LogEntry -LogValue "Connected Successfully to $($CMSiteCode) ConfigMgr PowerShell Environment..." -Component "Connect-CMEnvironment"
+            New-LogEntry -LogValue "Connected Successfully to $($CMSiteCode) ConfigMgr PowerShell Environment..." -Component $FunctionName
             Return $True
         }
         else 
         {
-            New-LogEntry -LogValue "Connection Failed..." -Component "Connect-CMEnvironment" -Severity 2
+            New-LogEntry -LogValue "Connection Failed..." -Component $FunctionName -Severity 2
             Return $False
         }
     } 
     ELSE 
     { 
-        New-LogEntry -LogValue "Could not identify ConfigMgr Site using ""$CMSiteCode"" Site Code." -Component "Connect-CMEnvironment" -Severity 2
+        New-LogEntry -LogValue "Could not identify ConfigMgr Site using ""$CMSiteCode"" Site Code." -Component $FunctionName -Severity 2
         Return $False
     }
 }
@@ -78,7 +80,8 @@ function Disconnect-CMEnvironment ([boolean]$ReturnPreviousLocation=$false)
 
 Function Get-CMAppMetaData ([Parameter(Mandatory=$True, HelpMessage="Please provide the Name of the CM Application.", ParameterSetName=$('Execution'), Position=0)] [string]$AppName)
 {
-    New-LogEntry -LogValue "Collecting information from ConfigMgr for application: $AppName" -Component "Get-CMAppMetaData"
+    $FunctionName = Get-FunctionName
+    New-LogEntry -LogValue "Collecting information from ConfigMgr for application: $AppName" -Component $FunctionName
     $CMApplication = Get-CMApplication -Name $AppName
     $CMApplicationDeploymentTypes = Get-CMDeploymentType -InputObject $CMApplication
     $AppDetails = @()
@@ -93,10 +96,12 @@ function Format-MSIXAppExportDetails ($Application,
                                       [Parameter(Mandatory=$True,ParameterSetName=$('CMExportedApp'),Position=0)]  $CMExportAppPath,
                                       [Parameter(Mandatory=$True,ParameterSetName=$('CMExportedApp'),Position=1)]  $CMAppPath,
                                       [Parameter(Mandatory=$True,ParameterSetName=$('CMServer'))]  [Switch]$CMServer,
-                                      $SigningCertificatePublisher) 
+                                      $SigningCertificatePublisher)
 {
 
-    $AppDetails = @()
+    $AppDetails       = @()
+    $FunctionName     = Get-FunctionName
+    $LoggingComponent = "Job($__JobID) - $FunctionName"
 
     Switch ($PSCmdlet.ParameterSetName)
     {
@@ -111,12 +116,14 @@ function Format-MSIXAppExportDetails ($Application,
          { $XML = [XML]$($ApplicationDeploymentType[0].SDMPackageXML) }
 
 
-    New-LogEntry -LogValue "Parsing through the Deployment Types of $AppName application." -Component "Format-MSIXAppDetails" -WriteHost $true
+    New-LogEntry -LogValue "Parsing through the Deployment Types of $AppName application." -Component $LoggingComponent -WriteHost $true
 
     Foreach($Deployment IN $($XML.AppMgmtDigest.DeploymentType))
     {
-        New-LogEntry -LogValue "  Parsing the Application (""$AppName""), currently recording information from Deployment Type:  ""$($Deployment.Title.'#text')""" -Component "Format-MSIXAppDetails" -WriteHost $true -textcolor "Cyan"
-        New-LogEntry -LogValue "    $($("Install String:").PadRight(22))  $($Deployment.Installer.InstallAction.Args.Arg.Where({$_.Name -eq "InstallCommandLine"}).'#text')" -Severity 1 -Component "Format-MSIXAppDetails"
+        $LoggingComponent = "Job($__JobID) - $FunctionName"
+        $__JobID ++
+        New-LogEntry -LogValue "  Parsing the Application (""$AppName""), currently recording information from Deployment Type:  ""$($Deployment.Title.'#text')""" -Component $LoggingComponent -WriteHost $true -textcolor "Cyan"
+        New-LogEntry -LogValue "    $($("Install String:").PadRight(22))  $($Deployment.Installer.InstallAction.Args.Arg.Where({$_.Name -eq "InstallCommandLine"}).'#text')" -Severity 1 -Component $LoggingComponent
 
 #        $XML                = [XML]$($DeploymentType.SDMPackageXML)  ## Not sure if this should be here or not.. needs to be tested with it removed.
         $MSIXAppDetails     = New-Object PSObject
@@ -135,7 +142,7 @@ function Format-MSIXAppExportDetails ($Application,
         $_AppFolderPath           = $Deployment.Installer.Contents.Content.Location
         $_PublisherName           = $SigningCertificate.Publisher
 
-        New-LogEntry -LogValue "    $($("Installer Filename:").PadRight(22))  |$_AppFileName| |$_InstallerArgument|" -Severity 1 -Component "Format-MSIXAppExportDetails"
+        New-LogEntry -LogValue "    $($("Installer Filename:").PadRight(22))  |$_AppFileName| |$_InstallerArgument|" -Severity 1 -Component $LoggingComponent
         
         $_ContentID      = $($Deployment.Installer.Contents.Content.ContentID)
         $_DeploymentType = $Deployment.Title.'#text'
@@ -200,7 +207,7 @@ function Format-MSIXAppExportDetails ($Application,
         IF ($SupportedInstallerType.Contains($($Deployment.Installer.Technology)))
             { $AppDetails += $MSIXAppDetails }
         ELSE
-            { New-LogEntry -LogValue "The ""$($Application.LocalizedDisplayName)"" application type is currently unsupported." -Component "Format-MSIXAppDetails" -Severity 3 }
+            { New-LogEntry -LogValue "The ""$($Application.LocalizedDisplayName)"" application type is currently unsupported." -Component $LoggingComponent -Severity 3 }
 
         Write-Host ""
     }
@@ -210,6 +217,8 @@ function Format-MSIXAppExportDetails ($Application,
 
 Function Get-MSIXConnectInstallInfo ($DeploymentAction, $InstallerTechnology)
 {
+    $FunctionName         = Get-FunctionName
+    $LoggingComponent     = "Job($__JobID) - $FunctionName"
     $objInstallerAction   = $DeploymentAction.Args.Arg.Where({$_.Name -eq "InstallCommandLine"}).'#text'
     $objInstallerFileName = $objInstallerAction
     $objInstallerArgument = ""
@@ -253,6 +262,8 @@ Function Get-MSIXConnectInstallInfo ($DeploymentAction, $InstallerTechnology)
 
 function Format-MSIXAppDetails ($Application, $ApplicationDeploymentType, $CMExportAppPath="") 
 {
+    $FunctionName     = Get-FunctionName
+    $LoggingComponent = "Job($__JobID) - $FunctionName"
     $AppDetails = @()
 
      IF($($ApplicationDeploymentType.count -le 1))
@@ -262,7 +273,7 @@ function Format-MSIXAppDetails ($Application, $ApplicationDeploymentType, $CMExp
     
     Foreach($Deployment IN $($XML.AppMgmtDigest.DeploymentType))
     {
-        New-LogEntry -LogValue "Parsing through the Deployment Types of $AppName application." -Component "Format-MSIXAppDetails" -WriteHost $VerboseLogging
+        New-LogEntry -LogValue "Parsing through the Deployment Types of $AppName application." -Component $LoggingComponent -WriteHost $VerboseLogging
 
         $MSIXAppDetails = New-Object PSObject
         $XML = [XML]$($DeploymentType.SDMPackageXML)
@@ -285,7 +296,7 @@ function Format-MSIXAppDetails ($Application, $ApplicationDeploymentType, $CMExp
         else 
             { $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "InstallerPath" -Value $("$CMExportAppPath\" + "$($Deployment.Installer.Contents.Content.File.Name)") }
         
-        New-LogEntry -LogValue "Parsing Application: ""$($Application.LocalizedDisplayName)"", currently recording information from ""$($DeploymentType.LocalizedDisplayName)"" Deployment Type." -Component "Format-MSIXAppDetails" -WriteHost $VerboseLogging
+        New-LogEntry -LogValue "Parsing Application: ""$($Application.LocalizedDisplayName)"", currently recording information from ""$($DeploymentType.LocalizedDisplayName)"" Deployment Type." -Component $LoggingComponent -WriteHost $VerboseLogging
      
         Foreach($Arg IN $($DeploymentInstaller.InstallAction.Args.Arg))
         {
@@ -293,7 +304,7 @@ function Format-MSIXAppDetails ($Application, $ApplicationDeploymentType, $CMExp
             IF($Arg.Name -eq "ExecutionContext")   { $MSIXAppDetails | Add-Member -MemberType NoteProperty -Name "ExecutionContext" -Value $($Arg.'#text') }
         }
 
-        New-LogEntry -LogValue "Adding the following information to the App XML:`n`n$MSIXAppDetails" -Component "Format-MSIXAppDetails" -WriteHost $VerboseLogging
+        New-LogEntry -LogValue "Adding the following information to the App XML:`n`n$MSIXAppDetails" -Component $LoggingComponent -WriteHost $VerboseLogging
         
         IF ($SupportedInstallerType.Contains($($Deployment.Installer.Technology)))
         {
@@ -301,7 +312,7 @@ function Format-MSIXAppDetails ($Application, $ApplicationDeploymentType, $CMExp
         }
         ELSE
         {
-            New-LogEntry -LogValue "The ""$($Application.LocalizedDisplayName)"" application type is currently unsupported." -Component "Format-MSIXAppDetails" -Severity 3
+            New-LogEntry -LogValue "The ""$($Application.LocalizedDisplayName)"" application type is currently unsupported." -Component $LoggingComponent -Severity 3
         }
     }
     
