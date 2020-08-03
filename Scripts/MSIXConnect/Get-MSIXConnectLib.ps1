@@ -90,7 +90,7 @@ function Format-MSIXAppExportDetails ($Application,
                                       [Parameter(Mandatory=$True,ParameterSetName=$('CMExportedApp'),Position=0)]  $CMExportAppPath,
                                       [Parameter(Mandatory=$True,ParameterSetName=$('CMExportedApp'),Position=1)]  $CMAppPath,
                                       [Parameter(Mandatory=$True,ParameterSetName=$('CMServer'))]  [Switch]$CMServer,
-                                      $SigningCertificatePublisher)
+                                      $SigningCertificate)
 {
 
     $AppDetails       = @()
@@ -426,7 +426,7 @@ Function New-MSIXConnectMakeApp ([Parameter(Mandatory=$True)] $SiteCode = "CM1",
 
 }
 
-Function Get-CMExportAppData ($SigningCertificatePublisher,
+Function Get-CMExportAppData ($SigningCertificate,
                               [string]$AppName="*",
                               [Parameter(Mandatory=$True,ParameterSetName=$('CMExportPathTarget'),Position=0)]  [string]$CMAppContentPath,
                               [Parameter(Mandatory=$True,ParameterSetName=$('CMExportPathTarget'),Position=1)]  [string]$CMAppMetaDataPath,
@@ -485,14 +485,14 @@ Function Get-CMExportAppData ($SigningCertificatePublisher,
             {
                 ## App Content was exported.
                 $CMAppDeploymentType = [xml]($CMApp.Instance.Property.Where({$_.Name -eq "SDMPackageXML"}).Value.'#cdata-section')
-                $AppDetails += Format-MSIXAppExportDetails -Application $CMApp -ApplicationDeploymentType $CMAppDeploymentType -CMExportAppPath $CMAppContent -CMAppPath $CMAppPath -SigningCertificatePublisher $SigningCertificatePublisher
+                $AppDetails += Format-MSIXAppExportDetails -Application $CMApp -ApplicationDeploymentType $CMAppDeploymentType -CMExportAppPath $CMAppContent -CMAppPath $CMAppPath -SigningCertificate $SigningCertificate
             }
         }
         ELSEIF($PSCmdlet.ParameterSetName -eq "CMServer")
         {
             ## App Content was sourced from ConfigMgr Server.
             $CMAppDeploymentType = [xml]($CMApp.SDMPackageXML)
-            $AppDetails += Format-MSIXAppExportDetails -Application $CMApp -ApplicationDeploymentType $CMAppDeploymentType -SigningCertificatePublisher $SigningCertificatePublisher -CMServer
+            $AppDetails += Format-MSIXAppExportDetails -Application $CMApp -ApplicationDeploymentType $CMAppDeploymentType -SigningCertificate $SigningCertificate -CMServer
         }
     }
 
