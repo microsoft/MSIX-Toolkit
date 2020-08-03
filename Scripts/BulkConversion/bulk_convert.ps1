@@ -287,6 +287,8 @@ Function NewMSIXConvertedApp ([Parameter(Mandatory=$True,Position=0)][ValidateSe
         }
         "VirtualMachine"
         {
+            New-InitialSnapshot -SnapshotName $initialSnapshotName -VMName $($virtualMachines.Name) -jobId $JobID
+
             $ConversionInfo    = CreateMPTTemplate -virtualMachine $TargetMachine $ConversionParameters $JobId $workingDirectory
             $_templateFilePath = $ConversionInfo.Path
             $RemoteTemplateFilePath  = $([String]$($(Get-Item -Path $_templateFilePath).FullName))
@@ -309,7 +311,7 @@ Function NewMSIXConvertedApp ([Parameter(Mandatory=$True,Position=0)][ValidateSe
         }
         "RunLocal"
         {
-            New-InitialSnapshot -SnapshotName $initialSnapshotName -VMName $($virtualMachines.Name) -jobId ""
+            New-InitialSnapshot -SnapshotName $initialSnapshotName -VMName $($virtualMachines.Name) -jobId $JobID
 
             $objSeverity = 1
             IF($($($ConversionParameters.InstallerArguments) -eq ""))
