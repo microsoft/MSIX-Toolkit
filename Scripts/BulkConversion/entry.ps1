@@ -10,8 +10,12 @@ New-LogEntry -LogValue "Collecting credentials for accessing the Remote / Virtua
 $credential = Get-Credential
 
 ## The Code Signing certificate to be used for signing the MSIX Apps.
+$CertPassword  = "[Cert Password]"
+$CertPath      = "[Path to PFX Signing Cert]"
+$CertPublisher = $(Get-PfxData -FilePath $($CertPath) -Password $($(ConvertTo-SecureString -String $($CertPassword) -AsPlainText -force))).EndEntityCertificates.Subject
+
 $SigningCertificate = @{
-    Password = "P@ssw0rd"; Path = "C:\Temp\cert.pfx"
+    Password = $CertPassword; Path = $CertPath; Publisher = $CertPublisher
 }
 
 ## Virtual Machines to be used for converting applications to the MSIX Packaging format.
@@ -30,7 +34,7 @@ $conversionsParameters = @(
     @{
         PackageName          = "YourApp1";
         PackageDisplayName   = "Your App1";
-        PublisherName        = "CN=YourCompany";
+        PublisherName        = $SigningCertificate.Publisher;
         PublisherDisplayName = "YourCompany";
         PackageVersion       = "1.0.0.0";
         InstallerPath        = "Path\to\YourInstaller1.msi";
@@ -38,7 +42,7 @@ $conversionsParameters = @(
     @{
         PackageName          = "YourApp2";
         PackageDisplayName   = "Your App2";
-        PublisherName        = "CN=YourCompany";    
+        PublisherName        = $SigningCertificate.Publisher;    
         PublisherDisplayName = "YourCompany";
         PackageVersion       = "1.0.0.0";
         InstallerPath        = "Path\to\YourInstaller2.exe";
@@ -47,7 +51,7 @@ $conversionsParameters = @(
 #    @{
 #        PackageName          = "YourApp3";                                          ## Package File Name (No spaces or special characters)
 #        PackageDisplayName   = "Your App3";                                         ## The name of the Application
-#        PublisherName        = "CN=YourCompany";                                    ## This must be the same as the code signing certificate.
+#        PublisherName        = $SigningCertificate.Publisher;                       ## This must be the same as the code signing certificate.
 #        PublisherDisplayName = "YourCompany";                                       ## Application Publisher Name
 #        PackageVersion       = "1.0.0.0";                                           ## Application version (quad-octet)
 #        InstallerPath        = "Path\to\YourInstaller3.exe";                        ## File Path to the Installation media
