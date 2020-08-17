@@ -13,7 +13,7 @@ Edit the file entry.ps1 with the parameters of your virtual/remote machines and 
 Run: entry.ps1
 
 ## Prerequisites
-Prior to running the entry.ps1 script, the following prerequisites must be met to ensure a successful application packaing experience.
+Prior to running the entry.ps1 script, the following prerequisites must be met to ensure a successful application packaging experience.
 
 | Term            | Description                                                        |
 |-----------------|--------------------------------------------------------------------|
@@ -31,6 +31,8 @@ The Host Machine must meet the following requirements:
     * If Remote Machine is on the same domain, Trusted Host does not need to be configured.
     * If Remote Machine is not on the same domain, the Remote Machine must be configured as a Trusted Host.
 
+For more information on how to configure your Host machine, visit our [Docs article: MSIX Bulk Conversion Scripts](https://docs.microsoft.com/en-us/windows/msix/toolkit/msix-toolkit-msixbatchconversion)
+
 ### Virtual Machines:
 It is recommended that the Hyper-V Quick Create - MSIX Packaging Tools Environment image be used as it meets the required configurations.
 
@@ -38,6 +40,8 @@ If you are using the Virtual Machine option, the virtual machine must be located
 
 Virtual Machine must meet the following requirements:
 * MSIX Packaging Tool Installed.
+
+For more information on how to configure your Host machine, visit our [Docs article: MSIX Bulk Conversion Scripts](https://docs.microsoft.com/en-us/windows/msix/toolkit/msix-toolkit-msixbatchconversion)
 
 ### Remote Machines:
 Remote Machine must meet the following requirements:
@@ -47,3 +51,5 @@ Remote Machine must meet the following requirements:
 * The WinRM Trusted Hosts must be configured:
     * If the devices are on the same domain, no action required.
     * If the devices are not on the same domain, WinRM Trusted Hosts must contain a reference to the device running the script.
+
+For more information on how to configure your Host machine, visit our [Docs article: MSIX Bulk Conversion Scripts](https://docs.microsoft.com/en-us/windows/msix/toolkit/msix-toolkit-msixbatchconversion)
