@@ -20,6 +20,7 @@ $credential         = Get-Credential
 ################################
 #########  Edit Below  #########
 #############################################################################
+
 $CMAppName      = "[Name of Application - Optional]"
 $CertPassword   = "[Cert Password]"
 $CertPath       = "[Path to PFX Signing Cert]"
