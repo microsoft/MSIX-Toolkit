@@ -1,3 +1,21 @@
+<#
+.SYNOPSIS
+Short description
+
+.DESCRIPTION
+Long description
+
+.EXAMPLE
+An example
+
+.NOTES
+Future Enhancements:
+    - Provide AppV Conversion to MSIX Support
+    - Filter Applications in ConfigMgr by Folder.
+#>
+
+
+
 ############################
 ##  Variable Declaration  ##
 ############################
@@ -19,9 +37,16 @@ $InitialLocation = Get-Location
 $VerboseLogging = $true
 $__JobID = 0
 
-
-Function Test-PSArchitecture
+Function Test-PSArchitecture ([Parameter(Mandatory=$False,Position=1)][string]$Architecture)
 {
+    <#
+    .SYNOPSIS
+    Validates the architecture of the running PowerShell window..
+    
+    .DESCRIPTION
+    This Function will query the architecture of the PowerShell window running the script. By default this function will returning an error if the architecture is no x64.
+    #>
+
     $FunctionName = Get-FunctionName
     If([intPtr]::size -eq 4) { New-LogEntry "PowerShell Architecture matches." -Component $FunctionName = Get-FunctionName }
     ELSE { Throw "Incorrect PowerShell Architecture, please review ReadMe for requirements." }
@@ -30,6 +55,26 @@ Function Test-PSArchitecture
 function Connect-CMEnvironment ([Parameter(Mandatory=$True,Position=0)] [String]$CMSiteCode,
                                 [Parameter(Mandatory=$False,Position=1)] [String]$CMSiteServer)
 {
+    <#
+    .SYNOPSIS
+    Short description
+    
+    .DESCRIPTION
+    Long description
+    
+    .PARAMETER CMSiteCode
+    Parameter description
+    
+    .PARAMETER CMSiteServer
+    Parameter description
+    
+    .EXAMPLE
+    An example
+    
+    .NOTES
+    General notes
+    #>
+
     $FunctionName = Get-FunctionName
     Import-Module $ENV:SMS_ADMIN_UI_PATH.replace("bin\i386","bin\ConfigurationManager.psd1")
     New-LogEntry -LogValue "Connecting to the $($CMSiteCode) ConfigMgr PowerShell Environment..." -Component $FunctionName
@@ -64,7 +109,7 @@ function Connect-CMEnvironment ([Parameter(Mandatory=$True,Position=0)] [String]
     }
 }
 
-function Disconnect-CMEnvironment ([boolean]$ReturnPreviousLocation=$false)
+function Disconnect-CMEnvironment ([Parameter(Mandatory=$True,Position=0)][boolean]$ReturnPreviousLocation=$false)
 {
     $PreviousLocation = Get-Location
     Set-Location $InitialLocation
@@ -72,7 +117,7 @@ function Disconnect-CMEnvironment ([boolean]$ReturnPreviousLocation=$false)
     IF($ReturnPreviousLocation){Return $PreviousLocation}
 }
 
-Function Get-CMAppMetaData ([Parameter(Mandatory=$True, HelpMessage="Please provide the Name of the CM Application.", ParameterSetName=$('Execution'), Position=0)] [string]$AppName)
+Function Get-CMAppMetaData ([Parameter(Mandatory=$True,HelpMessage="Please provide the Name of the CM Application.",Position=0)] [string]$AppName)
 {
     $FunctionName = Get-FunctionName
     New-LogEntry -LogValue "Collecting information from ConfigMgr for application: $AppName" -Component $FunctionName
@@ -85,12 +130,12 @@ Function Get-CMAppMetaData ([Parameter(Mandatory=$True, HelpMessage="Please prov
     Return $AppDetails
 }
 
-function Format-MSIXAppExportDetails ($Application, 
-                                      $ApplicationDeploymentType, 
+function Format-MSIXAppExportDetails ([Parameter(Mandatory=$False)]$Application, 
+                                      [Parameter(Mandatory=$False)]$ApplicationDeploymentType,
                                       [Parameter(Mandatory=$True,ParameterSetName=$('CMExportedApp'),Position=0)]  $CMExportAppPath,
                                       [Parameter(Mandatory=$True,ParameterSetName=$('CMExportedApp'),Position=1)]  $CMAppPath,
                                       [Parameter(Mandatory=$True,ParameterSetName=$('CMServer'))]  [Switch]$CMServer,
-                                      $SigningCertificate)
+                                      [Parameter(Mandatory=$False)]$SigningCertificate)
 {
 
     $AppDetails       = @()
@@ -209,7 +254,8 @@ function Format-MSIXAppExportDetails ($Application,
     Return $AppDetails
 }
 
-Function Get-MSIXConnectInstallInfo ($DeploymentAction, $InstallerTechnology)
+Function Get-MSIXConnectInstallInfo ([Parameter(Mandatory=$True,Position=0)]$DeploymentAction, 
+                                     [Parameter(Mandatory=$True,Position=1)]$InstallerTechnology)
 {
     $FunctionName         = Get-FunctionName
     $LoggingComponent     = "Job($__JobID) - $FunctionName"
@@ -254,7 +300,9 @@ Function Get-MSIXConnectInstallInfo ($DeploymentAction, $InstallerTechnology)
     Return $objInstallerActions
 }
 
-function Format-MSIXAppDetails ($Application, $ApplicationDeploymentType, $CMExportAppPath="") 
+function Format-MSIXAppDetails ([Parameter(Mandatory=$True,Position=0)]$Application, 
+                                [Parameter(Mandatory=$True,Position=1)]$ApplicationDeploymentType, 
+                                [Parameter(Mandatory=$True,Position=2)]$CMExportAppPath)
 {
     $FunctionName     = Get-FunctionName
     $LoggingComponent = "Job($__JobID) - $FunctionName"
@@ -313,9 +361,9 @@ function Format-MSIXAppDetails ($Application, $ApplicationDeploymentType, $CMExp
     Return $AppDetails
 }
 
-Function Format-MSIXPackageInfo ([Parameter(Mandatory=$True,ParameterSetName=$('PackageVersion'),Position=0)]  $AppVersion,
-                                 [Parameter(Mandatory=$True,ParameterSetName=$('PackageArgument'),Position=1)] $AppArgument,
-                                 [Parameter(Mandatory=$True,ParameterSetName=$('PackageName'),Position=2)]     $AppName)
+Function Format-MSIXPackageInfo ([Parameter(Mandatory=$True,ParameterSetName=$('PackageVersion'),Position=0)]  [string]$AppVersion,
+                                 [Parameter(Mandatory=$True,ParameterSetName=$('PackageArgument'),Position=0)] [string]$AppArgument,
+                                 [Parameter(Mandatory=$True,ParameterSetName=$('PackageName'),Position=0)]     [string]$AppName)
 {
     switch ($PSCmdlet.ParameterSetName) 
     {
@@ -402,9 +450,9 @@ Function Validate-MSIXPackagingName ([Parameter(Mandatory=$True,Position=0)] [st
     Return $($MSIXPackageName = $AppName -match '[!,@,#,$,%,^,&,*,(,),+,=,~,`, ,_]')
 }
 
-Function New-MSIXConnectMakeApp ([Parameter(Mandatory=$True)] $SiteCode = "CM1", 
-                                 [Parameter(Mandatory=$True)] $SiteServerServerName = "CL-CM01",
-                                 [Parameter(Mandatory=$True)] $ApplicationName = "Notepad++")
+Function New-MSIXConnectMakeApp ([Parameter(Mandatory=$True,Position=0)] [string]$SiteCode, 
+                                 [Parameter(Mandatory=$True,Position=1)] [string]$SiteServerServerName,
+                                 [Parameter(Mandatory=$True,Position=2)] [string]$ApplicationName)
 {
     $VMcredential = Get-Credential
     IF(!$VMcredential)

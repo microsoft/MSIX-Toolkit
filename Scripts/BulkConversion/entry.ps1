@@ -14,23 +14,23 @@ $CertPassword  = "[Cert Password]"
 $CertPath      = "[Path to PFX Signing Cert]"
 $CertPublisher = $(Get-PfxData -FilePath $($CertPath) -Password $($(ConvertTo-SecureString -String $($CertPassword) -AsPlainText -force))).EndEntityCertificates.Subject
 
-$SigningCertificate = @{
+[CodeSigningCert]$SigningCertificate = @{
     Password = $CertPassword; Path = $CertPath; Publisher = $CertPublisher
 }
 
 ## Virtual Machines to be used for converting applications to the MSIX Packaging format.
-$virtualMachines = @(
+[TargetMachine[]]$virtualMachines = @(
     @{ Name = "vm1"; Credential = $credential }
     @{ Name = "vm2"; Credential = $credential }
 )
 
 ## Remote Machines to be used for converting applications to the MSIX Packaging format.
-$remoteMachines = @(
+[TargetMachine[]] $remoteMachines = @(
     @{ ComputerName = "YourVMNameHere.westus.cloudapp.azure.com"; Credential = $credential }
 )
 
 ## Applications to be converted.
-$conversionsParameters = @(
+[ConversionParam[]] $conversionsParameters = @(
     @{
         PackageName          = "YourApp1";
         PackageDisplayName   = "Your App1";

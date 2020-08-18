@@ -1,4 +1,48 @@
-Function New-LogEntry
+Class ConversionParam{
+    [ValidateNotNullOrEmpty()][String] $PackageDisplayName      ## MSIX App Display Name.
+    [ValidateNotNullOrEmpty()][String] $PublisherDisplayName    ## MSIX App Publisher Display Name.
+    [ValidateNotNullOrEmpty()][String] $PackageName             ## MSIX Application Package Name.
+    [ValidateNotNullOrEmpty()][String] $PublisherName           ## MSIX Canonical Publisher Name.
+    [ValidateNotNullOrEmpty()][String] $PackageVersion          ## MSIX App Package Version (#.#.#.#).
+    [ValidateNotNullOrEmpty()][String] $InstallerPath           ## Path to App Installer used for Conversion.
+    [String]$InstallerFolderPath        ## Used with ConfigMgr sourced app conversions, points to the install folder used for conversion on remote machine
+    [String]$UninstallerPath            ## Used with ConfigMgr sourced app conversions, points to the uninstall folder. (Used only when installing with compression)
+    [String]$UninstallerArgument        ## Used with ConfigMgr sourced app conversions, arguments to silently uninstall app.
+    [String]$AppDescription             ## MSIX App description.
+    [String]$CMAppPackageID             ## Used with ConfigMgr sourced app conversions, identifies the ConfigMgr Application Package ID.
+    [String]$RequiresUserInteraction    ## Used with ConfigMgr sourced app conversions, identifies if the app installer is silent or interactive.
+    [String]$AppFolderPath              ## Used with ConfigMgr sourced app conversions, identifies the UNC path to the ConfigMgr Application installer.
+    [String]$AppInstallerFolderPath     ## Used with ConfigMgr sourced app conversions, identifies the app installer UNC folder path
+    [String]$AppFileName                ## Used with ConfigMgr sourced app conversions, identifies the app file name.
+    [String]$AppIntallerType            ## Used with ConfigMgr sourced app conversions, identifies the type of installation media used for app install.
+    [String]$ContentID                  ## Used with ConfigMgr sourced app conversions, identifies which child folder (exported apps only) the app install exists.
+    [String]$InstallerArguments         ## App installer arguments used for silent app installation.
+    [String]$ExecutionContext           ## Used with ConfigMgr sourced app conversions, identifies if the app installs for User or Device.
+    [String]$ContentParentRoot          ## Used with ConfigMgr sourced app conversions, identifies where the root app export folder exists.
+    [String]$DeploymentType             ## Used with ConfigMgr sourced app conversions, identifies the name of the Deployment Type.
+    $SavePackagePath
+    $SaveTemplatePath
+}
+
+Class TargetMachine{
+    [String]$Name
+    [String]$ComputerName
+    $Credential
+    $ConversionJob
+}
+
+Class CodeSigningCert{
+    [string]$Password
+    [string]$Path
+    [string]$Publisher
+}
+
+Function New-LogEntry ([Parameter(Mandatory=$True,Position=0)] [string]  $LogValue,
+                       [Parameter(Mandatory=$True,Position=1)] [string]  $Component,
+                       [Parameter(Mandatory=$False,Position=2)][ValidateSet("1","2","3")] [int] $Severity  = 1,
+                       [Parameter(Mandatory=$False,Position=3)] [boolean] $WriteHost = $true,
+                       [Parameter(Mandatory=$False,Position=4)] [string]  $Path      = $("C:\Temp\Log"),
+                       [Parameter(Mandatory=$False,Position=5)][ValidateSet("white","black","Cyan")] [string]  $textcolor = "White")
 {
     <#
     .SYNOPSIS
@@ -21,14 +65,6 @@ Function New-LogEntry
     New-LogEntry -LogValue "Message to be included in Log file." -Severity 1 -Component "[Function Name or Script File]"
     #>
 
-Param(
-    [Parameter(Mandatory=$True,Position=0)] [string]  $LogValue,
-    [Parameter(Mandatory=$True,Position=1)] [string]  $Component,
-    [Parameter(Mandatory=$False,Position=2)][ValidateSet("1","2","3")] [int] $Severity  = 1,
-    [Parameter(Mandatory=$False,Position=3)] [boolean] $WriteHost = $true,
-    [Parameter(Mandatory=$False,Position=4)] [string]  $Path      = $("C:\Temp\Log"),
-    [Parameter(Mandatory=$False,Position=5)][ValidateSet("white","black","Cyan")] [string]  $textcolor = "White"
-)
     IF(!(Test-path -Path $Path)) {$Scratch = mkdir $Path}
     $Error.Clear()
 
@@ -61,7 +97,9 @@ Param(
     }
 }
 
-Function New-InitialSnapshot
+Function New-InitialSnapshot ([Parameter(Mandatory=$True,Position=0 )][ValidateScript({Test-Input -VMName $_})][string]  $VMName,
+                              [Parameter(Mandatory=$True,Position=1 )][ValidateNotNullOrEmpty()][string]  $SnapshotName,
+                              [Parameter(Mandatory=$False,Position=2)][string]  $jobId="--")
 {
     <#
     .SYNOPSIS
@@ -78,12 +116,6 @@ Function New-InitialSnapshot
     New-InitialSnapshot -SnapshotName "New Snapshot" -VMName "MSIX Conversion Environment" -JobID 1
     #>
 
-    Param(
-        [Parameter(Mandatory=$True,Position=0)][ValidateScript({Test-Input -VMName $_})][string]  $VMName,
-        [Parameter(Mandatory=$True,Position=1)][ValidateNotNullOrEmpty()][string]  $SnapshotName,
-        [Parameter(Mandatory=$False,Position=2)][string]  $jobId="--"
-    )
-
     $FunctionName = Get-FunctionName
     ## Verifies if the script snapshot exists, if not exists snapshot is created.
     IF ($SnapshotName -cnotin $(Get-VMSnapshot -VMName $vmName).Name)
@@ -97,7 +129,9 @@ Function New-InitialSnapshot
     }
 }
 
-Function Restore-InitialSnapshot 
+Function Restore-InitialSnapshot ([Parameter(Mandatory=$True, Position=0)][ValidateScript({Test-Input -VMName $_})][string]  $VMName,
+                                  [Parameter(Mandatory=$True, Position=1)][ValidateScript({Test-Input -SnapShotName $_})][string]  $SnapshotName,
+                                  [Parameter(Mandatory=$False,Position=2)][string]  $jobId="--")
 {
     <#
     .SYNOPSIS
@@ -114,11 +148,6 @@ Function Restore-InitialSnapshot
     Restore-InitialSnapshot -SnapshotName "New Snapshot" -VMName "MSIX Conversion Environment" -JobID 1
     #>
 
-    Param(
-        [Parameter(Mandatory=$True, Position=0)][ValidateScript({Test-Input -VMName $_})][string]  $VMName,
-        [Parameter(Mandatory=$True, Position=1)][ValidateScript({Test-Input -SnapShotName $_})][string]  $SnapshotName,
-        [Parameter(Mandatory=$False,Position=2)][string]  $jobId="--"
-    )
 
     $FunctionName = Get-FunctionName
     IF ($SnapshotName -in $(Get-VMSnapshot -VMName $vmName).Name)
@@ -130,7 +159,8 @@ Function Restore-InitialSnapshot
     }
 }
 
-Function Set-JobProgress
+Function Set-JobProgress ([Parameter(Mandatory=$True,Position=0)][ValidateNotNullOrEmpty() ]      $ConversionJobs,
+                          [Parameter(Mandatory=$True,Position=1)][ValidateRange("Positive")][int] $TotalTasks)
 {
     <#
     .SYNOPSIS
@@ -144,10 +174,7 @@ Function Set-JobProgress
     .EXAMPLE
     Set-JobProgress -ConversionJobs $ConversionJobs -TotalTasks 100
     #>
-    Param(
-        [Parameter(Mandatory=$True,Position=0)][ValidateNotNullOrEmpty() ]      $ConversionJobs,
-        [Parameter(Mandatory=$True,Position=1)][ValidateRange("Positive")][int] $TotalTasks
-    )
+
 
     # Sets the Valiables
     $RunningJobs = $($($ConversionJobs | where-object State -eq "Running").count)/2     ## Inprogress jobs are represented as 0.5/job
@@ -169,7 +196,7 @@ Function Set-JobProgress
         { Write-Progress -ID 0 -Status "Converting Applications..." -PercentComplete $($($($RunningJobs + $CompletedJobs)/$TotalTasks)*100) -Activity "Capture" }
 }
 
-function Get-FunctionName ([int]$StackNumber = 1) 
+function Get-FunctionName ([Parameter(Mandatory=$False,Position=0)][ValidateNotNullOrEmpty()][int]  $StackNumber = 1) 
 {
     <#
     .SYNOPSIS
@@ -182,12 +209,10 @@ function Get-FunctionName ([int]$StackNumber = 1)
     return [string]$(Get-PSCallStack)[$StackNumber].FunctionName
 }
 
-Function Test-Input
+Function Test-Input ([Parameter(Mandatory=$True,ParameterSetName="VMName-Exists"  )][ValidateNotNullOrEmpty()][string] $VMName,
+                     [Parameter(Mandatory=$True,ParameterSetName="SnapShot-Exists")][ValidateNotNullOrEmpty()][string] $SnapShotName)
 {
-    Param(
-        [Parameter(Mandatory=$True,ParameterSetName="VMName-Exists"  )][ValidateNotNullOrEmpty()][string] $VMName,
-        [Parameter(Mandatory=$True,ParameterSetName="SnapShot-Exists")][ValidateNotNullOrEmpty()][string] $SnapShotName
-    )
+
 
     $ValidationResult = $false
 
