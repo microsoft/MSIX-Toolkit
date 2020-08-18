@@ -642,15 +642,15 @@ Start-Process -FilePath "$($XMLData.MSIXCompressedExport.Items.exportpath)\$($XM
     foreach ($Item in $ChildItems) 
     {
         If($Item.Attributes -ne 'Directory')
-            { 
-                $XMLFiles += "`n`t`t<File Name=""$($Item.Name)"" ParentPath=""$($Item.FullName.Replace($($Item.Name), ''))"" RelativePath=""$($Item.FullName.Replace($Path, ''))"" Extension=""$($Item.Extension)"" SEDFile=""FILE$($iFiles)"" />" 
-                $iFiles++
-            }
+        { 
+            $XMLFiles += "`n`t`t<File Name=""$($Item.Name)"" ParentPath=""$($Item.FullName.Replace($($Item.Name), ''))"" RelativePath=""$($Item.FullName.Replace($Path, ''))"" Extension=""$($Item.Extension)"" SEDFile=""FILE$($iFiles)"" />" 
+            $iFiles++
+        }
         Else 
-            { 
-                $XMLDirectories += "`n`t`t<Directory Name=""$($Item.Name)"" FullPath=""$($Item.FullName)"" RelativePath=""$($Item.FullName.Replace($Path, ''))"" SEDFolder=""SourceFiles$($iDirs)"" />" 
-                $iDirs++
-            }
+        { 
+            $XMLDirectories += "`n`t`t<Directory Name=""$($Item.Name)"" FullPath=""$($Item.FullName)"" RelativePath=""$($Item.FullName.Replace($Path, ''))"" SEDFolder=""SourceFiles$($iDirs)"" />" 
+            $iDirs++
+        }
 
         $FileDetails += $ObjFileDetails
     }
