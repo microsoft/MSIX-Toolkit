@@ -20,21 +20,21 @@ Class ConversionParam{
     [String]$ExecutionContext           ## Used with ConfigMgr sourced app conversions, identifies if the app installs for User or Device.
     [String]$ContentParentRoot          ## Used with ConfigMgr sourced app conversions, identifies where the root app export folder exists.
     [String]$DeploymentType             ## Used with ConfigMgr sourced app conversions, identifies the name of the Deployment Type.
-    $SavePackagePath
-    $SaveTemplatePath
+    $SavePackagePath                    ## Location where the newly created MSIX app will be saved to.
+    $SaveTemplatePath                   ## Location of the Template.
 }
 
 Class TargetMachine{
-    [String]$Name
-    [String]$ComputerName
-    $Credential
-    $ConversionJob
+    [String]$Name                       ## Name of the Virtual Machine (As seen in Hyper-V Console) being used to convert MSIX Applications.
+    [String]$ComputerName               ## Computer name of the remote machine being used to convert MSIX Applications.
+    $Credential                         ## Credentials used to connect to the virtual/remote machine.
+    $ConversionJob                      ## Represents the conversion Job being executed on this virtual/remote machine.
 }
 
 Class CodeSigningCert{
-    [string]$Password
-    [string]$Path
-    [string]$Publisher
+    [string]$Password                   ## Password for the Code Signing Certificate being used to sign the MSIX app.
+    [string]$Path                       ## Path to the Code Signing Certificate.
+    [string]$Publisher                  ## Canonical name of the Certificate Publisher.
 }
 
 Function New-LogEntry ([Parameter(Mandatory=$True,Position=0)] [string]  $LogValue,
