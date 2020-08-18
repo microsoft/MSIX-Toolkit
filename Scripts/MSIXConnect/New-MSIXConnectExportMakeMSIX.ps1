@@ -1,12 +1,11 @@
 Param
 (
-        $ExportedCMAppsPath = "C:\Temp\Demo\ConfigMgrExport_files\",
-        $ExportedCMAppMetaData = "C:\Temp\Demo\ConfigMgrExport\",
-        $CMAppParentPath = ""
+        [Parameter(Mandatory, ParameterSetName="CMExportPathTarget")] $ExportedCMAppsPath = "C:\Temp\Demo\ConfigMgrExport_files\",
+        [Parameter(Mandatory, ParameterSetName="CMExportPathTarget")] $ExportedCMAppMetaData = "C:\Temp\Demo\ConfigMgrExport\",
+        [Parameter(Mandatory, ParameterSetName="CMExportPathParent")] $CMAppParentPath = "C:\Temp\Demo",
+        [Parameter(Mandatory, ParameterSetName="CMServer"          )] $CMSiteCode     = "[ConfigMgr Site Code]",
+        [Parameter(Mandatory, ParameterSetName="CMServer"          )] $CMSiteServer   = "[FQDN of the ConfigMgr Site Server]"
 )
-
-## Script Starts
-$workingDirectory = [System.IO.Path]::Combine($($PSScriptRoot), "out")
 
 # Imports the Function Library
 . $PSScriptRoot\..\MSIXConnect\Get-MSIXConnectLib.ps1
@@ -14,32 +13,52 @@ $workingDirectory = [System.IO.Path]::Combine($($PSScriptRoot), "out")
 . $PSScriptRoot\..\BulkConversion\SharedScriptLib.ps1
 . $PSScriptRoot\..\BulkConversion\sign_deploy_run.ps1
 
-## Retrieves the credentials that will be used for connecting to both Virtual and Remote Machines. Credentials must be consistent.
-New-LogEntry -LogValue "Collecting credentials for accessing the Remote / Virtual Machines" -Component "entry.ps1"
-$credential = Get-Credential
+## Variable Declaration
+$workingDirectory   = [System.IO.Path]::Combine($($PSScriptRoot), "out")
+$credential         = Get-Credential
 
-
-$CertPassword  = "[Cert Password]"
-$CertPath      = "[Path to PFX Signing Cert]"
-$CertPublisher = $(Get-PfxData -FilePath $($CertPath) -Password $($(ConvertTo-SecureString -String $($CertPassword) -AsPlainText -force))).EndEntityCertificates.Subject
-
-$SigningCertificate = @{
-    Password = $CertPassword; Path = $CertPath; Publisher = $CertPublisher
-}
+################################
+#########  Edit Below  #########
+#############################################################################
+$CMAppName      = "[Name of Application - Optional]"
+$CertPassword   = "[Cert Password]"
+$CertPath       = "[Path to PFX Signing Cert]"
 
 ## Virtual Machines to be used for converting applications to the MSIX Packaging format.
-$virtualMachines = @(
+[TargetMachine[]] $virtualMachines = @(
+    @{ Name = "[Hyper-V VM Name]"; Credential = $credential }
+    @{ Name = "[Hyper-V VM Name]"; Credential = $credential }
     @{ Name = "[Hyper-V VM Name]"; Credential = $credential }
 )
 
 ## Remote Machines to be used for converting applications to the MSIX Packaging format.
-$remoteMachines = @(
+[TargetMachine[]] $remoteMachines = @(
+    @{ Name = "[ComputerName]"; Credential = $credential }
+    @{ Name = "[ComputerName]"; Credential = $credential }
     @{ Name = "[ComputerName]"; Credential = $credential }
 )
 
+#############################################################################
+#########  Stop Edits  #########
+################################
 
-$conversionsParameters = @()
-$conversionsParameters = Get-CMExportAppData -CMSiteCode "[ConfigMgr 3 Character Site Code]" -CMSiteServer "[ConfigMgr Site Server Name]" -AppName "[App Name - Optional]" -SigningCertificate $SigningCertificate
+$CertPublisher  = $(Get-PfxData -FilePath $($CertPath) -Password $($(ConvertTo-SecureString -String $($CertPassword) -AsPlainText -force))).EndEntityCertificates.Subject
+
+[CodeSigningCert] $SigningCertificate = @{
+    Password = $CertPassword; Path = $CertPath; Publisher = $CertPublisher
+}
+
+[ConversionParam[]] $conversionsParameters = @()
+
+Switch ($PSCmdlet.ParameterSetName)
+{
+    "CMExportPathTarget"
+        { $conversionsParameters = Get-CMExportAppData -CMAppContentPath $CMSiteCode -CMAppMetaDataPath $CMSiteServer -AppName $CMAppName -SigningCertificate $SigningCertificate }
+    "CMExportPathParent"
+        { $conversionsParameters = Get-CMExportAppData -CMAppParentPath $CMSiteCode -AppName $CMAppName -SigningCertificate $SigningCertificate }
+    "CMServer"
+        { $conversionsParameters = Get-CMExportAppData -CMSiteCode $CMSiteCode -CMSiteServer $CMSiteServer -AppName $CMAppName -SigningCertificate $SigningCertificate }
+}
 
 ## Converts the identified applications to MSIX Packaging Format.
 Write-Host "`n###########  Packaging Applications  ###########" -BackgroundColor Black
