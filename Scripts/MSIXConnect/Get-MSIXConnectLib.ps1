@@ -257,14 +257,14 @@ function Format-MSIXAppExportDetails ([Parameter(Mandatory=$False)]$Application,
 Function Get-MSIXConnectInstallInfo ([Parameter(Mandatory=$True,Position=0)]$DeploymentAction, 
                                      [Parameter(Mandatory=$True,Position=1)]$InstallerTechnology)
 {
-    $FunctionName         = Get-FunctionName
-    $LoggingComponent     = "Job($__JobID) - $FunctionName"
-    $objInstallerAction   = $DeploymentAction.Args.Arg.Where({$_.Name -eq "InstallCommandLine"}).'#text'
-    $objInstallerFileName = $objInstallerAction
-    $objInstallerArgument = ""
+    $FunctionName             = Get-FunctionName
+    $LoggingComponent         = "Job($__JobID) - $FunctionName"
+    $objInstallerAction       = $DeploymentAction.Args.Arg.Where({$_.Name -eq "InstallCommandLine"}).'#text'
+    $objInstallerFileName     = $objInstallerAction
+    $objInstallerArgument     = ""
     $objTempInstallerArgument = $objInstallerAction
-    $AppTypes             = @( ".exe", ".msi" )
-    $objInstallerActions  = New-Object PSObject
+    $AppTypes                 = @( ".exe", ".msi" )
+    $objInstallerActions      = New-Object PSObject
 
     IF($null -eq $objInstallerAction)
         { Return }
