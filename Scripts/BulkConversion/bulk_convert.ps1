@@ -1,18 +1,39 @@
 . $psscriptroot\SharedScriptLib.ps1
 
-function CreateMPTTemplate([Parameter(Mandatory=$True,ParameterSetName=$('VirtualMachine'),Position=0)]$virtualMachine, 
-                           [Parameter(Mandatory=$True,ParameterSetName=$('RemoteMachine'), Position=0)]$remoteMachine, 
-                           [Parameter(Mandatory=$True,ParameterSetName=$('VMLocal'),       Position=0)][Switch]$VMLocal,
-                           [Parameter(Mandatory=$False,Position=1)]$conversionParam, 
-                           [Parameter(Mandatory=$False,Position=2)]$jobId, 
-                           [Parameter(Mandatory=$False,Position=3)]$workingDirectory)
+function CreateMPTTemplate([Parameter(Mandatory=$True, Position=0,ParameterSetName=$('VirtualMachine'))][TargetMachine]  $virtualMachine,
+                           [Parameter(Mandatory=$True, Position=0,ParameterSetName=$('RemoteMachine' ))][TargetMachine]  $remoteMachine,
+                           [Parameter(Mandatory=$True, Position=0,ParameterSetName=$('VMLocal'       ))][switch]  $VMLocal,
+                           [Parameter(Mandatory=$True, Position=1)][ConversionParam]  $conversionParam,
+                           [Parameter(Mandatory=$False,Position=2)][string]           $jobId = "--",
+                           [Parameter(Mandatory=$True, Position=3)][string]           $workingDirectory)
 {
+    <#
+    .SYNOPSIS
+    Creates the Template file used by the MSIX Packaging Tool to convert applications
+    .DESCRIPTION
+    Creates the Template file used by the MSIX Packaging Tool to convert applications. Populated with the target machine (Virtual, Remote, VM Local) which is determined based on the passed parameters.
+    .PARAMETER virtualMachine
+    Is the [TargetMachine] class object, which has the Virtual Machine Name, and Credentials used to access this Virtual Machine.
+    .PARAMETER remoteMachine
+    Is the [TargetMachine] class object, which has the Remote Machine Name, and Credentials used to access this Remote Machine.
+    .PARAMETER VMLocal
+    [Switch]
+    .PARAMETER conversionParam
+    Is the [ConversionParam] class object, containing the application installation parameters.
+    .PARAMETER jobId
+    Is the current job identifier - specifies the incremental counter for the conversion..
+    .PARAMETER workingDirectory
+    Working Directory
+    .EXAMPLE
+    CreateMPTTemplate -VirtualMachine $VirtualMachine -ConversionParam $AppConversionParameters -JobID 1 -WorkingDirectory "C:\Temp\WorkingDirectory"
+    #>
+
     ## Sets the default values for each field in the MPT Template
     $FunctionName            = Get-FunctionName
     $LoggingComponent        = "JobID($JobID) - $FunctionName"
     $objInstallerPath        = $conversionParam.InstallerPath
-    $objInstallerPathRoot    = $conversionParam.AppInstallerFolderPath      # $($(Get-Item -Path $($conversionParam.InstallerPath)).Directory).FullName
-    $objInstallerFileName    = $conversionParam.AppFileName                 # $($(Get-Item -Path $objInstallerPath).Name)
+    $objInstallerPathRoot    = $conversionParam.AppInstallerFolderPath
+    $objInstallerFileName    = $conversionParam.AppFileName
     $objInstallerArguments   = $conversionParam.InstallerArguments
     $objPackageName          = $conversionParam.PackageName
     $objPackageDisplayName   = $conversionParam.PackageDisplayName
@@ -81,8 +102,29 @@ $conversionMachine
     Return $ConversionInfo
 }
 
-function RunConversionJobs($conversionsParameters, $virtualMachines, $remoteMachines, $workingDirectory)
+function RunConversionJobs([Parameter(Mandatory=$True)]$conversionsParameters, 
+                           [Parameter(Mandatory=$True)]$virtualMachines, 
+                           [Parameter(Mandatory=$True)]$remoteMachines, 
+                           [Parameter(Mandatory=$True)]$workingDirectory)
 {
+    <#
+    .SYNOPSIS
+    Converts applications to the MSIX packaging format.
+    .DESCRIPTION
+    Receives a list of application installation parameters, and remote/virtual machines which will be used in the conversion process. Triggering and tracking the conversion jobs on remote/virtual machines.
+    Allows for multiple installations to be triggered at the same time.
+    .PARAMETER conversionParam
+    Is the [ConversionParam] class object, containing the application installation parameters.
+    .PARAMETER virtualMachine
+    Is the [TargetMachine] class object, which has the Virtual Machine Name, and Credentials used to access this Virtual Machine.
+    .PARAMETER remoteMachine
+    Is the [TargetMachine] class object, which has the Remote Machine Name, and Credentials used to access this Remote Machine.    
+    .PARAMETER workingDirectory
+    Working Directory
+    .EXAMPLE
+    RunConversionJobs -ConversionParameters $ConversionParameters -VirtualMachines $VirtualMachines -RemoteMachines $RemoteMachines -WorkingDirectory "C:\Temp\WorkingDirectory"
+    #>
+
     $FunctionName = Get-FunctionName
 
     $LogEntry  = "Conversion Stats:`n"
@@ -93,8 +135,9 @@ function RunConversionJobs($conversionsParameters, $virtualMachines, $remoteMach
     Write-Progress -ID 0 -Status "Converting Applications..." -PercentComplete $($(0)/$($conversionsParameters.count)) -Activity "Capture"
     New-LogEntry -LogValue $LogEntry -Severity 1 -Component "JobID(-) - $FunctionName"
 
-    ## Includes the Job Status Member to List of Virtual Machines
-    $virtualMachines | ForEach-Object{$_ | Add-Member -MemberType NoteProperty -Name "ConversionJob" -Value @()}
+    ## Includes the Job Status Member to List of Virtual and Remote Machines
+#    $virtualMachines | ForEach-Object{$_ | Add-Member -MemberType NoteProperty -Name "ConversionJob" -Value @()}
+#    $RemoteMachines  | ForEach-Object{$_ | Add-Member -MemberType NoteProperty -Name "ConversionJob" -Value @()}
 
     ## Creates working directory and child directories
     $scratch = New-Item -Force -Type Directory ([System.IO.Path]::Combine($workingDirectory, "MPT_Templates"))
@@ -138,8 +181,14 @@ function RunConversionJobs($conversionsParameters, $virtualMachines, $remoteMach
 
                     New-LogEntry -LogValue "Determining next job to run..." -Component $LoggingComponent
                     
+                    ####
+                    ####  Important:
+                    ####      Need to correct Machine Type... Setting VM.Job instead of RemoteMachine.Job
+                    ####
                     $FuncScriptBlock = $Function:NewMSIXConvertedApp
-                    $VM.Job = Start-Job -Name $ConversionJobName -ScriptBlock $([scriptblock]::Create($FuncScriptBlock)) -ArgumentList ("RemoteMachine", $_, $conversionParam, $_JobID, $WorkingDirectory, $PSScriptRoot)
+                    $RemoteMachines.Job = Start-Job -Name $ConversionJobName -ScriptBlock $([scriptblock]::Create($FuncScriptBlock)) -ArgumentList ("RemoteMachine", $_, $conversionParam, $_JobID, $WorkingDirectory, $PSScriptRoot)
+
+                    $ConversionJobs += $($RemoteMachines.Job)
 
                     sleep(1)
                     Set-JobProgress -ConversionJobs $ConversionJobs -TotalTasks $($conversionsParameters.count)
@@ -214,7 +263,7 @@ function RunConversionJobs($conversionsParameters, $virtualMachines, $remoteMach
         }
         Sleep(1)
         Set-JobProgress -ConversionJobs $ConversionJobs -TotalTasks $($conversionsParameters.count)
-    }   
+    }
 
     ##############
     ## Clean-up ##
@@ -232,17 +281,34 @@ function RunConversionJobs($conversionsParameters, $virtualMachines, $remoteMach
     New-LogEntry -LogValue "Finished running all jobs" -Component "JobID(-) - $FunctionName"
 }
 
-Function NewMSIXConvertedApp ([Parameter(Mandatory=$True,Position=0)][ValidateSet ("RunLocal", "RemoteMachine", "VirtualMachine")] [String]$ConversionTarget,
-#                               [Parameter(Mandatory=$True, Position=0,ParameterSetName=$('RunLocal'))]      [Switch]$RunLocal, 
-#                               [Parameter(Mandatory=$True, Position=0,ParameterSetName=$('RemoteMachine' ))][Switch]$RemoteMachine, 
-#                               [Parameter(Mandatory=$True, Position=0,ParameterSetName=$('VirtualMachine'))][Switch]$VirtualMachine, 
-#                               [Parameter(Mandatory=$True, Position=4,ParameterSetName=$('VirtualMachine'))][int]$VMCount,
-                               [Parameter(Mandatory=$True, Position=1)]$TargetMachine, 
-                               [Parameter(Mandatory=$True, Position=2)]$ConversionParameters, 
-                               [Parameter(Mandatory=$False,Position=3)][int]$JobID=0, 
-                               [Parameter(Mandatory=$False,Position=4)][string]$WorkingDirectory="C:\Temp\MSIXBulkConversion",
-                               [Parameter(Mandatory=$False,Position=5)][string]$ScriptRepository=$PSScriptRoot)
+Function NewMSIXConvertedApp ([Parameter(Mandatory=$True, Position=0)][ValidateSet ("RunLocal", "RemoteMachine", "VirtualMachine")] [String]$ConversionTarget,
+                              [Parameter(Mandatory=$True, Position=1)]$TargetMachine, 
+                              [Parameter(Mandatory=$True, Position=2)]$ConversionParameters, 
+                              [Parameter(Mandatory=$False,Position=3)][string]$JobID="--",
+                              [Parameter(Mandatory=$False,Position=4)][string]$WorkingDirectory="C:\Temp\MSIXBulkConversion",
+                              [Parameter(Mandatory=$False,Position=5)][string]$ScriptRepository=$PSScriptRoot)
 {
+    <#
+    .SYNOPSIS
+    Converts individual applications as a job.    
+    .DESCRIPTION
+    This Function is executed as a job by the RunConversionJobs. This Function will trigger the creation of a new Conversion Template by calling the CreateMPTTemplate Function, then identify which conversion method is required: Remote Machine, Virtual Machine, VM Local. Then will convert the application using the identified method.
+    .PARAMETER ConversionTarget
+    Specifies where the conversion will occur.
+    .PARAMETER TargetMachine
+    Is the [TargetMachine] class object, which has the Virtual/Remote Machine Name, and Credentials used to access this Virtual/Remote Machine.
+    .PARAMETER conversionParam
+    Is the [ConversionParam] class object, containing the application installation parameters.
+    .PARAMETER jobId
+    Is the current job identifier - specifies the incremental counter for the conversion..
+    .PARAMETER workingDirectory
+    Working Directory
+    .PARAMETER ScriptRepository
+    Specifies the directory which contains the MSIX Packaging Tool scripts, pointing at the "BulkConverion" folder.
+    .EXAMPLE
+    NewMSIXConvertedApp -ConversionTarget "VirtualMachine" -TargetMachine $VirtualMachine -ConversionParameters $ConversionParameters -JobID 1 -WorkingDirectory "C:\Temp\WorkingDirectory" -ScriptRepository "C:\Temp\WorkingDirectory\MSIXPackagingTool\Scripts\BulkConversion"
+    #>
+    
     . $ScriptRepository\SharedScriptLib.ps1
     . $ScriptRepository\Bulk_Convert.ps1
 
@@ -412,8 +478,20 @@ Function NewMSIXConvertedApp ([Parameter(Mandatory=$True,Position=0)][ValidateSe
     #    Return $ConversionJobs
 }
 
-Function Test-VMConnection ([string]$VMName)
+Function Test-VMConnection ([Parameter(Mandatory=$True, Position=0)][ValidateScript({Test-Input -VMName $_})][string]  $VMName)
 {
+    <#
+    .SYNOPSIS
+    Verifies a connection is able to be established with the Virtual Machine
+    .DESCRIPTION
+    Attempts to identify if the Virtual Machine exists, then verifies that the Network Switch used with the Virtual Machine is connected.
+    .PARAMETER VMName
+    Is the name of the Virtual Machine being tested
+    .EXAMPLE
+    Test-VMConnection -VMName "MSIXConversionVM"
+    #>
+
+
     ## Retrieves a list of network interfaces for the machine.
     $HostNic = netsh interface ipv4 show interfaces
 
@@ -443,22 +521,33 @@ Function Test-VMConnection ([string]$VMName)
     Return $false
 }
 
-Function Test-RMConnection ($RemoteMachineName)
+Function Test-RMConnection ([Parameter(Mandatory=$True, Position=0)][ValidateNotNullOrEmpty()][string]  $RemoteMachineName)
 {
+    <#
+    .SYNOPSIS
+    Tests connection with Remote Machine.
+    .DESCRIPTION
+    Attempts a PING test to a remote machine, identifying any dropped packages. If no response is received, then the VM is considered unreachable.
+    .PARAMETER RemoteMachineName
+    Name of the Remote Machine
+    .EXAMPLE
+    Test-RMConnection -RemoteMachineName "Client01.contoso.com"
+    #>
+
+
     ## Sends a network ping request to the Remote Machine
     $PingResult = Test-Connection $RemoteMachineName -ErrorAction SilentlyContinue
 
     ## Validates if a response of any kind has been returned.
-    If ($($PingResult.Count) -gt 0 )
+    IF($($PingResult.Count) -eq 4)
     {
-        ## If all Pings returned successfully, consider this a 100% good VM to work with.
-        If ($($PingResult.Count) -eq 4)
-        {
-            New-LogEntry -LogValue "Connection to $RemoteMachineName Successful." -Component "SharedScriptLib.ps1:Test-RMConnection"
-            Return $true
-        }
-
-        ## If some Pings were lost, still good, just potential network issue.
+        ## All Ping Results have returned successfully. Consider this a 100% good VM to work with.
+        New-LogEntry -LogValue "Connection to $RemoteMachineName Successful." -Component "SharedScriptLib.ps1:Test-RMConnection"
+        Return $true
+    }
+    ElseIF($($PingResult.Count) -gt 0)
+    {
+        ## Some Pings were lost, still good, just potential network issue.
         New-LogEntry -LogValue "Connection to $RemoteMachineName successful, Some packets were dropped." -Component "SharedScriptLib.ps1:Test-RMConnection" -Severity 2
         Return $true
     }
@@ -470,6 +559,22 @@ Function Test-RMConnection ($RemoteMachineName)
 
 Function Compress-MSIXAppInstaller ($Path, $InstallerPath, $InstallerArgument)
 {
+    <#
+    .SYNOPSIS
+    Compresses the application installation media into a single self extracting file which then triggers the application installation
+    .DESCRIPTION
+    Retrieves all files in the target application installation directory and adds them to a configuration file (*.sed) as well as the PowerShell script which will run the installation post extraction. Then uses the configuration file to create the compressed file.
+    .PARAMETER Path
+    Provided the path to where the compressed file will be created in.
+    .PARAMETER InstallerPath
+    Path to the Installation File
+    .PARAMETER InstallerArgument
+    Arguments used to silently install the application
+    .EXAMPLE
+    Compress-MSIXAppInstaller -Path "C:\Temp\AppOutput" -InstallerPath "C:\Temp\AppInstaller" -InstallerArgument "/Silent"
+    #>
+
+
     IF($Path[$Path.Length -1] -eq "\")
         { $Path = $Path.Substring(0, $($Path.Length -1)) }
 
