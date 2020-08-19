@@ -27,8 +27,6 @@ Future Enhancements:
 
 
 #Script Libraries required to run this script.
-#. $PSScriptRoot\..\BulkConversion\bulk_convert.ps1
-#. $PSScriptRoot\..\BulkConversion\sign_deploy_run.ps1
 . $PSScriptRoot\..\BulkConversion\SharedScriptLib.ps1
 
 $SupportedInstallerType = @("MSI","Script")
@@ -37,7 +35,8 @@ $InitialLocation = Get-Location
 $VerboseLogging = $true
 $__JobID = 0
 
-Function Test-PSArchitecture ([Parameter(Mandatory=$False,Position=1)][string]$Architecture)
+#### This Function can be deleted? ####
+Function Test-PSArchitecture ([Parameter(Mandatory=$False,Position=1)][ValidateSet("x64", "x86")][string] $Architecture)
 {
     <#
     .SYNOPSIS
@@ -52,8 +51,8 @@ Function Test-PSArchitecture ([Parameter(Mandatory=$False,Position=1)][string]$A
     ELSE { Throw "Incorrect PowerShell Architecture, please review ReadMe for requirements." }
 }
 
-function Connect-CMEnvironment ([Parameter(Mandatory=$True,Position=0)] [String]$CMSiteCode,
-                                [Parameter(Mandatory=$False,Position=1)] [String]$CMSiteServer)
+function Connect-CMEnvironment ([Parameter(Mandatory=$True,Position=0 )][ValidateLength(3)][String] $CMSiteCode,
+                                [Parameter(Mandatory=$False,Position=1)][ValidateScript({Test-Input -CMServer $_})][String] $CMSiteServer)
 {
     <#
     .SYNOPSIS
@@ -109,7 +108,7 @@ function Connect-CMEnvironment ([Parameter(Mandatory=$True,Position=0)] [String]
     }
 }
 
-function Disconnect-CMEnvironment ([Parameter(Mandatory=$True,Position=0)][boolean]$ReturnPreviousLocation=$false)
+function Disconnect-CMEnvironment ([Parameter(Mandatory=$False,Position=0)][boolean] $ReturnPreviousLocation=$false)
 {
     $PreviousLocation = Get-Location
     Set-Location $InitialLocation
@@ -117,7 +116,8 @@ function Disconnect-CMEnvironment ([Parameter(Mandatory=$True,Position=0)][boole
     IF($ReturnPreviousLocation){Return $PreviousLocation}
 }
 
-Function Get-CMAppMetaData ([Parameter(Mandatory=$True,HelpMessage="Please provide the Name of the CM Application.",Position=0)] [string]$AppName)
+#### This Function can be deleted? ####
+Function Get-CMAppMetaData ([Parameter(Mandatory=$True,Position=0)][ValidateNotNullOrEmpty()][string] $AppName)
 {
     $FunctionName = Get-FunctionName
     New-LogEntry -LogValue "Collecting information from ConfigMgr for application: $AppName" -Component $FunctionName
@@ -130,12 +130,12 @@ Function Get-CMAppMetaData ([Parameter(Mandatory=$True,HelpMessage="Please provi
     Return $AppDetails
 }
 
-function Format-MSIXAppExportDetails ([Parameter(Mandatory=$False)]$Application, 
-                                      [Parameter(Mandatory=$False)]$ApplicationDeploymentType,
-                                      [Parameter(Mandatory=$True,ParameterSetName=$('CMExportedApp'),Position=0)]  $CMExportAppPath,
-                                      [Parameter(Mandatory=$True,ParameterSetName=$('CMExportedApp'),Position=1)]  $CMAppPath,
-                                      [Parameter(Mandatory=$True,ParameterSetName=$('CMServer'))]  [Switch]$CMServer,
-                                      [Parameter(Mandatory=$False)]$SigningCertificate)
+function Format-MSIXAppExportDetails ([Parameter(Mandatory=$False)][ValidateScript({Test-Input -CMApplication $_})] $Application, 
+                                      [Parameter(Mandatory=$False)][ValidateScript({Test-Input -CMDeploymentType $_})] $ApplicationDeploymentType,
+                                      [Parameter(Mandatory=$True,ParameterSetName=$('CMExportedApp'),Position=0)][string] $CMExportAppPath,
+                                      [Parameter(Mandatory=$True,ParameterSetName=$('CMExportedApp'),Position=1)][string] $CMAppPath,
+                                      [Parameter(Mandatory=$True,ParameterSetName=$('CMServer'))][ValidateScript({Test-Input -CMServer $_})][Switch] $CMServer,
+                                      [Parameter(Mandatory=$False)][CodeSigningCert] $SigningCertificate)
 {
 
     $AppDetails       = @()
@@ -148,12 +148,10 @@ function Format-MSIXAppExportDetails ([Parameter(Mandatory=$False)]$Application,
         "CMServer"      { $AppName = $($Application.LocalizedDisplayName) }
     }
 
-
     IF($($ApplicationDeploymentType.count -le 1))
          { $XML = [XML]$($ApplicationDeploymentType) }
     Else 
          { $XML = [XML]$($ApplicationDeploymentType[0].SDMPackageXML) }
-
 
     New-LogEntry -LogValue "Parsing through the Deployment Types of $AppName application." -Component $LoggingComponent -WriteHost $true
 
@@ -254,8 +252,8 @@ function Format-MSIXAppExportDetails ([Parameter(Mandatory=$False)]$Application,
     Return $AppDetails
 }
 
-Function Get-MSIXConnectInstallInfo ([Parameter(Mandatory=$True,Position=0)]$DeploymentAction, 
-                                     [Parameter(Mandatory=$True,Position=1)]$InstallerTechnology)
+Function Get-MSIXConnectInstallInfo ([Parameter(Mandatory=$True,Position=0)][ValidateNotNullOrEmpty()][xml]    $DeploymentAction, 
+                                     [Parameter(Mandatory=$True,Position=1)][ValidateNotNullOrEmpty()][string] $InstallerTechnology)
 {
     $FunctionName             = Get-FunctionName
     $LoggingComponent         = "Job($__JobID) - $FunctionName"
@@ -300,6 +298,7 @@ Function Get-MSIXConnectInstallInfo ([Parameter(Mandatory=$True,Position=0)]$Dep
     Return $objInstallerActions
 }
 
+#### This Function can be deleted? ####
 function Format-MSIXAppDetails ([Parameter(Mandatory=$True,Position=0)]$Application, 
                                 [Parameter(Mandatory=$True,Position=1)]$ApplicationDeploymentType, 
                                 [Parameter(Mandatory=$True,Position=2)]$CMExportAppPath)
@@ -361,9 +360,9 @@ function Format-MSIXAppDetails ([Parameter(Mandatory=$True,Position=0)]$Applicat
     Return $AppDetails
 }
 
-Function Format-MSIXPackageInfo ([Parameter(Mandatory=$True,ParameterSetName=$('PackageVersion'),Position=0)]  [string]$AppVersion,
-                                 [Parameter(Mandatory=$True,ParameterSetName=$('PackageArgument'),Position=0)] [string]$AppArgument,
-                                 [Parameter(Mandatory=$True,ParameterSetName=$('PackageName'),Position=0)]     [string]$AppName)
+Function Format-MSIXPackageInfo ([Parameter(Mandatory=$True,ParameterSetName=$('PackageVersion'),Position=0 )][ValidateNotNullOrEmpty()][string]$AppVersion,
+                                 [Parameter(Mandatory=$True,ParameterSetName=$('PackageArgument'),Position=0)][ValidateNotNullOrEmpty()][string]$AppArgument,
+                                 [Parameter(Mandatory=$True,ParameterSetName=$('PackageName'),Position=0    )][ValidateNotNullOrEmpty()][string]$AppName)
 {
     switch ($PSCmdlet.ParameterSetName) 
     {
@@ -431,6 +430,7 @@ Function Format-MSIXPackageInfo ([Parameter(Mandatory=$True,ParameterSetName=$('
     }
 }
 
+#### This Function can be deleted? ####
 Function Validate-MSIXPackagingName ([Parameter(Mandatory=$True,Position=0)] [string]$AppName)
 {
     New-LogEntry -LogValue "Validating that the name of the application does not contain any special characters. Special Characters include:`n`t!,@,#,$,%,^,&,*,(,),+,=,~,`, ,_" -Component "Validate-MSIXPackaingName" -WriteHost $VerboseLogging
@@ -450,6 +450,7 @@ Function Validate-MSIXPackagingName ([Parameter(Mandatory=$True,Position=0)] [st
     Return $($MSIXPackageName = $AppName -match '[!,@,#,$,%,^,&,*,(,),+,=,~,`, ,_]')
 }
 
+#### This Function can be deleted? ####
 Function New-MSIXConnectMakeApp ([Parameter(Mandatory=$True,Position=0)] [string]$SiteCode, 
                                  [Parameter(Mandatory=$True,Position=1)] [string]$SiteServerServerName,
                                  [Parameter(Mandatory=$True,Position=2)] [string]$ApplicationName)
@@ -474,13 +475,13 @@ Function New-MSIXConnectMakeApp ([Parameter(Mandatory=$True,Position=0)] [string
 
 }
 
-Function Get-CMExportAppData ($SigningCertificate,
-                              [string]$AppName="*",
-                              [Parameter(Mandatory=$True,ParameterSetName=$('CMExportPathTarget'),Position=0)]  [string]$CMAppContentPath,
-                              [Parameter(Mandatory=$True,ParameterSetName=$('CMExportPathTarget'),Position=1)]  [string]$CMAppMetaDataPath,
-                              [Parameter(Mandatory=$True,ParameterSetName=$('CMExportPathParent'),Position=0)]  [string]$CMAppParentPath,
-                              [Parameter(Mandatory=$True,ParameterSetName=$('CMServer'), Position=0)]  [string]$CMSiteCode,
-                              [Parameter(Mandatory=$True,ParameterSetName=$('CMServer'), Position=1)]  [string]$CMSiteServer
+Function Get-CMExportAppData ([Parameter(Mandatory=$false)][ValidateNotNullOrEmpty()][CodeSigningCert] $SigningCertificate,
+                              [Parameter(Mandatory=$false)][ValidateNotNullOrEmpty()][string]          $AppName="*",
+                              [Parameter(Mandatory=$True,ParameterSetName=$('CMExportPathTarget'),Position=0)][string] $CMAppContentPath,
+                              [Parameter(Mandatory=$True,ParameterSetName=$('CMExportPathTarget'),Position=1)][string] $CMAppMetaDataPath,
+                              [Parameter(Mandatory=$True,ParameterSetName=$('CMExportPathParent'),Position=0)][string] $CMAppParentPath,
+                              [Parameter(Mandatory=$True,ParameterSetName=$('CMServer'), Position=0)][string] $CMSiteCode,
+                              [Parameter(Mandatory=$True,ParameterSetName=$('CMServer'), Position=1)][string] $CMSiteServer
                              )
 {
     $AppDetails    = @()

@@ -37,11 +37,11 @@ Class CodeSigningCert{
     [string]$Publisher                  ## Canonical name of the Certificate Publisher.
 }
 
-Function New-LogEntry ([Parameter(Mandatory=$True,Position=0)] [string]  $LogValue,
-                       [Parameter(Mandatory=$True,Position=1)] [string]  $Component,
-                       [Parameter(Mandatory=$False,Position=2)][ValidateSet("1","2","3")] [int] $Severity  = 1,
-                       [Parameter(Mandatory=$False,Position=3)] [boolean] $WriteHost = $true,
-                       [Parameter(Mandatory=$False,Position=4)] [string]  $Path      = $("C:\Temp\Log"),
+Function New-LogEntry ([Parameter(Mandatory=$True,Position=0)][string]  $LogValue,
+                       [Parameter(Mandatory=$True,Position=1)][string]  $Component,
+                       [Parameter(Mandatory=$False,Position=2)][ValidateSet("1","2","3")][int] $Severity  = 1,
+                       [Parameter(Mandatory=$False,Position=3)][boolean] $WriteHost = $true,
+                       [Parameter(Mandatory=$False,Position=4)][string]  $Path      = $("C:\Temp\Log"),
                        [Parameter(Mandatory=$False,Position=5)][ValidateSet("white","black","Cyan")] [string]  $textcolor = "White")
 {
     <#
@@ -68,12 +68,11 @@ Function New-LogEntry ([Parameter(Mandatory=$True,Position=0)] [string]  $LogVal
     IF(!(Test-path -Path $Path)) {$Scratch = mkdir $Path}
     $Error.Clear()
 
-    #Formats the values required to enter for Trace32 Format
-    #$TimeZoneBias = Get-WmiObject -Query "Select Bias from Win32_TimeZone"
+    ## Formats the values required to enter for Trace32 Format
     [string]$Time = Get-Date -Format "HH:mm:ss.ffff"
     [string]$Date = Get-Date -Format "MM-dd-yyyy"
 
-    #Appends the newest log entry to the end of the log file in a Trace32 Formatting
+    ## Appends the newest log entry to the end of the log file in a Trace32 Formatting
     $('<![LOG['+$LogValue+']LOG]!><time="'+$Time+'" date="'+$Date+'" component="'+$component+'" context="Empty" type="'+$severity+'" thread="Empty" file="'+"Empty"+'">') | out-file -FilePath $($Path+"\BulkConversion.log") -Append -NoClobber -encoding default -ErrorAction SilentlyContinue -ErrorVariable LogError
 
     ## If Writing to log file fails try again.
@@ -83,9 +82,7 @@ Function New-LogEntry ([Parameter(Mandatory=$True,Position=0)] [string]  $LogVal
         $Error.Clear()
         Sleep($(get-random -Maximum 0.5 -Minimum 0.0))
 
-        #$('<![LOG['+$LogError+']LOG]!><time="'+$Time+'" date="'+$Date+'" component="'+$component+'" context="Empty" type="'+3+'" thread="Empty" file="'+"Empty"+'">') | out-file -FilePath $($Path+"\BulkConversion.log") -Append -NoClobber -encoding default -ErrorAction SilentlyContinue -ErrorVariable LogError
-
-        #Appends the newest log entry to the end of the log file in a Trace32 Formatting
+        ## Appends the newest log entry to the end of the log file in a Trace32 Formatting
         $('<![LOG['+$LogValue+']LOG]!><time="'+$Time+'" date="'+$Date+'" component="'+$component+'" context="Empty" type="'+$severity+'" thread="Empty" file="'+"Empty"+'">') | out-file -FilePath $($Path+"\BulkConversion.log") -Append -NoClobber -encoding default -ErrorAction SilentlyContinue -ErrorVariable LogError
     }
 
@@ -177,7 +174,7 @@ Function Set-JobProgress ([Parameter(Mandatory=$True,Position=0)][ValidateNotNul
 
 
     # Sets the Valiables
-    $RunningJobs = $($($ConversionJobs | where-object State -eq "Running").count)/2     ## Inprogress jobs are represented as 0.5/job
+    $RunningJobs   = $($($ConversionJobs | where-object State -eq "Running").count)/2     ## Inprogress jobs are represented as 0.5/job
     $CompletedJobs = $($($ConversionJobs | where-object State -ne "Running").count)     ## Completed jobs are represented as 1/job
 
     # Updates the progression of each child job.
@@ -196,7 +193,7 @@ Function Set-JobProgress ([Parameter(Mandatory=$True,Position=0)][ValidateNotNul
         { Write-Progress -ID 0 -Status "Converting Applications..." -PercentComplete $($($($RunningJobs + $CompletedJobs)/$TotalTasks)*100) -Activity "Capture" }
 }
 
-function Get-FunctionName ([Parameter(Mandatory=$False,Position=0)][ValidateNotNullOrEmpty()][int]  $StackNumber = 1) 
+function Get-FunctionName ([Parameter(Mandatory=$False,Position=0)][ValidateRange("Positive")][int]  $StackNumber = 1) 
 {
     <#
     .SYNOPSIS
@@ -210,23 +207,60 @@ function Get-FunctionName ([Parameter(Mandatory=$False,Position=0)][ValidateNotN
 }
 
 Function Test-Input ([Parameter(Mandatory=$True,ParameterSetName="VMName-Exists"  )][ValidateNotNullOrEmpty()][string] $VMName,
-                     [Parameter(Mandatory=$True,ParameterSetName="SnapShot-Exists")][ValidateNotNullOrEmpty()][string] $SnapShotName)
+                     [Parameter(Mandatory=$True,ParameterSetName="VMSnapshot-Exists")][ValidateNotNullOrEmpty()][string] $SnapShotName,
+                     [Parameter(Mandatory=$True,ParameterSetName="CMApplication-Valid")][ValidateNotNullOrEmpty()][string] $CMApplication,
+                     [Parameter(Mandatory=$True,ParameterSetName="CMDeploymentType-Valid")][ValidateNotNullOrEmpty()][string] $CMDeploymentType,
+                     [Parameter(Mandatory=$True,ParameterSetName="CMServer-Exists")][ValidateNotNullOrEmpty()][string] $CMServer)
 {
 
-
+    ## If no validation tests can be found, default to failure.
     $ValidationResult = $false
 
+    ## Validates an individual PowerShell Function Parameter input to ensure it meets requirements.
     Switch($PSCmdlet.ParameterSetName)
     {
         "VMName-Exists"
         {
+            ## Validates that the VM Name exists, if so returns a passing value, otherwise throws an error message which will be displayed to the executing user.
             $ValidationResult = $(Get-VM).Name -contains $VMName
+            IF(-not $ValidationResult)
+                { Throw "$($Env:ComputerName) does not contain a VM with the name: $VMName. Please update the name and try again." }
         }
-        "SnapShot-Exists"
+        "VMSnapshot-Exists"
         {
+            ## Validates that the Snapshot Name exists, if so returns a passing value, otherwise throws an error message which will be displayed to the executing user.
             $ValidationResult = $(Get-VMSnapshot -VMName *).Name -contains $SnapShotName
+            IF(-Not $ValidationResult)
+                { Throw "$($Env:ComputerName) does not contain a VM with a snapshot labeled as: $SnapShotName. Please update the name and try again." }
         }
+        "CMApplication-Valid"
+        {
+            ## Validates that the application contains an Application Name.
+            $ValidationResult = [Boolean]$([Boolean]$($CMApplication.LocalizedDisplayName) -or [Boolean]$($CMApplication.Instance.Property.Where({$_.Name -eq "LocalizedDisplayName"}).Value))
+            IF(-Not $ValidationResult)
+                { Throw "The application provided was unable to be identified. There appears to be missing information" }
+        }
+        "CMServer-Exists"
+        {
+            ## Validates that the ConfigMgr Server is accessible.
+            $ValidationResult = [boolean]$(Test-Connection -ComputerName $CMServer)
+            IF(-Not $ValidationResult)
+                { Throw "$($Env:ComputerName) was unable to contact ConfigMgr Server $CMServer. Please verify the name of the server and try again." }
+        }
+        "CMDeploymentType-Valid"
+        {
+            $XML = ""
+            IF($($CMDeploymentType.count -le 1))
+                { $XML = [XML]$($CMDeploymentType) }
+            Else 
+                { $XML = [XML]$($CMDeploymentType[0].SDMPackageXML) }
 
+            ## Validates that the ConfigMgr Application Deployment Type has a name.
+            $ValidationResult = [Boolean]$($xml.AppMgmtDigest.DeploymentType.Installer.Contents.Content.ContentID)
+            IF(-Not $ValidationResult)
+                { Throw "The Deployment Type [XML] provided was unable to be identified. There appears to be missing information." }
+
+        }
     }
 
     Return $ValidationResult

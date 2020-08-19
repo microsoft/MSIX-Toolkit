@@ -216,12 +216,13 @@ function RunConversionJobs([Parameter(Mandatory=$True)]$conversionsParameters,
             $conversionParam  = $conversionsParameters[$_jobId]
             $LoggingComponent = "JobID($_JobID) - $FunctionName"
 
+            ## Loops through all VMs checking the status of any running jobs. If a job is not in the running state (In either Completed or Failed), then the VM is selected for conversion.
             $VM = $null
             while ($null -eq $VM) 
             {
                 ## Creates a reference to the VM in a completed or non-running state.
                 IF($($VirtualMachines.Where({$_.Job.State -ne "Running"})).Count -gt 0 )
-                { $VM = $VirtualMachines.Where({$_.Job.State -ne "Running"}) | Select-Object -First 1 }
+                    { $VM = $VirtualMachines.Where({$_.Job.State -ne "Running"}) | Select-Object -First 1 }
             }
 
             New-LogEntry -LogValue "Dequeuing conversion job ($($_JobId)) for installer $($conversionParam.InstallerPath) on VM $($vm.Name)" -Component $LoggingComponent
@@ -557,6 +558,7 @@ Function Test-RMConnection ([Parameter(Mandatory=$True, Position=0)][ValidateNot
     Return $false
 }
 
+#### This Function can be deleted? ####
 Function Compress-MSIXAppInstaller ($Path, $InstallerPath, $InstallerArgument)
 {
     <#
