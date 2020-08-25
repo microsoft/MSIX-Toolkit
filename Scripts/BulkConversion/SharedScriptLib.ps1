@@ -34,14 +34,14 @@ Class TargetMachine{
 Class CodeSigningCert{
     [string]$Password                   ## Password for the Code Signing Certificate being used to sign the MSIX app.
     [string]$Path                       ## Path to the Code Signing Certificate.
-    [string]$Publisher                  ## Canonical name of the Certificate Publisher.
+    $Publisher                  ## Canonical name of the Certificate Publisher.
 }
 
-Function New-LogEntry ([Parameter(Mandatory=$True,Position=0)][string]  $LogValue,
-                       [Parameter(Mandatory=$True,Position=1)][string]  $Component,
+Function New-LogEntry ([Parameter(Mandatory=$True,Position=0)][string] $LogValue,
+                       [Parameter(Mandatory=$True,Position=1)][string] $Component,
                        [Parameter(Mandatory=$False,Position=2)][ValidateSet("1","2","3")][int] $Severity  = 1,
                        [Parameter(Mandatory=$False,Position=3)][boolean] $WriteHost = $true,
-                       [Parameter(Mandatory=$False,Position=4)][string]  $Path      = $("C:\Temp\Log"),
+                       [Parameter(Mandatory=$False,Position=4)][string]  $Path      = $("C:\Temp\Projects\Test\Out\Log"),
                        [Parameter(Mandatory=$False,Position=5)][ValidateSet("white","black","Cyan")] [string]  $textcolor = "White")
 {
     <#
@@ -94,15 +94,19 @@ Function New-LogEntry ([Parameter(Mandatory=$True,Position=0)][string]  $LogValu
     }
 }
 
-Function New-InitialSnapshot ([Parameter(Mandatory=$True,Position=0 )][ValidateScript({Test-Input -VMName $_})][string]  $VMName,
-                              [Parameter(Mandatory=$True,Position=1 )][ValidateNotNullOrEmpty()][string]  $SnapshotName,
-                              [Parameter(Mandatory=$False,Position=2)][string]  $jobId="--")
+Function New-InitialSnapshot
 {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$True,Position=0 )] $VMName,
+        [Parameter(Mandatory=$True,Position=1 )] $SnapshotName,
+        [Parameter(Mandatory=$False,Position=2)] $jobId="--")
+
     <#
     .SYNOPSIS
     Creates a snapshot of the Virtual Machine.
     .DESCRIPTION
-    Creates a snapshot using the name provided, of the target virtual machine. 
+    Creates a snapshot using the name provided, of the target virtual machine.
     .PARAMETER SnapshotName
     String containing the name of the Hyper-V Snapshot to be created for the Virtual Machine.
     .PARAMETER VMName
@@ -126,9 +130,7 @@ Function New-InitialSnapshot ([Parameter(Mandatory=$True,Position=0 )][ValidateS
     }
 }
 
-Function Restore-InitialSnapshot ([Parameter(Mandatory=$True, Position=0)][ValidateScript({Test-Input -VMName $_})][string]  $VMName,
-                                  [Parameter(Mandatory=$True, Position=1)][ValidateScript({Test-Input -SnapShotName $_})][string]  $SnapshotName,
-                                  [Parameter(Mandatory=$False,Position=2)][string]  $jobId="--")
+Function Restore-InitialSnapshot
 {
     <#
     .SYNOPSIS
@@ -145,8 +147,14 @@ Function Restore-InitialSnapshot ([Parameter(Mandatory=$True, Position=0)][Valid
     Restore-InitialSnapshot -SnapshotName "New Snapshot" -VMName "MSIX Conversion Environment" -JobID 1
     #>
 
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$True, Position=0)][string] $VMName,
+        [Parameter(Mandatory=$True, Position=1)][string] $SnapshotName,
+        [Parameter(Mandatory=$False,Position=2)][string] $jobId="--")
 
     $FunctionName = Get-FunctionName
+
     IF ($SnapshotName -in $(Get-VMSnapshot -VMName $vmName).Name)
     {
         New-LogEntry -LogValue "Reverting Virtual Machine to earlier snapshot ($initialSnapshotName)" -Component "JobID($jobId) - $FunctionName"
@@ -156,8 +164,7 @@ Function Restore-InitialSnapshot ([Parameter(Mandatory=$True, Position=0)][Valid
     }
 }
 
-Function Set-JobProgress ([Parameter(Mandatory=$True,Position=0)][ValidateNotNullOrEmpty() ]      $ConversionJobs,
-                          [Parameter(Mandatory=$True,Position=1)][ValidateRange("Positive")][int] $TotalTasks)
+Function Set-JobProgress 
 {
     <#
     .SYNOPSIS
@@ -172,6 +179,10 @@ Function Set-JobProgress ([Parameter(Mandatory=$True,Position=0)][ValidateNotNul
     Set-JobProgress -ConversionJobs $ConversionJobs -TotalTasks 100
     #>
 
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$True,Position=0)]      $ConversionJobs,
+        [Parameter(Mandatory=$True,Position=1)][int] $TotalTasks)
 
     # Sets the Valiables
     $RunningJobs   = $($($ConversionJobs | where-object State -eq "Running").count)/2     ## Inprogress jobs are represented as 0.5/job
@@ -193,7 +204,7 @@ Function Set-JobProgress ([Parameter(Mandatory=$True,Position=0)][ValidateNotNul
         { Write-Progress -ID 0 -Status "Converting Applications..." -PercentComplete $($($($RunningJobs + $CompletedJobs)/$TotalTasks)*100) -Activity "Capture" }
 }
 
-function Get-FunctionName ([Parameter(Mandatory=$False,Position=0)][ValidateRange("Positive")][int]  $StackNumber = 1) 
+function Get-FunctionName 
 {
     <#
     .SYNOPSIS
@@ -203,15 +214,23 @@ function Get-FunctionName ([Parameter(Mandatory=$False,Position=0)][ValidateRang
     .PARAMETER StackNumber
     How far back in the stack (chain) of parent calls to return the name of.
     #>
+
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$False,Position=0)][int]  $StackNumber = 1) 
+
     return [string]$(Get-PSCallStack)[$StackNumber].FunctionName
 }
 
-Function Test-Input ([Parameter(Mandatory=$True,ParameterSetName="VMName-Exists"  )][ValidateNotNullOrEmpty()][string] $VMName,
-                     [Parameter(Mandatory=$True,ParameterSetName="VMSnapshot-Exists")][ValidateNotNullOrEmpty()][string] $SnapShotName,
-                     [Parameter(Mandatory=$True,ParameterSetName="CMApplication-Valid")][ValidateNotNullOrEmpty()][string] $CMApplication,
-                     [Parameter(Mandatory=$True,ParameterSetName="CMDeploymentType-Valid")][ValidateNotNullOrEmpty()][string] $CMDeploymentType,
-                     [Parameter(Mandatory=$True,ParameterSetName="CMServer-Exists")][ValidateNotNullOrEmpty()][string] $CMServer)
+Function Test-Input 
 {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$True,ParameterSetName="VMName-Exists"  )][ValidateNotNullOrEmpty()][string] $VMName,
+        [Parameter(Mandatory=$True,ParameterSetName="VMSnapshot-Exists")][ValidateNotNullOrEmpty()][string] $SnapShotName,
+        [Parameter(Mandatory=$True,ParameterSetName="CMApplication-Valid")][ValidateNotNullOrEmpty()] $CMApplication,
+        [Parameter(Mandatory=$True,ParameterSetName="CMDeploymentType-Valid")][ValidateNotNullOrEmpty()] $CMDeploymentType,
+        [Parameter(Mandatory=$True,ParameterSetName="CMServer-Exists")][ValidateNotNullOrEmpty()][string] $CMServer)
 
     ## If no validation tests can be found, default to failure.
     $ValidationResult = $false
@@ -236,7 +255,7 @@ Function Test-Input ([Parameter(Mandatory=$True,ParameterSetName="VMName-Exists"
         "CMApplication-Valid"
         {
             ## Validates that the application contains an Application Name.
-            $ValidationResult = [Boolean]$([Boolean]$($CMApplication.LocalizedDisplayName) -or [Boolean]$($CMApplication.Instance.Property.Where({$_.Name -eq "LocalizedDisplayName"}).Value))
+            $ValidationResult = [Boolean]$([Boolean]$($CMApplication.LocalizedDisplayName.Length -gt 0) -or [Boolean]$($CMApplication.Instance.Property.Where({$_.Name -eq "LocalizedDisplayName"}).Value.Length -gt 0))
             IF(-Not $ValidationResult)
                 { Throw "The application provided was unable to be identified. There appears to be missing information" }
         }
