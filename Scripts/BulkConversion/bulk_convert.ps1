@@ -515,7 +515,7 @@ Function NewMSIXConvertedApp
             {
                 ## Creating Conversion Template
                 New-LogEntry -LogValue "    CreateMPTTemplate -remoteMachine $($TargetMachine) `n`n`$ConversionParameters `n`n`$JobId `n`n`$workingDirectory" -severity 1 -Component $LoggingComponent -Path $WorkingDirectory
-                $ConversionInfo    = CreateMPTTemplate -remoteMachine $TargetMachine $ConversionParameters $JobId $workingDirectory $WorkingDirectory
+                $ConversionInfo    = CreateMPTTemplate -remoteMachine $TargetMachine $ConversionParameters $JobId $workingDirectory
 
                 New-LogEntry -LogValue "    Dequeuing conversion job ($($JobId)) for installer $($ConversionParameters.InstallerPath) on remote machine $($TargetMachine.ComputerName)" -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
                 $_templateFilePath      = $ConversionInfo.Path
@@ -541,7 +541,7 @@ Function NewMSIXConvertedApp
                 ## Creating Conversion Template ##
                 New-LogEntry -LogValue "    Creating the MPT Template:" -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
                 New-LogEntry -LogValue "        CreateMPTTemplate -remoteMachine $TargetMachine `n`n`$ConversionParameters `n`n`$JobId `n`n`$workingDirectory" -severity 1 -Component $LoggingComponent -Path $WorkingDirectory
-                $ConversionInfo    = CreateMPTTemplate -remoteMachine $TargetMachine $ConversionParameters $JobId $workingDirectory $WorkingDirectory
+                $ConversionInfo    = CreateMPTTemplate -remoteMachine $TargetMachine $ConversionParameters $JobId $workingDirectory
 
                 New-LogEntry -LogValue "        Dequeuing conversion job ($($JobId)) for installer $($ConversionParameters.InstallerPath) on remote machine $($TargetMachine.ComputerName)" -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
                 $_templateFilePath      = $ConversionInfo.Path
@@ -582,7 +582,7 @@ Function NewMSIXConvertedApp
                 New-InitialSnapshot -SnapshotName $initialSnapshotName -VMName $($virtualMachines.Name) -jobId $JobID -WorkingDirectory $WorkingDirectory
 
                 New-LogEntry -LogValue "    Conversion input info: `n`t - CreateMPTTemplate: virtualMachine `n`t - Target Machine: $TargetMachine `n`t - Conversion Parameters: $ConversionParameters `n`t - JobID: $JobId `n`t - Working Directory: $workingDirectory" -severity 1 -Component $LoggingComponent -Path $WorkingDirectory
-                $ConversionInfo    = CreateMPTTemplate -virtualMachine $TargetMachine $ConversionParameters $JobId $workingDirectory $WorkingDirectory
+                $ConversionInfo    = CreateMPTTemplate -virtualMachine $TargetMachine $ConversionParameters $JobId $workingDirectory
                 $_templateFilePath = $ConversionInfo.Path
                 $RemoteTemplateFilePath  = $([String]$($(Get-Item -Path $_templateFilePath).FullName))
                 
@@ -623,7 +623,7 @@ Function NewMSIXConvertedApp
                 IF($($($ConversionParameters.InstallerArguments) -ne ""))
                 {
                     New-LogEntry -LogValue "Creating the MPT Template" -Severity 1 -WriteHost $false -Component $LoggingComponent -Path $WorkingDirectory
-                    $objConversionInfo = CreateMPTTemplate -VMLocal $ConversionParameters $JobID $workingDirectory $WorkingDirectory
+                    $objConversionInfo = CreateMPTTemplate -VMLocal $ConversionParameters $JobID $workingDirectory
                     $_templateFilePath = $objConversionInfo.Path
                     $objXMLContent     = $($objConversionInfo.Content).Replace("'", "")
                     $objSavePath       = $objConversionInfo.SavePath
