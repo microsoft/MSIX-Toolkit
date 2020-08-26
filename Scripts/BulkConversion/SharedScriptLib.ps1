@@ -8,6 +8,8 @@ Class ConversionParam{
     [String]$InstallerFolderPath        ## Used with ConfigMgr sourced app conversions, points to the install folder used for conversion on remote machine
     [String]$UninstallerPath            ## Used with ConfigMgr sourced app conversions, points to the uninstall folder. (Used only when installing with compression)
     [String]$UninstallerArgument        ## Used with ConfigMgr sourced app conversions, arguments to silently uninstall app.
+    [String]$CMInstallerPath            ## Used with ConfigMgr Path to App Installer in ConfigMgr used for Conversion.
+    [String]$CMInstallerFolderPath      ## Used with ConfigMgr Path to App Installer folder used for conversion on remote machine
     [String]$AppDescription             ## MSIX App description.
     [String]$CMAppPackageID             ## Used with ConfigMgr sourced app conversions, identifies the ConfigMgr Application Package ID.
     [String]$RequiresUserInteraction    ## Used with ConfigMgr sourced app conversions, identifies if the app installer is silent or interactive.

@@ -346,7 +346,7 @@ function Format-MSIXAppExportDetails
 
         Foreach($Deployment IN $($XML.AppMgmtDigest.DeploymentType))
         {
-            $LoggingComponent = "Job($__JobID) - $FunctionName"
+            $LoggingComponent = "JobID($__JobID) - $FunctionName"
             $__JobID ++
             New-LogEntry -LogValue "  Parsing the Application (""$AppName""), currently recording information from Deployment Type:  ""$($Deployment.Title.'#text')""" -Component $LoggingComponent -WriteHost $true -textcolor "Cyan"
 
@@ -402,6 +402,8 @@ function Format-MSIXAppExportDetails
                     $_ApplicationDescription = $Application.LocalizedDescription
                     $_CMAppPackageID         = $Application.PackageID
                     $_AppInstallerFolderPath = $(Get-Item -Path $($Deployment.Installer.Contents.Content.Location)).FullName
+                    $_CMInstallerFolderPath  = $(Get-Item -Path $($Deployment.Installer.Contents.Content.Location)).FullName
+                    $_CMInstallerPath        = $($_CMInstallerFolderPath + $_AppFileName)
                     $_InstallerFolderPath    = $("C:\Temp\" + $($_AppInstallerFolderPath.TrimStart("\")))
                     $_InstallerPath          = $($_InstallerFolderPath + $_AppFileName)
                     $_UninstallerPath        = $($_UninstallerPath)
@@ -433,6 +435,8 @@ function Format-MSIXAppExportDetails
             $MSIXAppDetails.UninstallerPath         = $_UninstallerPath
             $MSIXAppDetails.UninstallerArgument     = $_UninstallerArgument
             $MSIXAppDetails.DeploymentType          = $_DeploymentType
+            $MSIXAppDetails.CMInstallerPath         = $_CMInstallerPath
+            $MSIXAppDetails.CMInstallerFolderPath   = $_CMInstallerFolderPath
 
             # SupportedInstallerType is set at the top of this script. More file types will need to be included.
             IF ($SupportedInstallerType.Contains($($Deployment.Installer.Technology)))
@@ -655,7 +659,7 @@ Function Format-MSIXPackageInfo
         {
             "PackageName"     
             {    
-                New-LogEntry -LogValue "    Removing Special Characters from the Application Package Name." -Component "Format-MSIXPackagingName" -Severity 1 -WriteHost $VerboseLogging
+                New-LogEntry -LogValue "    Removing Special Characters from the Application Package Name." -Component $LoggingComponent -Severity 1 -WriteHost $VerboseLogging
                 $MSIXPackageName = $AppName -replace '[!,@,#,$,%,^,&,*,(,),+,=,~,`]',''
                 $MSIXPackageName = $MSIXPackageName -replace '_','-'
                 $MSIXPackageName = $MSIXPackageName -replace ' ','-'
