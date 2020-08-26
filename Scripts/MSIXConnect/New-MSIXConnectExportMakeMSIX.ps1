@@ -55,11 +55,11 @@ Write-Host "`n###########  Collecting Applications  ###########" -BackgroundColo
 Switch ($PSCmdlet.ParameterSetName)
 {
     "CMExportPathTarget"
-        { $conversionsParameters = Get-CMExportAppData -CMAppContentPath $CMSiteCode -CMAppMetaDataPath $CMSiteServer -AppName $CMAppName -SigningCertificate $SigningCertificate }
+        { $conversionsParameters = Get-CMExportAppData -CMAppContentPath $CMSiteCode -CMAppMetaDataPath $CMSiteServer -AppName $CMAppName -SigningCertificate $SigningCertificate -WorkingDirectory $workingDirectory }
     "CMExportPathParent"
-        { $conversionsParameters = Get-CMExportAppData -CMAppParentPath $CMSiteCode -AppName $CMAppName -SigningCertificate $SigningCertificate }
+        { $conversionsParameters = Get-CMExportAppData -CMAppParentPath $CMSiteCode -AppName $CMAppName -SigningCertificate $SigningCertificate -WorkingDirectory $workingDirectory }
     "CMServer"
-        { $conversionsParameters = Get-CMExportAppData -CMSiteCode $CMSiteCode -CMSiteServer $CMSiteServer -AppName $CMAppName -SigningCertificate $SigningCertificate }
+        { $conversionsParameters = Get-CMExportAppData -CMSiteCode $CMSiteCode -CMSiteServer $CMSiteServer -AppName $CMAppName -SigningCertificate $SigningCertificate -WorkingDirectory $workingDirectory }
 }
 
 ## Verifies that there are application conversion details to be converted.

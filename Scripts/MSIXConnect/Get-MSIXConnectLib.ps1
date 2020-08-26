@@ -48,7 +48,8 @@ Function Test-PSArchitecture
 
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$False,Position=1)][ValidateSet("x64", "x86")][string] $Architecture
+        [Parameter(Mandatory=$False,Position=0)][ValidateSet("x64", "x86")][string] $Architecture,
+        [Parameter(Mandatory=$False,Position=1)] $workingDirectory
     )
 
     ## Sets and initialized the variables for use in this function.
@@ -81,7 +82,7 @@ Function Test-PSArchitecture
 
     ## Logs the result appropriatly and returns the current architecture.
     End{
-        New-LogEntry "PowerShell Architecture is $PSArchitecture" -Severity $LoggingSeverity -Component $LoggingComponent
+        New-LogEntry "PowerShell Architecture is $PSArchitecture" -Severity $LoggingSeverity -Component $LoggingComponent -Path $WorkingDirectory
         Return $PSArchitecture
     }
     
@@ -105,8 +106,9 @@ function Connect-CMEnvironment
     ## Function Parameters Inputs
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$True,Position=0 )][ValidateLength(2,4)][String] $CMSiteCode,
-        [Parameter(Mandatory=$False,Position=1)][ValidateScript({Test-Input -CMServer $_})][String] $CMSiteServer
+        [Parameter(Mandatory=$True, Position=0 )][ValidateLength(2,4)][String] $CMSiteCode,
+        [Parameter(Mandatory=$False,Position=1)][ValidateScript({Test-Input -CMServer $_})][String] $CMSiteServer,
+        [Parameter(Mandatory=$False,Position=2)] $workingDirectory
     )
 
     ## Imports the Module required for connecting to ConfigMgr and using of the ConfigMgr powershell cmdlets.
@@ -115,7 +117,7 @@ function Connect-CMEnvironment
         $FunctionName = Get-FunctionName 1
         $LoggingComponent = "JobID(-) - $FunctionName"
 
-        New-LogEntry -LogValue "Connecting to the $($CMSiteCode) ConfigMgr PowerShell Environment..." -Severity 1 -Component $LoggingComponent
+        New-LogEntry -LogValue "Connecting to the $($CMSiteCode) ConfigMgr PowerShell Environment..." -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
     }
 
     ## Checks for the existence of a ConfigMgr Site in PSDrive, if missing it will create a new reference and attempt to connect.
@@ -134,31 +136,31 @@ function Connect-CMEnvironment
 
         IF($SiteLocation)
         {
-            New-LogEntry -LogValue "Connecting to ($SiteLocation)..." -Severity 1 -Component $LoggingComponent
+            New-LogEntry -LogValue "Connecting to ($SiteLocation)..." -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
             Set-Location "$($SiteLocation):"
-        }
-    }
-
-    ## Logs the results to the log file, and returns boolean based on the identification and conneciton to the ConfigMgr Site
-    End {
-        IF($SiteLocation)
-        {
+            
             IF($(Get-Location) -like "$($SiteLocation.Name)*")
             {
-                New-LogEntry -LogValue "Connected Successfully to $($CMSiteCode) ConfigMgr PowerShell Environment..." -Component $LoggingComponent
-                Return $True
+                New-LogEntry -LogValue "Connected Successfully to $($CMSiteCode) ConfigMgr PowerShell Environment..." -Component $LoggingComponent -Path $WorkingDirectory
+                $ReturnResults = $True
             }
             else
             {
-                New-LogEntry -LogValue "Connection Failed..." -Component $LoggingComponent -Severity 2
-                Return $False
+                New-LogEntry -LogValue "Connection Failed..." -Component $LoggingComponent -Path $WorkingDirectory -Severity 2
+                $ReturnResults = $False
             }
         }
         ELSE
         {
-            New-LogEntry -LogValue "Could not identify ConfigMgr Site using ""$CMSiteCode"" Site Code." -Component $LoggingComponent -Severity 2
-            Return $False
+            New-LogEntry -LogValue "Could not identify ConfigMgr Site using ""$CMSiteCode"" Site Code." -Component $LoggingComponent -Path $WorkingDirectory -Severity 2
+            $ReturnResults = $False
         }
+    }
+    
+
+    ## Logs the results to the log file, and returns boolean based on the identification and conneciton to the ConfigMgr Site
+    End {
+        Return $ReturnResults
     }
 }
 
@@ -177,7 +179,8 @@ function Disconnect-CMEnvironment
     
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$False,Position=0)][boolean] $ReturnPreviousLocation=$false
+        [Parameter(Mandatory=$False,Position=0)][boolean] $ReturnPreviousLocation=$false,
+        [Parameter(Mandatory=$False,Position=1)] $workingDirectory
     )
 
     ## Updates the "PreviousLocation" variable with the current location beore exiting the CM Environment.
@@ -229,7 +232,8 @@ function Format-MSIXAppExportDetails
         [Parameter(Mandatory=$True,ParameterSetName=$('CMExportedApp'),Position=0)] $CMExportAppPath,
         [Parameter(Mandatory=$True,ParameterSetName=$('CMExportedApp'),Position=1)] $CMAppPath,
         [Parameter(Mandatory=$True,ParameterSetName=$('CMServer'))][Switch] $CMServer,
-        [Parameter(Mandatory=$False)][CodeSigningCert] $SigningCertificate
+        [Parameter(Mandatory=$False)][CodeSigningCert] $SigningCertificate,
+        [Parameter(Mandatory=$False)] $workingDirectory
     )
     
     ## Sets and validates variable inputs.
@@ -253,7 +257,7 @@ function Format-MSIXAppExportDetails
                 IF($CMExportAppPath -eq "" -or $null -eq $CMExportAppPath)
                 { 
                     $ErrorMessage = "The ConfigMgr export app path can not be null or empty. Please provide a value, and try again."
-                    New-LogEntry -LogValue $ErrorMessage -Severity 3 -Component $FunctionName
+                    New-LogEntry -LogValue $ErrorMessage -Severity 3 -Component $LoggingComponent -Path $WorkingDirectory
                     Write-Error $ErrorMessage
                 }
                 
@@ -262,7 +266,7 @@ function Format-MSIXAppExportDetails
                 IF($CMAppPath -eq "" -or $null -eq $CMAppPath)
                 { 
                     $ErrorMessage = "The ConfigMgr app path can not be null or empty. Please provide a value, and try again."
-                    New-LogEntry -LogValue $ErrorMessage -Severity 3 -Component $FunctionName
+                    New-LogEntry -LogValue $ErrorMessage -Severity 3 -Component $LoggingComponent -Path $WorkingDirectory
                     Write-Error $ErrorMessage
                 }
             }
@@ -276,7 +280,7 @@ function Format-MSIXAppExportDetails
         IF($SigningCertificate -eq "" -or $null -eq $SigningCertificate)
         { 
             $ErrorMessage = "The code signing certificate can not be null or empty. Please provide a value, and try again."
-            New-LogEntry -LogValue $ErrorMessage -Severity 3 -Component $FunctionName
+            New-LogEntry -LogValue $ErrorMessage -Severity 3 -Component $LoggingComponent -Path $WorkingDirectory
             Write-Error $ErrorMessage
         }
 
@@ -285,7 +289,7 @@ function Format-MSIXAppExportDetails
         ELSEIF($SigningCertificate.Publisher -eq "" -or $null -eq $SigningCertificate.Publisher)   
         { 
             $ErrorMessage = "The code signing certificate can not be null or empty. Please provide a value, and try again."
-            New-LogEntry -LogValue $ErrorMessage -Severity 3 -Component $FunctionName
+            New-LogEntry -LogValue $ErrorMessage -Severity 3 -Component $LoggingComponent -Path $WorkingDirectory
             Write-Error $ErrorMessage
         }
 
@@ -294,7 +298,7 @@ function Format-MSIXAppExportDetails
         IF($Application -eq "" -or $null -eq $Application)
         { 
             $ErrorMessage = "The application can not be null or empty. Please provide a value, and try again."
-            New-LogEntry -LogValue $ErrorMessage -Severity 3 -Component $FunctionName
+            New-LogEntry -LogValue $ErrorMessage -Severity 3 -Component $LoggingComponent -Path $WorkingDirectory
             Write-Error $ErrorMessage
         }
 
@@ -314,7 +318,7 @@ function Format-MSIXAppExportDetails
                 IF($AppName -eq "" -or $null -eq $AppName)
                 { 
                     $ErrorMessage = "The ConfigMgr export app name can not be null or empty. Please provide a value, and try again." 
-                    New-LogEntry -LogValue $ErrorMessage -Severity 3 -Component $FunctionName
+                    New-LogEntry -LogValue $ErrorMessage -Severity 3 -Component $LoggingComponent -Path $WorkingDirectory
                     Write-Error $ErrorMessage
                 }
             }
@@ -326,7 +330,7 @@ function Format-MSIXAppExportDetails
                 IF($AppName -eq "" -or $null -eq $AppName)
                 {
                     $ErrorMessage = "The ConfigMgr app name can not be null or empty. Please provide a value, and try again."
-                    New-LogEntry -LogValue $ErrorMessage -Severity 3 -Component $FunctionName
+                    New-LogEntry -LogValue $ErrorMessage -Severity 3 -Component $LoggingComponent -Path $WorkingDirectory
                     Write-Error $ErrorMessage
                 }
             }
@@ -342,13 +346,13 @@ function Format-MSIXAppExportDetails
 
     ## Creates and populates ConversionParam object.
     Process{
-        New-LogEntry -LogValue "Parsing through the Deployment Types of $AppName application." -Component $LoggingComponent -WriteHost $true
+        New-LogEntry -LogValue "Parsing through the Deployment Types of $AppName application." -Component $LoggingComponent -Path $WorkingDirectory -WriteHost $true
 
         Foreach($Deployment IN $($XML.AppMgmtDigest.DeploymentType))
         {
             $LoggingComponent = "JobID($__JobID) - $FunctionName"
             $__JobID ++
-            New-LogEntry -LogValue "  Parsing the Application (""$AppName""), currently recording information from Deployment Type:  ""$($Deployment.Title.'#text')""" -Component $LoggingComponent -WriteHost $true -textcolor "Cyan"
+            New-LogEntry -LogValue "  Parsing the Application (""$AppName""), currently recording information from Deployment Type:  ""$($Deployment.Title.'#text')""" -Component $LoggingComponent -Path $WorkingDirectory -WriteHost $true -textcolor "Cyan"
 
             $MSIXAppDetails           = [ConversionParam]::New()
             $InstallerArgument        = ""
@@ -365,24 +369,24 @@ function Format-MSIXAppExportDetails
 
             #########################
             ## Install Information ##
-            $objInstallerAction       = Get-MSIXConnectInstallInfo -DeploymentAction $($Deployment.Installer.InstallAction)   -InstallerTechnology $($Deployment.Installer.Technology)
+            $objInstallerAction       = Get-MSIXConnectInstallInfo -DeploymentAction $($Deployment.Installer.InstallAction) -InstallerTechnology $($Deployment.Installer.Technology) -WorkingDirectory $WorkingDirectory
             $_AppFileName             = $objInstallerAction.Filename
-            $_InstallerArgument       = Format-MSIXPackageInfo -AppArgument $($objInstallerAction.Argument)   -ErrorAction SilentlyContinue -ErrorVariable Err
+            $_InstallerArgument       = Format-MSIXPackageInfo -AppArgument $($objInstallerAction.Argument) -ErrorAction SilentlyContinue -ErrorVariable Err -WorkingDirectory $WorkingDirectory
             
-            New-LogEntry -LogValue "    $($("Install String:").PadRight(22))  $($Deployment.Installer.InstallAction.Args.Arg.Where({$_.Name -eq "InstallCommandLine"}).'#text')" -Severity 1 -Component $LoggingComponent
-            New-LogEntry -LogValue "    $($("Install Filename:").PadRight(22))  |$_AppFileName| |$_InstallerArgument|" -Severity 1 -Component $LoggingComponent
+            New-LogEntry -LogValue "    $($("Install String:").PadRight(22))  $($Deployment.Installer.InstallAction.Args.Arg.Where({$_.Name -eq "InstallCommandLine"}).'#text')" -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
+            New-LogEntry -LogValue "    $($("Install Filename:").PadRight(22))  |$_AppFileName| |$_InstallerArgument|" -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
 
             ###########################
             ## Uninstall Information ##
-            $objUninstallerAction     = Get-MSIXConnectInstallInfo -DeploymentAction $($Deployment.Installer.UninstallAction) -InstallerTechnology $($Deployment.Installer.Technology)
+            $objUninstallerAction     = Get-MSIXConnectInstallInfo -DeploymentAction $($Deployment.Installer.UninstallAction) -InstallerTechnology $($Deployment.Installer.Technology) -WorkingDirectory $WorkingDirectory
             $_UninstallerPath         = $objUninstallerAction.Filename
-            $_UninstallerArgument     = Format-MSIXPackageInfo -AppArgument $($objUninstallerAction.Argument) -ErrorAction SilentlyContinue -ErrorVariable Err
+            $_UninstallerArgument     = Format-MSIXPackageInfo -AppArgument $($objUninstallerAction.Argument) -ErrorAction SilentlyContinue -ErrorVariable Err -WorkingDirectory $WorkingDirectory
 
             Switch($PSCmdlet.ParameterSetName)
             {
                 "CMExportedApp"
                 {
-                    $_PackageName            = $($(Format-MSIXPackageInfo -AppName "$($Application.Instance.Property.Where({$_.Name -eq "LocalizedDisplayName" }).Value)-$($_ContentID.Substring($_ContentID.Length-6, 6))" ))
+                    $_PackageName            = $($(Format-MSIXPackageInfo -AppName "$($Application.Instance.Property.Where({$_.Name -eq "LocalizedDisplayName" }).Value)-$($_ContentID.Substring($_ContentID.Length-6, 6))" -WorkingDirectory $WorkingDirectory ))
                     $_PackageDisplayName     = $Application.Instance.Property.Where({$_.Name -eq "LocalizedDisplayName"}).Value
                     $_PublisherDisplayname   = $Application.Instance.Property.Where({$_.Name -eq "Manufacturer"}).Value
                     $_ApplicationDescription = $Application.Instance.Property.Where({$_.Name -eq "LocalizedDescription"}).Value
@@ -392,11 +396,11 @@ function Format-MSIXAppExportDetails
                     $_InstallerPath          = $(Get-Item -Path $("$_AppInstallerFolderPath\$_AppFileName")).FullName
                     $_InstallerFolderPath    = $($(Get-Item -Path $("$_AppInstallerFolderPath")).FullName)
                     $_UninstallerPath        = $(Get-Item -Path $("$_AppInstallerFolderPath\$_UninstallerPath") -ErrorAction SilentlyContinue).FullName
-                    $_PackageVersion         = Format-MSIXPackageInfo -AppVersion $($Application.Instance.Property.Where({$_.Name -eq "SoftwareVersion"}).Value)
+                    $_PackageVersion         = Format-MSIXPackageInfo -AppVersion $($Application.Instance.Property.Where({$_.Name -eq "SoftwareVersion"}).Value) -WorkingDirectory $WorkingDirectory
                 }
                 "CMServer"
                 {
-                    $_PackageName            = $($(Format-MSIXPackageInfo -AppName "$($Application.LocalizedDisplayName)-$($_ContentID.Substring($_ContentID.Length-6, 6))" ))
+                    $_PackageName            = $($(Format-MSIXPackageInfo -AppName "$($Application.LocalizedDisplayName)-$($_ContentID.Substring($_ContentID.Length-6, 6))" -WorkingDirectory $WorkingDirectory ))
                     $_PackageDisplayName     = $Application.LocalizedDisplayName
                     $_PublisherDisplayname   = $Application.Manufacturer
                     $_ApplicationDescription = $Application.LocalizedDescription
@@ -408,7 +412,7 @@ function Format-MSIXAppExportDetails
                     $_InstallerPath          = $($_InstallerFolderPath + $_AppFileName)
                     $_UninstallerPath        = $($_UninstallerPath)
                     $_ContentParentRoot      = $("")
-                    $_PackageVersion         = Format-MSIXPackageInfo -AppVersion $($Application.SoftwareVersion)
+                    $_PackageVersion         = Format-MSIXPackageInfo -AppVersion $($Application.SoftwareVersion) -WorkingDirectory $WorkingDirectory
                 }
             }
 
@@ -442,7 +446,7 @@ function Format-MSIXAppExportDetails
             IF ($SupportedInstallerType.Contains($($Deployment.Installer.Technology)))
                 { [ConversionParam[]]$AppDetails += $MSIXAppDetails }
             ELSE
-                { New-LogEntry -LogValue "The ""$($Application.LocalizedDisplayName)"" application type is currently unsupported." -Component $LoggingComponent -Severity 3 }
+                { New-LogEntry -LogValue "The ""$($Application.LocalizedDisplayName)"" application type is currently unsupported." -Component $LoggingComponent -Path $WorkingDirectory -Severity 3 }
 
             Write-Host ""
         }
@@ -479,7 +483,8 @@ Function Get-MSIXConnectInstallInfo
     [CmdletBinding()]
     param (
         [Parameter(Mandatory=$True,Position=0)]         $DeploymentAction,
-        [Parameter(Mandatory=$True,Position=1)][string] $InstallerTechnology
+        [Parameter(Mandatory=$True,Position=1)][string] $InstallerTechnology,
+        [Parameter(Mandatory=$False)] $workingDirectory
     )
 
     ## Verifies variable inputs, and sets function required variables.
@@ -603,7 +608,8 @@ Function Format-MSIXPackageInfo
         [Parameter(Mandatory=$True, ParameterSetName=$('PackageVersion'), Position=0)][AllowEmptyString()][AllowNull()][string] $AppVersion,
         [Parameter(Mandatory=$True, ParameterSetName=$('PackageArgument'),Position=0)][AllowEmptyString()][AllowNull()][string] $AppArgument,
         [Parameter(Mandatory=$True, ParameterSetName=$('PackageName'),    Position=0)][AllowEmptyString()][AllowNull()][string] $AppName,
-        [Parameter(Mandatory=$False,Position=1)][string] $JobID="-"
+        [Parameter(Mandatory=$False,Position=1)][string] $JobID="-",
+        [Parameter(Mandatory=$False)] $workingDirectory
     )
     
     ## Paramter input validation, and setting variables required by function
@@ -624,7 +630,7 @@ Function Format-MSIXPackageInfo
                 IF($null -eq $AppName -or "" -eq $AppName)
                 {
                     $ErrorMessage = "    The application name can not be null or empty. Please provide a value, and try again."
-                    New-LogEntry -LogValue $ErrorMessage -Severity 3 -Component $LoggingComponent -WriteHost $LoggingWriteHost
+                    New-LogEntry -LogValue $ErrorMessage -Severity 3 -Component $LoggingComponent -Path $WorkingDirectory -WriteHost $LoggingWriteHost
                     Return
                 }
             }
@@ -634,7 +640,7 @@ Function Format-MSIXPackageInfo
                 IF($null -eq $AppArgument -or "" -eq $AppArgument)
                 { 
                     $ErrorMessage = "    The application argument can not be null or empty. Please provide a value, and try again."
-                    New-LogEntry -LogValue $ErrorMessage -Severity 3 -Component $LoggingComponent -WriteHost $LoggingWriteHost
+                    New-LogEntry -LogValue $ErrorMessage -Severity 3 -Component $LoggingComponent -Path $WorkingDirectory -WriteHost $LoggingWriteHost
                     Return
                 }
             }
@@ -644,7 +650,7 @@ Function Format-MSIXPackageInfo
                 IF($null -eq $AppVersion -or "" -eq $AppVersion)
                 { 
                     $ErrorMessage = "    The application version can not be null or empty. Please provide a value, and try again."
-                    New-LogEntry -LogValue $ErrorMessage -Severity 3 -Component $LoggingComponent -WriteHost $LoggingWriteHost
+                    New-LogEntry -LogValue $ErrorMessage -Severity 3 -Component $LoggingComponent -Path $WorkingDirectory -WriteHost $LoggingWriteHost
                     Return
                 }
             }
@@ -659,7 +665,7 @@ Function Format-MSIXPackageInfo
         {
             "PackageName"     
             {    
-                New-LogEntry -LogValue "    Removing Special Characters from the Application Package Name." -Component $LoggingComponent -Severity 1 -WriteHost $VerboseLogging
+                New-LogEntry -LogValue "    Removing Special Characters from the Application Package Name." -Component $LoggingComponent -Path $WorkingDirectory -Severity 1 -WriteHost $VerboseLogging
                 $MSIXPackageName = $AppName -replace '[!,@,#,$,%,^,&,*,(,),+,=,~,`]',''
                 $MSIXPackageName = $MSIXPackageName -replace '_','-'
                 $MSIXPackageName = $MSIXPackageName -replace ' ','-'
@@ -672,7 +678,7 @@ Function Format-MSIXPackageInfo
             "PackageArgument" 
             {
                 IF($AppArgument.StartsWith(" "))
-                    { $AppArgument = Format-MSIXPackageInfo -AppArgument $AppArgument.Substring(1, $AppArgument.Length -1) -ErrorAction SilentlyContinue }
+                    { $AppArgument = Format-MSIXPackageInfo -AppArgument $AppArgument.Substring(1, $AppArgument.Length -1) -ErrorAction SilentlyContinue -WorkingDirectory $WorkingDirectory }
     
                 $ReturnResults = $AppArgument
             }
@@ -759,7 +765,8 @@ Function Get-CMExportAppData
         [Parameter(Mandatory=$True,ParameterSetName=$('CMExportPathTarget'),Position=1)][string] $CMAppMetaDataPath,
         [Parameter(Mandatory=$True,ParameterSetName=$('CMExportPathParent'),Position=0)][string] $CMAppParentPath,
         [Parameter(Mandatory=$True,ParameterSetName=$('CMServer'), Position=0)][string] $CMSiteCode,
-        [Parameter(Mandatory=$True,ParameterSetName=$('CMServer'), Position=1)][string] $CMSiteServer
+        [Parameter(Mandatory=$True,ParameterSetName=$('CMServer'), Position=1)][string] $CMSiteServer,
+        [Parameter(Mandatory=$False)] $workingDirectory
     )
 
     ## Verify user input parameters and sets varaibles required by function.
@@ -774,9 +781,9 @@ Function Get-CMExportAppData
         #############################
         #### $SigningCertificate ####
         IF($null -eq $SigningCertificate)
-            { New-LogEntry -LogValue "Signing Certificate provided is null." -Severity 2 -Component $LoggingComponent }
+            { New-LogEntry -LogValue "Signing Certificate provided is null." -Severity 2 -Component $LoggingComponent -Path $WorkingDirectory }
         ELSEIF($($SigningCertificate.Publisher) -eq "" -or $null -eq $($SigningCertificate.Publisher))
-            { New-LogEntry -LogValue "Signing Certificate provided does not have a Publisher specified" -Severity 2 -WriteHost $True -Component $LoggingComponent}
+            { New-LogEntry -LogValue "Signing Certificate provided does not have a Publisher specified" -Severity 2 -WriteHost $True -Component $LoggingComponent -Path $WorkingDirectory}
 
         ## Validate Parameter Set Values
         Switch ($PSCmdlet.ParameterSetName)
@@ -789,7 +796,7 @@ Function Get-CMExportAppData
                 IF(-not $TestPath.Exists)
                 {
                     ## If Value does not resolve to a location fail, and exit
-                    New-LogEntry -LogValue "" -Severity 3 -WriteHost $True -Component $LoggingComponent
+                    New-LogEntry -LogValue "" -Severity 3 -WriteHost $True -Component $LoggingComponent -Path $WorkingDirectory
                     Return
                 }
 
@@ -799,7 +806,7 @@ Function Get-CMExportAppData
                 IF(-not $TestPath.Exists)
                 {
                     ## If Value does not resolve to a location fail, and exit
-                    New-LogEntry -LogValue "" -Severity 3 -WriteHost $True -Component $LoggingComponent
+                    New-LogEntry -LogValue "" -Severity 3 -WriteHost $True -Component $LoggingComponent -Path $WorkingDirectory
                     Return
                 }
             }
@@ -811,7 +818,7 @@ Function Get-CMExportAppData
                 IF(-not $TestPath.Exists)
                 {
                     ## If Value does not resolve to a location fail, and exit
-                    New-LogEntry -LogValue "" -Severity 3 -WriteHost $True -Component $LoggingComponent
+                    New-LogEntry -LogValue "" -Severity 3 -WriteHost $True -Component $LoggingComponent -Path $WorkingDirectory
                     Return
                 }
             }
@@ -822,7 +829,7 @@ Function Get-CMExportAppData
                 IF("x86" -ne $(Test-PSArchitecture -Architecture "x86"))
                 {
                     ## If PowerShell window executing script is not x86 fail and exit.
-                    New-LogEntry -LogValue "Executing PowerShell Window is not x86 architecture, please launch Administrative PowerShell (x86) and re-run script." -Severity 3 -WriteHost $true -Component "JobID(-) - Get-CMExportAppData"
+                    New-LogEntry -LogValue "Executing PowerShell Window is not x86 architecture, please launch Administrative PowerShell (x86) and re-run script." -Severity 3 -WriteHost $true -Component "JobID(-) - Get-CMExportAppData" -Path $WorkingDirectory
                     Return 
                 }
 
@@ -832,7 +839,7 @@ Function Get-CMExportAppData
                 IF(-Not $ValidationResult)
                 { 
                     ## If unable to connect to ConfigMgr Site Server fail and exit.
-                    New-LogEntry -LogValue "$($Env:ComputerName) was unable to contact ConfigMgr Server $CMSiteServer. Please verify the name of the server and try again." -Severity 3 -WriteHost $True -Component $LoggingComponent
+                    New-LogEntry -LogValue "$($Env:ComputerName) was unable to contact ConfigMgr Server $CMSiteServer. Please verify the name of the server and try again." -Severity 3 -WriteHost $True -Component $LoggingComponent -Path $WorkingDirectory
                     Return
                 }
                 
@@ -841,7 +848,7 @@ Function Get-CMExportAppData
                 IF($($CMSiteCode.Length) -ne 3)
                 {
                     ## If missing or incorrectly entered Site Code, fail and exit.
-                    New-LogEntry -LogValue "Invalid Site Code: $CMSiteCode. Please update the site code and re-run script." -Severity 3 -WriteHost $True -Component $LoggingComponent
+                    New-LogEntry -LogValue "Invalid Site Code: $CMSiteCode. Please update the site code and re-run script." -Severity 3 -WriteHost $True -Component $LoggingComponent -Path $WorkingDirectory
                     Return
                 }
             }
@@ -861,7 +868,7 @@ Function Get-CMExportAppData
             "CMExportPathTarget" 
             {
                 ## If querying a single exported source.
-                New-LogEntry -LogValue "Identified source is targetting a single export directory" -Severity 1 -Component "Get-CMExportAppData"
+                New-LogEntry -LogValue "Identified source is targetting a single export directory" -Severity 1 -Component "Get-CMExportAppData" -Path $WorkingDirectory
 
                 $CMAppMetaData = Get-ChildItem -Recurse -Path $CMAppMetaDataPath
                 $CMAppContent  = Get-ChildItem -Recurse -Path $CMAppContentPath
@@ -870,7 +877,7 @@ Function Get-CMExportAppData
             "CMExportPathParent"
             {
                 ## If querying multiple exported sources all at once
-                New-LogEntry -LogValue "Identied source is targetting parent directory" -Severity 1 -Component "Get-CMExportAppData"
+                New-LogEntry -LogValue "Identied source is targetting parent directory" -Severity 1 -Component "Get-CMExportAppData" -Path $WorkingDirectory
 
                 $CMAppMetaData = Get-ChildItem -Recurse -Path $CMAppParentPath
                 $CMAppContent  = Get-ChildItem -Recurse -Path $CMAppParentPath
@@ -879,16 +886,16 @@ Function Get-CMExportAppData
             "CMServer"
             {
                 ## If the PowerShell script is run with the wrong architecture, alert the executing user and exit.
-                New-LogEntry -LogValue "Collecting information from ConfigMgr for application: $AppName" -Component "Get-CMAppMetaData"
+                New-LogEntry -LogValue "Collecting information from ConfigMgr for application: $AppName" -Component "Get-CMAppMetaData" -Path $WorkingDirectory
 
                 ## Attempts to connect to ConfigMgr environment, if fails, returns zero conversion results.
-                IF(!$(Connect-CMEnvironment $CMSiteCode $CMSiteServer)) 
+                IF(!$(Connect-CMEnvironment $CMSiteCode $CMSiteServer -WorkingDirectory $WorkingDirectory)) 
                     {Return}
 
                 $CMApplication = Get-CMApplication -Name $AppName
                 Write-Host $($CMApplication.LocalizedDisplayName) -ForegroundColor Yellow
 
-                Disconnect-CMEnvironment
+                Disconnect-CMEnvironment -WorkingDirectory $WorkingDirectory
             }
         }
 
@@ -905,14 +912,14 @@ Function Get-CMExportAppData
                 {
                     ## App Content was exported.
                     $CMAppDeploymentType = [xml]($CMApp.Instance.Property.Where({$_.Name -eq "SDMPackageXML"}).Value.'#cdata-section')
-                    $AppDetails += Format-MSIXAppExportDetails -Application $CMApp -ApplicationDeploymentType $CMAppDeploymentType -CMExportAppPath $CMAppContent -CMAppPath $CMAppPath -SigningCertificate $SigningCertificate
+                    $AppDetails += Format-MSIXAppExportDetails -Application $CMApp -ApplicationDeploymentType $CMAppDeploymentType -CMExportAppPath $CMAppContent -CMAppPath $CMAppPath -SigningCertificate $SigningCertificate -WorkingDirectory $WorkingDirectory
                 }
             }
             ELSEIF($PSCmdlet.ParameterSetName -eq "CMServer")
             {
                 ## App Content was sourced from ConfigMgr Server.
                 $CMAppDeploymentType = [xml]($CMApp.SDMPackageXML)
-                $AppDetails += Format-MSIXAppExportDetails -Application $CMApp -ApplicationDeploymentType $CMAppDeploymentType -SigningCertificate $SigningCertificate -CMServer
+                $AppDetails += Format-MSIXAppExportDetails -Application $CMApp -ApplicationDeploymentType $CMAppDeploymentType -SigningCertificate $SigningCertificate -CMServer -WorkingDirectory $WorkingDirectory
             }
         }
     }

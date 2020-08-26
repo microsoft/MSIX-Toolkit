@@ -49,13 +49,13 @@ function CreateMPTTemplate
                 IF($virtualMachine -eq "" -or $null -eq $virtualMachine)
                 {
                     ## Verifies that the object is not null or empty
-                    New-LogEntry -LogValue "Virtual machine object is null or empty. Please update with Virtual Machine Name and re-run script." -Severity 3 -writeHost $True -Component $LoggingComponent
+                    New-LogEntry -LogValue "Virtual machine object is null or empty. Please update with Virtual Machine Name and re-run script." -Severity 3 -writeHost $True -Component $LoggingComponent -Path $WorkingDirectory -Path $WorkingDirectory
                     Return
                 }
                 ELSEIF($virtualMachine.Name -eq "" -or $null -eq $virtualMachine.Name)
                 {
                     ## Verifies that the Virtual Machine has a name provided
-                    New-LogEntry -LogValue "Virtual machine Name is null or empty. Please update with Virtual Machine Name and re-run script." -Severity 3 -writeHost $True -Component $LoggingComponent
+                    New-LogEntry -LogValue "Virtual machine Name is null or empty. Please update with Virtual Machine Name and re-run script." -Severity 3 -writeHost $True -Component $LoggingComponent -Path $WorkingDirectory
                     Return
                 }
                 ELSE
@@ -75,12 +75,12 @@ function CreateMPTTemplate
                 #### remoteMachine ####
                 IF($remoteMachine -eq "" -or $null -eq $remoteMachine)
                 {
-                    New-LogEntry -LogValue "Remote machine object is null or empty. Please update with Remote Machine Name and re-run script." -Severity 3 -writeHost $True -Component $LoggingComponent
+                    New-LogEntry -LogValue "Remote machine object is null or empty. Please update with Remote Machine Name and re-run script." -Severity 3 -writeHost $True -Component $LoggingComponent -Path $WorkingDirectory
                     Return
                 }
                 ELSEIF($remoteMachine.ComputerName -eq "" -or $null -eq $remoteMachine.ComputerName)
                 {
-                    New-LogEntry -LogValue "Remote machine Name is null or empty. Please update with Remote Machine Name and re-run script." -Severity 3 -writeHost $True -Component $LoggingComponent
+                    New-LogEntry -LogValue "Remote machine Name is null or empty. Please update with Remote Machine Name and re-run script." -Severity 3 -writeHost $True -Component $LoggingComponent -Path $WorkingDirectory
                     Return
                 }
                 else 
@@ -114,7 +114,7 @@ function CreateMPTTemplate
         $templateFilePath        = [System.IO.Path]::Combine($workingDirectory, "MsixPackagingToolTemplate_Job$($jobId).xml")
         $conversionMachine       = ""
 
-        New-LogEntry -LogValue "    Creating the MPT Template using the following values:`n`t - ParameterSet:`t`t $($PSCmdlet.ParameterSetName)`n`t - JobID:`t`t`t $JobID`n`t - WorkingDirectory:`t $WorkingDirectory`n`t - VirtualMachine:`t`t $($VirtualMachine.Name)`n`t - RemoteMachine:`t`t $($RemoteMachine.ComputerName)`n`t - ConversionParam:`t $ConversionParam" -severity 1 -Component $LoggingComponent
+        New-LogEntry -LogValue "    Creating the MPT Template using the following values:`n`t - ParameterSet:`t`t $($PSCmdlet.ParameterSetName)`n`t - JobID:`t`t`t $JobID`n`t - WorkingDirectory:`t $WorkingDirectory`n`t - VirtualMachine:`t`t $($VirtualMachine.Name)`n`t - RemoteMachine:`t`t $($RemoteMachine.ComputerName)`n`t - ConversionParam:`t $ConversionParam" -severity 1 -Component $LoggingComponent -Path $WorkingDirectory
     }
 
     ## Creates a new MPT Template based on the provided parameters
@@ -122,8 +122,8 @@ function CreateMPTTemplate
         IF($null -ne $conversionParam.ContentParentRoot)
             { $saveFolder = [System.IO.Path]::Combine($saveFolder, "$($conversionParam.ContentParentRoot)") }
 
-        New-LogEntry -LogValue "    Variable Output:`n        - Installer Path:`t`t $objInstallerPath`n        - Installer Path Root:`t`t $objInstallerPathRoot`n        - Installer FileName:`t`t $objInstallerFileName`n        - Installer Arguments:`t`t $objInstallerArguments`n        - Package Name:`t`t $objPackageName`n        - Package Display Name:`t`t $objPackageDisplayName`n        - Package Publisher Name:`t $objPublisherName`n        - Package Publisher Display Name:`t $objPublisherDisplayName`n        - Package Version:`t`t $objPackageVersion`n        - Save Folder:`t`t`t $saveFolder`n        - Working Directory:`t`t $workingDirectory`n        - Template File Path: `t`t $templateFilePath`n        - Conversion Machine:`t $($TargetMachine.ComputerName)$($TargetMachine.Name) `n        - Local Machine:`t`t $objlocalMachine`n" -Severity 1 -Component $LoggingComponent -writeHost $false
-        New-LogEntry -LogValue "    Current Save Directory is: $saveFolder" -Severity 1 -Component $LoggingComponent
+        New-LogEntry -LogValue "    Variable Output:`n        - Installer Path:`t`t $objInstallerPath`n        - Installer Path Root:`t`t $objInstallerPathRoot`n        - Installer FileName:`t`t $objInstallerFileName`n        - Installer Arguments:`t`t $objInstallerArguments`n        - Package Name:`t`t $objPackageName`n        - Package Display Name:`t`t $objPackageDisplayName`n        - Package Publisher Name:`t $objPublisherName`n        - Package Publisher Display Name:`t $objPublisherDisplayName`n        - Package Version:`t`t $objPackageVersion`n        - Save Folder:`t`t`t $saveFolder`n        - Working Directory:`t`t $workingDirectory`n        - Template File Path: `t`t $templateFilePath`n        - Conversion Machine:`t $($TargetMachine.ComputerName)$($TargetMachine.Name) `n        - Local Machine:`t`t $objlocalMachine`n" -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory -writeHost $false
+        New-LogEntry -LogValue "    Current Save Directory is: $saveFolder" -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
 
         ## Detects if the provided custom path exists, if not creates the required path.
         IF(!$(Get-Item -Path $saveFolder -ErrorAction SilentlyContinue))
@@ -218,12 +218,12 @@ function RunConversionJobs
         $LogEntry += "    - Total Virtual Machines: $($VirtualMachines.count)`n`r"
 
         Write-Progress -ID 0 -Status "Converting Applications..." -PercentComplete $($(0)/$($conversionsParameters.count)) -Activity "Capture"
-        New-LogEntry -LogValue $LogEntry -Severity 1 -Component $LoggingComponent
+        New-LogEntry -LogValue $LogEntry -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
 
         ## Creates working directory and child directories
         $scratch = New-Item -Force -Type Directory ([System.IO.Path]::Combine($workingDirectory, "MPT_Templates"))
         $scratch = New-Item -Force -Type Directory ([System.IO.Path]::Combine($workingDirectory, "MSIX"))
-        $scratch = New-Item -Force -Type Directory ([System.IO.Path]::Combine($workingDirectory, "ErrorLogs"))
+        $scratch = New-Item -Force -Type Directory ([System.IO.Path]::Combine($workingDirectory, "Logs"))
 
         # create list of the indices of $conversionsParameters that haven't started running yet
         $remainingConversions = @()
@@ -234,7 +234,7 @@ function RunConversionJobs
         {
             If($RemoteMachines.count -lt $ConversionsParameters.count)
             {
-                New-LogEntry -logValue "Warning, there are not enough Remote Machines ($($RemoteMachines.count)) to package all identified applications ($($ConversionsParameters.count))" -Severity 2 -Component $LoggingComponent
+                New-LogEntry -logValue "Warning, there are not enough Remote Machines ($($RemoteMachines.count)) to package all identified applications ($($ConversionsParameters.count))" -Severity 2 -Component $LoggingComponent -Path $WorkingDirectory
             }
         }
     }
@@ -251,7 +251,7 @@ function RunConversionJobs
             # first schedule jobs on the remote machines. These machines will be recycled and will not be re-used to run additional conversions
             $remoteMachines | Foreach-Object {
                 ## Verifies if the remote machine is accessible on the network.
-                If(Test-RMConnection -RemoteMachineName $($_.ComputerName))
+                If(Test-RMConnection -RemoteMachineName $($_.ComputerName) -WorkingDirectory $WorkingDirectory)
                 {
                     ## Determining next job to run.
                     $_jobId               = $remainingConversions[0]
@@ -260,23 +260,23 @@ function RunConversionJobs
                     $LoggingComponent     = "JobID($_JobID) - $FunctionName"
                     $ConversionJobName    = "Job($_JobID) - $($ConversionParam.PackageDisplayName)"
 
-                    New-LogEntry -LogValue "Determining next job to run..." -Component $LoggingComponent
-                    New-LogEntry -LogValue "Dequeuing conversion job ($($_JobId)) for installer $($conversionParam.InstallerPath) on Remote Machine $($_.ComputerName)" -Component $LoggingComponent
+                    New-LogEntry -LogValue "Determining next job to run..." -Component $LoggingComponent -Path $WorkingDirectory
+                    New-LogEntry -LogValue "Dequeuing conversion job ($($_JobId)) for installer $($conversionParam.InstallerPath) on Remote Machine $($_.ComputerName)" -Component $LoggingComponent -Path $WorkingDirectory
                     
                     $FuncScriptBlock = $Function:NewMSIXConvertedApp
 
                     ## If sourced from ConfigMgr or Export then run Local if more than 1 file exists in root.
                     IF($($conversionParam.AppInstallerFolderPath) -and $($($(Get-ChildItem -Recurse -Path $conversionParam.AppInstallerFolderPath).count -gt 1) -or $($($conversionParam.AppInstallerFolderPath).StartsWith("\\"))))
-                        { $_.ConversionJob = Start-Job -Name $ConversionJobName -ScriptBlock $([scriptblock]::Create($FuncScriptBlock)) -ArgumentList ("RunLocal-RM", $_, $conversionParam, $_JobID, $WorkingDirectory, $PSScriptRoot) }
+                        { $_.ConversionJob = Start-Job -Name $ConversionJobName -ScriptBlock $([scriptblock]::Create($FuncScriptBlock)) -ArgumentList ("RunLocal-RM", $_, $conversionParam, $_JobID, $WorkingDirectory, $PSScriptRoot, $WorkingDirectory) }
                     ELSE 
-                        { $_.ConversionJob = Start-Job -Name $ConversionJobName -ScriptBlock $([scriptblock]::Create($FuncScriptBlock)) -ArgumentList ("RemoteMachine", $_, $conversionParam, $_JobID, $WorkingDirectory, $PSScriptRoot) }
+                        { $_.ConversionJob = Start-Job -Name $ConversionJobName -ScriptBlock $([scriptblock]::Create($FuncScriptBlock)) -ArgumentList ("RemoteMachine", $_, $conversionParam, $_JobID, $WorkingDirectory, $PSScriptRoot, $WorkingDirectory) }
 
                     #$_.ConversionJob = Start-Job -Name $ConversionJobName -ScriptBlock $([scriptblock]::Create($FuncScriptBlock)) -ArgumentList ("RemoteMachine", $_, $conversionParam, $_JobID, $WorkingDirectory, $PSScriptRoot)
 
                     $ConversionJobs += $($_.ConversionJob)
 
                     Start-Sleep(1)
-                    Set-JobProgress -ConversionJobs $ConversionJobs -TotalTasks $($conversionsParameters.count)
+                    Set-JobProgress -ConversionJobs $ConversionJobs -TotalTasks $($conversionsParameters.count) -WorkingDirectory $WorkingDirectory
                 }
             }
         }
@@ -310,26 +310,26 @@ function RunConversionJobs
                         { $VM = $VirtualMachines.Where({$_.ConversionJob.State -ne "Running"}) | Select-Object -First 1 }
                 }
 
-                New-LogEntry -LogValue "Dequeuing conversion job ($($_JobId)) for installer $($conversionParam.InstallerPath) on VM $($vm.Name)" -Component $LoggingComponent
+                New-LogEntry -LogValue "Dequeuing conversion job ($($_JobId)) for installer $($conversionParam.InstallerPath) on VM $($vm.Name)" -Component $LoggingComponent -Path $WorkingDirectory
 
                 $FuncScriptBlock   = $Function:NewMSIXConvertedApp
                 $ConversionJobName = "Job $_JobID - $($ConversionParam.PackageDisplayName)"
 
                 ## If sourced from ConfigMgr or Export then run Local if more than 1 file exists in root.
                 IF($($conversionParam.AppInstallerFolderPath) -and $($($(Get-ChildItem -Recurse -Path $conversionParam.AppInstallerFolderPath).count -gt 1) -or $($($conversionParam.AppInstallerFolderPath).StartsWith("\\"))))
-                    { $VM.ConversionJob = Start-Job -Name $ConversionJobName -ScriptBlock $([scriptblock]::Create($FuncScriptBlock)) -ArgumentList ("RunLocal-VM", $VM, $conversionParam, $_JobID, $WorkingDirectory, $PSScriptRoot) }
+                    { $VM.ConversionJob = Start-Job -Name $ConversionJobName -ScriptBlock $([scriptblock]::Create($FuncScriptBlock)) -ArgumentList ("RunLocal-VM", $VM, $conversionParam, $_JobID, $WorkingDirectory, $PSScriptRoot, $WorkingDirectory) }
                 ELSE 
-                    { $VM.ConversionJob = Start-Job -Name $ConversionJobName -ScriptBlock $([scriptblock]::Create($FuncScriptBlock)) -ArgumentList ("VirtualMachine", $VM, $conversionParam, $_JobID, $WorkingDirectory, $PSScriptRoot) }
+                    { $VM.ConversionJob = Start-Job -Name $ConversionJobName -ScriptBlock $([scriptblock]::Create($FuncScriptBlock)) -ArgumentList ("VirtualMachine", $VM, $conversionParam, $_JobID, $WorkingDirectory, $PSScriptRoot, $WorkingDirectory) }
 
                 $ConversionJobs += $($VM.ConversionJob)
                 
                 Start-Sleep(1)
-                Set-JobProgress -ConversionJobs $ConversionJobs -TotalTasks $($conversionsParameters.count)
+                Set-JobProgress -ConversionJobs $ConversionJobs -TotalTasks $($conversionsParameters.count) -WorkingDirectory $WorkingDirectory
             }
         }
         else 
         {
-            New-LogEntry -LogValue "Finished running all jobs on the provided Remote Machines" -Component "JobID(-) - $FunctionName"
+            New-LogEntry -LogValue "Finished running all jobs on the provided Remote Machines" -Component "JobID(-) - $FunctionName" -Path $WorkingDirectory
         }
 
 
@@ -345,11 +345,11 @@ function RunConversionJobs
         {
             If ($OnceThrough)
             {
-                New-LogEntry -LogValue "Waiting for applications to complete conversion..." -Component $LoggingComponent
+                New-LogEntry -LogValue "Waiting for applications to complete conversion..." -Component $LoggingComponent -Path $WorkingDirectory
                 $OnceThrough = $false
             }
             Start-Sleep(1)
-            Set-JobProgress -ConversionJobs $ConversionJobs -TotalTasks $($conversionsParameters.count)
+            Set-JobProgress -ConversionJobs $ConversionJobs -TotalTasks $($conversionsParameters.count) -WorkingDirectory $WorkingDirectory
         }
     }
 
@@ -360,15 +360,15 @@ function RunConversionJobs
         ## Clean-up ##
         ##############
 
-        Set-JobProgress -ConversionJobs $ConversionJobs -TotalTasks $($conversionsParameters.count)
-        New-LogEntry -LogValue "Finished scheduling all jobs" -Component $LoggingComponent
+        Set-JobProgress -ConversionJobs $ConversionJobs -TotalTasks $($conversionsParameters.count) -WorkingDirectory $WorkingDirectory
+        New-LogEntry -LogValue "Finished scheduling all jobs" -Component $LoggingComponent -Path $WorkingDirectory
         
         ## Remove and stop all scripted jobs.
         $ConversionJobs | Where-Object State -ne "Completed" | Stop-job
         $ConversionJobs | Remove-job
 
         #Read-Host -Prompt 'Press any key to continue '
-        New-LogEntry -LogValue "Finished running all jobs" -Component $LoggingComponent
+        New-LogEntry -LogValue "Finished running all jobs" -Component $LoggingComponent -Path $WorkingDirectory
     }
 }
 
@@ -420,24 +420,24 @@ Function NewMSIXConvertedApp
         IF($TargetMachine -eq "" -or $null -eq $TargetMachine)
         {
             ## Verifies that the object is not null or empty
-            New-LogEntry -LogValue "Virtual machine object is null or empty. Please update with Virtual Machine Name and re-run script." -Severity 3 -writeHost $True -Component $LoggingComponent
+            New-LogEntry -LogValue "Virtual machine object is null or empty. Please update with Virtual Machine Name and re-run script." -Severity 3 -writeHost $True -Component $LoggingComponent -Path $WorkingDirectory
             Return
         }
         ELSEIF($($TargetMachine.Name -eq "" -or $null -eq $TargetMachine.Name) -and $($TargetMachine.ComputerName -eq "" -or $null -eq $TargetMachine.ComputerName))
         {
             ## Verifies that the Target Machine has a name provided
-            New-LogEntry -LogValue "Virtual machine Name is null or empty. Please update with Virtual Machine Name and re-run script." -Severity 3 -writeHost $True -Component $LoggingComponent
+            New-LogEntry -LogValue "Virtual machine Name is null or empty. Please update with Virtual Machine Name and re-run script." -Severity 3 -writeHost $True -Component $LoggingComponent -Path $WorkingDirectory
             Return
         }
         ELSE
         {
             $VMResult = $(Get-VM).Name -contains $($TargetMachine.Name)
-            $RMResult = [boolean]$(Test-Connection -ComputerName $TargetMachine.ComputerName)
+            $RMResult = [boolean]$(Test-Connection -ComputerName $TargetMachine.ComputerName -WorkingDirectory $WorkingDirectory)
             
             IF( -not $($VMResult -or $RMResult))
             {
                 ## Verifies access to target machine.
-                New-LogEntry -LogValue "$($Env:ComputerName) is unable to access the target machine $($TargetMachine.ComputerName)$($TargetMachine.Name). Please update and re-run script."
+                New-LogEntry -LogValue "$($Env:ComputerName) is unable to access the target machine $($TargetMachine.ComputerName)$($TargetMachine.Name). Please update and re-run script." -Severity 2 -Component $LoggingComponent -Path $WorkingDirectory
                 Return
             }
         }
@@ -501,10 +501,10 @@ Function NewMSIXConvertedApp
 
         ## Creating header in Log file marking the start of the app conversion.
         Write-Host "Conversion Job ($JobID)" -backgroundcolor Black
-        New-LogEntry -LogValue "Conversion Job ($JobID)" -Severity 1 -WriteHost $false -Component $LoggingComponent
-        #New-LogEntry -LogValue "    Converting Application ($($ConversionParameters.PackageDisplayName))`n        - Deployment Type:      $($ConversionParameters.DeploymentType)`n        - Installer Full Path:  $($ConversionParameters.InstallerPath)`n        - Installer Filename:   $($ConversionParameters.AppFileName)`n        - Installer Argument:   $($ConversionParameters.InstallerArguments)" -Severity $objSeverity -Component $LoggingComponent
-        New-LogEntry -LogValue "    #### Converting Application: $($ConversionParameters.PackageDisplayName) ####" -Severity 1 -Component $LoggingComponent
-        New-LogEntry -LogValue $AppConversionDetails -Severity 1 -WriteHost $False -Component $LoggingComponent
+        New-LogEntry -LogValue "Conversion Job ($JobID)" -Severity 1 -WriteHost $false -Component $LoggingComponent -Path $WorkingDirectory
+        #New-LogEntry -LogValue "    Converting Application ($($ConversionParameters.PackageDisplayName))`n        - Deployment Type:      $($ConversionParameters.DeploymentType)`n        - Installer Full Path:  $($ConversionParameters.InstallerPath)`n        - Installer Filename:   $($ConversionParameters.AppFileName)`n        - Installer Argument:   $($ConversionParameters.InstallerArguments)" -Severity $objSeverity -Component $LoggingComponent -Path $WorkingDirectory
+        New-LogEntry -LogValue "    #### Converting Application: $($ConversionParameters.PackageDisplayName) ####" -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
+        New-LogEntry -LogValue $AppConversionDetails -Severity 1 -WriteHost $False -Component $LoggingComponent -Path $WorkingDirectory
 #    }
 
     ## Created the MPT Template, and converts the application against the target machine.
@@ -514,15 +514,15 @@ Function NewMSIXConvertedApp
             "RemoteMachine"
             {
                 ## Creating Conversion Template
-                New-LogEntry -LogValue "    CreateMPTTemplate -remoteMachine $($TargetMachine) `n`n`$ConversionParameters `n`n`$JobId `n`n`$workingDirectory" -severity 1 -Component $LoggingComponent
-                $ConversionInfo    = CreateMPTTemplate -remoteMachine $TargetMachine $ConversionParameters $JobId $workingDirectory
+                New-LogEntry -LogValue "    CreateMPTTemplate -remoteMachine $($TargetMachine) `n`n`$ConversionParameters `n`n`$JobId `n`n`$workingDirectory" -severity 1 -Component $LoggingComponent -Path $WorkingDirectory
+                $ConversionInfo    = CreateMPTTemplate -remoteMachine $TargetMachine $ConversionParameters $JobId $workingDirectory $WorkingDirectory
 
-                New-LogEntry -LogValue "    Dequeuing conversion job ($($JobId)) for installer $($ConversionParameters.InstallerPath) on remote machine $($TargetMachine.ComputerName)" -Severity 1 -Component $LoggingComponent
+                New-LogEntry -LogValue "    Dequeuing conversion job ($($JobId)) for installer $($ConversionParameters.InstallerPath) on remote machine $($TargetMachine.ComputerName)" -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
                 $_templateFilePath      = $ConversionInfo.Path
                 $RemoteTemplateFilePath = $([String]$($(Get-Item -Path $_templateFilePath).FullName))
                
                 $ConvertScriptBlock = "MsixPackagingTool.exe create-package --template $RemoteTemplateFilePath --machinePassword ""$_password"""
-                New-LogEntry -LogValue $ConvertScriptBlock -Severity 1 -Component $LoggingComponent
+                New-LogEntry -LogValue $ConvertScriptBlock -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
 
                 $Job = Start-Job -ScriptBlock $([scriptblock]::Create($ConvertScriptBlock))
 #                $Job = Invoke-Command -AsJob -Credential $TargetMachine.Credential -ScriptBlock $([scriptblock]::Create($ConvertScriptBlock))
@@ -539,21 +539,21 @@ Function NewMSIXConvertedApp
             {
                 ##################################
                 ## Creating Conversion Template ##
-                New-LogEntry -LogValue "    Creating the MPT Template:" -Severity 1 -Component $LoggingComponent
-                New-LogEntry -LogValue "        CreateMPTTemplate -remoteMachine $TargetMachine `n`n`$ConversionParameters `n`n`$JobId `n`n`$workingDirectory" -severity 1 -Component $LoggingComponent
-                $ConversionInfo    = CreateMPTTemplate -remoteMachine $TargetMachine $ConversionParameters $JobId $workingDirectory
+                New-LogEntry -LogValue "    Creating the MPT Template:" -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
+                New-LogEntry -LogValue "        CreateMPTTemplate -remoteMachine $TargetMachine `n`n`$ConversionParameters `n`n`$JobId `n`n`$workingDirectory" -severity 1 -Component $LoggingComponent -Path $WorkingDirectory
+                $ConversionInfo    = CreateMPTTemplate -remoteMachine $TargetMachine $ConversionParameters $JobId $workingDirectory $WorkingDirectory
 
-                New-LogEntry -LogValue "        Dequeuing conversion job ($($JobId)) for installer $($ConversionParameters.InstallerPath) on remote machine $($TargetMachine.ComputerName)" -Severity 1 -Component $LoggingComponent
+                New-LogEntry -LogValue "        Dequeuing conversion job ($($JobId)) for installer $($ConversionParameters.InstallerPath) on remote machine $($TargetMachine.ComputerName)" -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
                 $_templateFilePath      = $ConversionInfo.Path
                 $RemoteTemplateFilePath = $([String]$($(Get-Item -Path $_templateFilePath).FullName))
 
                 #############################################
                 ## Transfers Application to Host Machine ##
-                New-LogEntry -LogValue "    Transferring Applications:" -Severity 1 -Component $LoggingComponent
+                New-LogEntry -LogValue "    Transferring Applications:" -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
 
                 ## Creates the destination folder and copies the Application Content local to the Remote Machine for conversion
                 $objScriptBlock = "New-Item -Path ""$($ConversionParameters.InstallerFolderPath)"" -ItemType Directory -Force"
-                New-LogEntry -LogValue "        Creating Application Content parent folder on Host Machine: $($TargetMachine.ComputerName)`n`t - Running Cmd: $objScriptBlock" -Severity 1 -Component $LoggingComponent
+                New-LogEntry -LogValue "        Creating Application Content parent folder on Host Machine: $($TargetMachine.ComputerName)`n`t - Running Cmd: $objScriptBlock" -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
                 Invoke-Command -ScriptBlock $([Scriptblock]::Create($objScriptBlock))
 
                 $AppInstallerFiles = Get-ChildItem -Recurse -Path $($ConversionParameters.CMInstallerFolderPath)
@@ -561,9 +561,9 @@ Function NewMSIXConvertedApp
 
                 ############################################
                 ## Converts the App on the Remote Machine ##
-                New-LogEntry -LogValue "    Converting Application:" -Severity 1 -Component $LoggingComponent
+                New-LogEntry -LogValue "    Converting Application:" -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
                 $ConvertScriptBlock = "MsixPackagingTool.exe create-package --template ""$RemoteTemplateFilePath"" --machinePassword ""$_password"""
-                New-LogEntry -LogValue "        $ConvertScriptBlock" -Severity 1 -Component $LoggingComponent
+                New-LogEntry -LogValue "        $ConvertScriptBlock" -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
 
                 $Job = Start-Job -ScriptBlock $([scriptblock]::Create($ConvertScriptBlock))
                 #$Job = Invoke-Command -Session $Session -AsJob -ScriptBlock $([scriptblock]::Create($ConvertScriptBlock))
@@ -579,16 +579,16 @@ Function NewMSIXConvertedApp
             }
             "VirtualMachine"
             {
-                New-InitialSnapshot -SnapshotName $initialSnapshotName -VMName $($virtualMachines.Name) -jobId $JobID
+                New-InitialSnapshot -SnapshotName $initialSnapshotName -VMName $($virtualMachines.Name) -jobId $JobID -WorkingDirectory $WorkingDirectory
 
-                New-LogEntry -LogValue "    Conversion input info: `n`t - CreateMPTTemplate: virtualMachine `n`t - Target Machine: $TargetMachine `n`t - Conversion Parameters: $ConversionParameters `n`t - JobID: $JobId `n`t - Working Directory: $workingDirectory" -severity 1 -Component $LoggingComponent
-                $ConversionInfo    = CreateMPTTemplate -virtualMachine $TargetMachine $ConversionParameters $JobId $workingDirectory
+                New-LogEntry -LogValue "    Conversion input info: `n`t - CreateMPTTemplate: virtualMachine `n`t - Target Machine: $TargetMachine `n`t - Conversion Parameters: $ConversionParameters `n`t - JobID: $JobId `n`t - Working Directory: $workingDirectory" -severity 1 -Component $LoggingComponent -Path $WorkingDirectory
+                $ConversionInfo    = CreateMPTTemplate -virtualMachine $TargetMachine $ConversionParameters $JobId $workingDirectory $WorkingDirectory
                 $_templateFilePath = $ConversionInfo.Path
                 $RemoteTemplateFilePath  = $([String]$($(Get-Item -Path $_templateFilePath).FullName))
                 
-                New-LogEntry -LogEntry "    App Conversion Inputs: `n`t - Remote Template File Path: $RemoteTemplateFilePath `n`t - Password: $_password" -Severity 1 -Component $LoggingComponent
+                New-LogEntry -LogEntry "    App Conversion Inputs: `n`t - Remote Template File Path: $RemoteTemplateFilePath `n`t - Password: $_password" -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
                 $ConvertScriptBlock = "MsixPackagingTool.exe create-package --template ""$RemoteTemplateFilePath"" --machinePassword ""$_password"""
-                New-LogEntry -LogValue "    $ConvertScriptBlock" -Severity 1 -Component $LoggingComponent
+                New-LogEntry -LogValue "    $ConvertScriptBlock" -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
                 $Job = Start-Job -ScriptBlock $([scriptblock]::Create($ConvertScriptBlock))
                 #$Job = Invoke-Command -AsJob -Credential $TargetMachine.Credential -ScriptBlock $([scriptblock]::Create($ConvertScriptBlock))
                 #$Job = Invoke-Command -vmName $($TargetMachine.name) -AsJob -Credential $TargetMachine.Credential -ScriptBlock $([scriptblock]::Create($ConvertScriptBlock))
@@ -601,14 +601,14 @@ Function NewMSIXConvertedApp
                     $objTimerSeconds --
                 } while ($($($objJobStatus -ne "Completed") -and $($objJobStatus -ne "Failed")) -and $($objTimerSeconds -gt 0))
 
-                New-LogEntry -LogValue "    Reverting VM ($($TargetMachine.Name)" -Severity 1 -Component $LoggingComponent
+                New-LogEntry -LogValue "    Reverting VM ($($TargetMachine.Name)" -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
                 Restore-InitialSnapshot -SnapshotName $initialSnapshotName -VMName $($TargetMachine.Name) -jobId ""
             }
             "RunLocal-VM"
             {
                 ## Creates a new Snapshot of the VM before initiating the conversion.
-                New-LogEntry -LogValue "    Snapshot details: `n`t - Snapshot Name:  $initialSnapshotName `n`t - VM Name: $($TargetMachine.Name) `n`t - JobID: $JobID" -Severity 1 -Component $LoggingComponent
-                New-InitialSnapshot -SnapshotName $initialSnapshotName -VMName $($TargetMachine.Name) -jobId $JobID
+                New-LogEntry -LogValue "    Snapshot details: `n`t - Snapshot Name:  $initialSnapshotName `n`t - VM Name: $($TargetMachine.Name) `n`t - JobID: $JobID" -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
+                New-InitialSnapshot -SnapshotName $initialSnapshotName -VMName $($TargetMachine.Name) -jobId $JobID -WorkingDirectory $WorkingDirectory
 
                 ## Sets the Severity of the following error message, if missing requirements marks the entry as an error.
                 $objSeverity = 1
@@ -616,14 +616,14 @@ Function NewMSIXConvertedApp
                     { $objSeverity = 2 }
 
 #                Write-Host "`nConversion Job ($JobID)" -backgroundcolor Black
-#                New-LogEntry -LogValue "Conversion Job ($JobID)" -Severity 1 -WriteHost $false -Component $LoggingComponent
-#                New-LogEntry -LogValue "    Converting Application ($($ConversionParameters.PackageDisplayName))`n        - Deployment Type:      $($ConversionParameters.DeploymentType)`n        - Installer Full Path:  $($ConversionParameters.InstallerPath)`n        - Installer Filename:   $($ConversionParameters.AppFileName)`n        - Installer Argument:   $($ConversionParameters.InstallerArguments)" -Severity $objSeverity -Component $LoggingComponent
+#                New-LogEntry -LogValue "Conversion Job ($JobID)" -Severity 1 -WriteHost $false -Component $LoggingComponent -Path $WorkingDirectory
+#                New-LogEntry -LogValue "    Converting Application ($($ConversionParameters.PackageDisplayName))`n        - Deployment Type:      $($ConversionParameters.DeploymentType)`n        - Installer Full Path:  $($ConversionParameters.InstallerPath)`n        - Installer Filename:   $($ConversionParameters.AppFileName)`n        - Installer Argument:   $($ConversionParameters.InstallerArguments)" -Severity $objSeverity -Component $LoggingComponent -Path $WorkingDirectory
 
                 ## As long as the installer has silent installer arguments, then we will continue with the conversion.
                 IF($($($ConversionParameters.InstallerArguments) -ne ""))
                 {
-                    New-LogEntry -LogValue "Creating the MPT Template" -Severity 1 -WriteHost $false -Component $LoggingComponent
-                    $objConversionInfo = CreateMPTTemplate -VMLocal $ConversionParameters $JobID $workingDirectory
+                    New-LogEntry -LogValue "Creating the MPT Template" -Severity 1 -WriteHost $false -Component $LoggingComponent -Path $WorkingDirectory
+                    $objConversionInfo = CreateMPTTemplate -VMLocal $ConversionParameters $JobID $workingDirectory $WorkingDirectory
                     $_templateFilePath = $objConversionInfo.Path
                     $objXMLContent     = $($objConversionInfo.Content).Replace("'", "")
                     $objSavePath       = $objConversionInfo.SavePath
@@ -647,7 +647,7 @@ Function NewMSIXConvertedApp
                     $RemoteTemplateFilePath  = $([String]$($(Get-Item -Path $_templateFilePath).FullName))
                     $RemoteScriptRoot        = $([String]$($(Get-Item -Path $ScriptRepository).FullName))
 
-                    New-LogEntry -LogValue "        - Remote Template Parent Dir: $RemoteTemplateParentDir`n        - Remote Template File Path:  $RemoteTemplateFilePath`n        - PS Scriptroot:              $RemoteScriptRoot" -Severity 1 -WriteHost $false -Component $LoggingComponent
+                    New-LogEntry -LogValue "        - Remote Template Parent Dir: $RemoteTemplateParentDir`n        - Remote Template File Path:  $RemoteTemplateFilePath`n        - PS Scriptroot:              $RemoteScriptRoot" -Severity 1 -WriteHost $false -Component $LoggingComponent -Path $WorkingDirectory
                     
                     $ConvertScriptBlock = "MsixPackagingTool.exe create-package --template $RemoteTemplateFilePath"
                     $Job = Invoke-Command -vmName $($TargetMachine.name) -AsJob -Credential $TargetMachine.Credential -ScriptBlock $([scriptblock]::Create($ConvertScriptBlock))
@@ -665,17 +665,17 @@ Function NewMSIXConvertedApp
                     IF($($objTimerSeconds -gt 0) -and $($objJobStatus -eq "Completed"))
                     {
                         ################# Exporting Converted App #################
-                        New-LogEntry -LogValue "    Creating PS Remoting Session." -Severity 1 -Component $LoggingComponent
+                        New-LogEntry -LogValue "    Creating PS Remoting Session." -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
                         $Session = New-PSSession -VMName $($TargetMachine.Name) -Credential $($TargetMachine.Credential)
 
-                        New-LogEntry -LogValue "    Creating the export folder." -Severity 1 -Component $LoggingComponent
+                        New-LogEntry -LogValue "    Creating the export folder." -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
                         New-Item -Path $objSavePath -Force -ErrorAction SilentlyContinue
 
-                        New-LogEntry -LogValue "    Exporting the completed app to host computer" -Severity 1 -Component $LoggingComponent
+                        New-LogEntry -LogValue "    Exporting the completed app to host computer" -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
                         $objScriptBlock = "Get-ChildItem -Path ""$objSavePath"""
                         $objConvertedAppPath = Invoke-Command -Session $Session -ScriptBlock $([scriptblock]::Create($objScriptBlock))
-                        New-LogEntry -LogValue "        Script Block:  $objScriptBlock" -Severity 1 -WriteHost $true -Component $LoggingComponent
-                        New-LogEntry -LogValue "        App Path:      $($objConvertedAppPath.FullName)" -Severity 1 -WriteHost $true -Component $LoggingComponent
+                        New-LogEntry -LogValue "        Script Block:  $objScriptBlock" -Severity 1 -WriteHost $true -Component $LoggingComponent -Path $WorkingDirectory
+                        New-LogEntry -LogValue "        App Path:      $($objConvertedAppPath.FullName)" -Severity 1 -WriteHost $true -Component $LoggingComponent -Path $WorkingDirectory
 
                         Copy-Item -Path $($objConvertedAppPath.FullName) -Destination $($objConvertedAppPath.FullName) -FromSession $Session
                     }
@@ -683,29 +683,29 @@ Function NewMSIXConvertedApp
                     #Pause
                     Start-Sleep -Seconds 5
 
-                    New-LogEntry -LogValue "    Reverting VM ($($TargetMachine.Name)" -Severity 1 -Component $LoggingComponent
-                    Restore-InitialSnapshot -SnapshotName $initialSnapshotName -VMName $($TargetMachine.Name) -jobId ""
+                    New-LogEntry -LogValue "    Reverting VM ($($TargetMachine.Name)" -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
+                    Restore-InitialSnapshot -SnapshotName $initialSnapshotName -VMName $($TargetMachine.Name) -jobId "" -WorkingDirectory $WorkingDirectory
                 }
             }
         }
 
-        New-LogEntry -LogValue "    Installation Job Status:  $($objJobStatus)" -Severity 1 -writeHost $false -Component $LoggingComponent
+        New-LogEntry -LogValue "    Installation Job Status:  $($objJobStatus)" -Severity 1 -writeHost $false -Component $LoggingComponent -Path $WorkingDirectory
 
         IF($objTimerSeconds -le 0)
         { 
-            New-LogEntry -LogValue "    ERROR:  Application Conversion failed to package the application ($($ConversionParameters.PackageDisplayName))" -Severity 3 -Component $LoggingComponent
-            New-LogEntry -LogValue "    ERROR:  Application Conversion Results:`n$($Job | Receive-Job)" -Severity 3 -Component $LoggingComponent
-            New-LogEntry -LogValue "    ERROR:  Failed to complete install of application ($($ConversionParameters.PackageDisplayName)), timeout has been reached... Skipping application" -Severity 3 -writeHost $true -Component $LoggingComponent
+            New-LogEntry -LogValue "    ERROR:  Application Conversion failed to package the application ($($ConversionParameters.PackageDisplayName))" -Severity 3 -Component $LoggingComponent -Path $WorkingDirectory
+            New-LogEntry -LogValue "    ERROR:  Application Conversion Results:`n$($Job | Receive-Job)" -Severity 3 -Component $LoggingComponent -Path $WorkingDirectory
+            New-LogEntry -LogValue "    ERROR:  Failed to complete install of application ($($ConversionParameters.PackageDisplayName)), timeout has been reached... Skipping application" -Severity 3 -writeHost $true -Component $LoggingComponent -Path $WorkingDirectory
         }
         ELSEIF($($objJobStatus -ne "Completed"))
         {
-            New-LogEntry -LogValue "    ERROR:  Application Conversion failed to package the application ($($ConversionParameters.PackageDisplayName))" -Severity 3 -Component $LoggingComponent
-            New-LogEntry -LogValue "    ERROR:  Application Conversion Results:`n$($Job | Receive-Job)" -Severity 3 -Component $LoggingComponent
-            New-LogEntry -LogValue "    ERROR:  $($Job.ChildJobs[0].Error)" -Severity 3 -Component $LoggingComponent
+            New-LogEntry -LogValue "    ERROR:  Application Conversion failed to package the application ($($ConversionParameters.PackageDisplayName))" -Severity 3 -Component $LoggingComponent -Path $WorkingDirectory
+            New-LogEntry -LogValue "    ERROR:  Application Conversion Results:`n$($Job | Receive-Job)" -Severity 3 -Component $LoggingComponent -Path $WorkingDirectory
+            New-LogEntry -LogValue "    ERROR:  $($Job.ChildJobs[0].Error)" -Severity 3 -Component $LoggingComponent -Path $WorkingDirectory
         }
         Else
         {
-            New-LogEntry -LogValue "    Application Conversion Results:`n$($Job | Receive-Job)" -Severity 1 -writeHost $true -Component $LoggingComponent
+            New-LogEntry -LogValue "    Application Conversion Results:`n$($Job | Receive-Job)" -Severity 1 -writeHost $true -Component $LoggingComponent -Path $WorkingDirectory
         }
     #}
     
@@ -732,7 +732,8 @@ Function Test-VMConnection
 
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$True, Position=0)][ValidateNotNullOrEmpty()][string] $VMName
+        [Parameter(Mandatory=$True, Position=0)][ValidateNotNullOrEmpty()][string] $VMName,
+        [Parameter(Mandatory=$False,Position=1)] $workingDirectory
     )
 
     ## Sets the variables required by the function
@@ -755,17 +756,17 @@ Function Test-VMConnection
 
         IF(-not $ValidationResult)
         {
-            New-LogEntry -LogValue "Unable to locate $VMName on this machine." -Component "SharedScriptLib.ps1:Test-VMConnection" -Severity 3
+            New-LogEntry -LogValue "Unable to locate $VMName on this machine." -Component "SharedScriptLib.ps1:Test-VMConnection" -Severity 3 -Path $WorkingDirectory
             $ReturnResult = $false
         }
         ELSEIF(-not $NicMatched)
         {
-            New-LogEntry -LogValue "Unable to find matching NIC between VM and Host." -Component "SharedScriptLib.ps1:Test-VMConnection" -Severity 3
+            New-LogEntry -LogValue "Unable to find matching NIC between VM and Host." -Component "SharedScriptLib.ps1:Test-VMConnection" -Severity 3 -Path $WorkingDirectory
             $ReturnResult = $false
         }
 
         ## Unable to find a matching NIC or the connection was disconnected. Returns false.
-        New-LogEntry -LogValue "Connection to $VMName VM failed." -Component "SharedScriptLib.ps1:Test-VMConnection" -Severity 3
+        New-LogEntry -LogValue "Connection to $VMName VM failed." -Component "SharedScriptLib.ps1:Test-VMConnection" -Severity 3 -Path $WorkingDirectory
         $ReturnResult = $false
     }
 
@@ -791,7 +792,8 @@ Function Test-RMConnection
     [CmdletBinding()]
     param (
         [Parameter(Mandatory=$True, Position=0)][ValidateNotNullOrEmpty()][string] $RemoteMachineName,
-        [Parameter(Mandatory=$False,Position=1)][string] $JobID = "-"
+        [Parameter(Mandatory=$False,Position=1)][string] $JobID = "-",
+        [Parameter(Mandatory=$False,Position=2)] $workingDirectory
     )
 
     Begin{
@@ -811,18 +813,18 @@ Function Test-RMConnection
         IF($($PingResult.Count) -eq 4)
         {
             ## All Ping Results have returned successfully. Consider this a 100% good VM to work with.
-            New-LogEntry -LogValue "Connection to $RemoteMachineName Successful." -Component $LoggingComponent
+            New-LogEntry -LogValue "Connection to $RemoteMachineName Successful." -Component $LoggingComponent -Path $WorkingDirectory
             $PINGResults = $true
         }
         ELSEIF($($PingResult.Count) -gt 0)
         {
             ## Some Pings were lost, still good, just potential network issue.
-            New-LogEntry -LogValue "Connection to $RemoteMachineName successful, Some packets were dropped." -Component $LoggingComponent -Severity 2
+            New-LogEntry -LogValue "Connection to $RemoteMachineName successful, Some packets were dropped." -Component $LoggingComponent -Path $WorkingDirectory -Severity 2
             $PINGResults = $true
         }
         ELSE {
             ## Returns false, no network response was available.
-            New-LogEntry -LogValue "Unable to Connect to $RemoteMachineName`r    - Ensure Firewall has been configured to allow remote connections and PING requests"  -Component $LoggingComponent -Severity 3
+            New-LogEntry -LogValue "Unable to Connect to $RemoteMachineName`r    - Ensure Firewall has been configured to allow remote connections and PING requests"  -Component $LoggingComponent -Path $WorkingDirectory -Severity 3
             $PINGResults = $false
         }
 
@@ -831,11 +833,11 @@ Function Test-RMConnection
         IF($WSManTrustedHosts -like "*$RemoteMachineName*")
         {
             ## Verifies that the VM is listed on the host machines WSMan Trusted Hosts
-            New-LogEntry -LogValue "Remote Machine is listed in the $($Env:COMPUTERNAME) list of trust hosts." -Severity 1 -Component $LoggingComponent
+            New-LogEntry -LogValue "Remote Machine is listed in the $($Env:COMPUTERNAME) list of trust hosts." -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
             $WSManResults = $True
         }
         ELSE {
-            New-LogEntry -LogValue "Remote Machine is not listed in the $($Env:COMPUTERNAME) list of trust hosts. Please include the Remote Machine as a member of the Trusted Hosts." -Severity 2 -WriteHost $True -Component $LoggingComponent
+            New-LogEntry -LogValue "Remote Machine is not listed in the $($Env:COMPUTERNAME) list of trust hosts. Please include the Remote Machine as a member of the Trusted Hosts." -Severity 2 -WriteHost $True -Component $LoggingComponent -Path $WorkingDirectory -Path $WorkingDirectory
             $WSManResults = $True
         }
 

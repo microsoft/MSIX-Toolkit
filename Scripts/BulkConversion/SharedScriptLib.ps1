@@ -67,6 +67,8 @@ Function New-LogEntry ([Parameter(Mandatory=$True,Position=0)][string] $LogValue
     New-LogEntry -LogValue "Message to be included in Log file." -Severity 1 -Component "[Function Name or Script File]"
     #>
 
+    $Path = ([System.IO.Path]::Combine($Path, "Logs"))
+
     IF(!(Test-path -Path $Path)) {$Scratch = mkdir $Path}
     $Error.Clear()
 
@@ -102,7 +104,9 @@ Function New-InitialSnapshot
     param(
         [Parameter(Mandatory=$True,Position=0 )] $VMName,
         [Parameter(Mandatory=$True,Position=1 )] $SnapshotName,
-        [Parameter(Mandatory=$False,Position=2)] $jobId="--")
+        [Parameter(Mandatory=$False,Position=2)] $jobId="--",
+        [Parameter(Mandatory=$False,Position=3)] $workingDirectory
+    )
 
     <#
     .SYNOPSIS
@@ -120,15 +124,17 @@ Function New-InitialSnapshot
     #>
 
     $FunctionName = Get-FunctionName
-    ## Verifies if the script snapshot exists, if not exists snapshot is created.
+    $LoggingComponent = "JobID($JobID) - $FunctionName" 
+
+    ## Verifies if the script snapshot exists, if not exists snapshot is created. -WorkingDirectory $WorkingDirectory
     IF ($SnapshotName -cnotin $(Get-VMSnapshot -VMName $vmName).Name)
     {
-        New-LogEntry -LogValue "Creating VM Snap for VM ($VMName): $SnapshotName" -Component "JobID($JobID) - $FunctionName" 
+        New-LogEntry -LogValue "Creating VM Snap for VM ($VMName): $SnapshotName" -Component $LoggingComponent -Path $WorkingDirectory
         $Scratch = Checkpoint-VM -Name $vmName -SnapshotName "$SnapshotName"
     }
     Else
     {
-        New-LogEntry -LogValue "Snapshot ($SnapshotName) for VM ($VMName) already exists. " -Component "JobID($JobID) - $FunctionName"
+        New-LogEntry -LogValue "Snapshot ($SnapshotName) for VM ($VMName) already exists. " -Component $LoggingComponent -Path $WorkingDirectory
     }
 }
 
@@ -153,13 +159,16 @@ Function Restore-InitialSnapshot
     param(
         [Parameter(Mandatory=$True, Position=0)][string] $VMName,
         [Parameter(Mandatory=$True, Position=1)][string] $SnapshotName,
-        [Parameter(Mandatory=$False,Position=2)][string] $jobId="--")
+        [Parameter(Mandatory=$False,Position=2)][string] $jobId="--",
+        [Parameter(Mandatory=$False,Position=3)] $workingDirectory
+        )
 
     $FunctionName = Get-FunctionName
+    $LoggingComponent = "JobID($JobID) - $FunctionName"
 
     IF ($SnapshotName -in $(Get-VMSnapshot -VMName $vmName).Name)
     {
-        New-LogEntry -LogValue "Reverting Virtual Machine to earlier snapshot ($initialSnapshotName)" -Component "JobID($jobId) - $FunctionName"
+        New-LogEntry -LogValue "Reverting Virtual Machine to earlier snapshot ($initialSnapshotName)" -Component $LoggingComponent -Path $WorkingDirectory
         $Scratch = Restore-VMSnapshot -Name "$SnapshotName" -VMName $vmName -Confirm:$false
 
         Start-Sleep -Seconds 10
@@ -184,7 +193,9 @@ Function Set-JobProgress
     [CmdletBinding()]
     param (
         [Parameter(Mandatory=$True,Position=0)]      $ConversionJobs,
-        [Parameter(Mandatory=$True,Position=1)][int] $TotalTasks)
+        [Parameter(Mandatory=$True,Position=1)][int] $TotalTasks,
+        [Parameter(Mandatory=$False,Position=2)] $workingDirectory
+    )
 
     # Sets the Valiables
     $RunningJobs   = $($($ConversionJobs | where-object State -eq "Running").count)/2     ## Inprogress jobs are represented as 0.5/job
@@ -232,7 +243,9 @@ Function Test-Input
         [Parameter(Mandatory=$True,ParameterSetName="VMSnapshot-Exists")][ValidateNotNullOrEmpty()][string] $SnapShotName,
         [Parameter(Mandatory=$True,ParameterSetName="CMApplication-Valid")][ValidateNotNullOrEmpty()] $CMApplication,
         [Parameter(Mandatory=$True,ParameterSetName="CMDeploymentType-Valid")][ValidateNotNullOrEmpty()] $CMDeploymentType,
-        [Parameter(Mandatory=$True,ParameterSetName="CMServer-Exists")][ValidateNotNullOrEmpty()][string] $CMServer)
+        [Parameter(Mandatory=$True,ParameterSetName="CMServer-Exists")][ValidateNotNullOrEmpty()][string] $CMServer,
+        [Parameter(Mandatory=$False)] $workingDirectory
+    )
 
     ## If no validation tests can be found, default to failure.
     $ValidationResult = $false
