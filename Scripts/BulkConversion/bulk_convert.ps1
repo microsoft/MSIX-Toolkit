@@ -112,7 +112,7 @@ function CreateMPTTemplate
         $saveFolder              = [System.IO.Path]::Combine($workingDirectory, "MSIX")
         $MPTTemplate             = [System.IO.Path]::Combine($workingDirectory, "MPT_Templates")
         #$workingDirectory        = [System.IO.Path]::Combine($workingDirectory, "MPT_Templates")
-        $templateFilePath        = [System.IO.Path]::Combine($workingDirectory, "MsixPackagingToolTemplate_Job$($jobId).xml")
+        $templateFilePath        = [System.IO.Path]::Combine($MPTTemplate, "MsixPackagingToolTemplate_Job$($jobId).xml")
         $conversionMachine       = ""
 
         New-LogEntry -LogValue "    Creating the MPT Template using the following values:`n`t - ParameterSet:`t`t $($PSCmdlet.ParameterSetName)`n`t - JobID:`t`t`t $JobID`n`t - WorkingDirectory:`t $WorkingDirectory`n`t - VirtualMachine:`t`t $($VirtualMachine.Name)`n`t - RemoteMachine:`t`t $($RemoteMachine.ComputerName)`n`t - ConversionParam:`t $ConversionParam" -severity 1 -Component $LoggingComponent -Path $WorkingDirectory
@@ -635,12 +635,15 @@ Function NewMSIXConvertedApp
                     Start-Sleep -Seconds 5
 
                     ################# Creating / Copying Script Folder #################
+                    New-LogEntry -LogValue "    Copying MSIX Toolkit Scripts folder to VM ($($TargetMachine.Name))" -Severity 1 -WriteHost $false -Component $LoggingComponent -Path $WorkingDirectory
                     Get-ChildItem -Recurse $ScriptRepository | ForEach-Object { Copy-VMFile -Name $($TargetMachine.Name) -Force -SourcePath $($_.FullName) -DestinationPath $($_.FullName) -FileSource Host -CreateFullPath }
                     
                     ################# Creating / Copying Template Folder #################
+                    New-LogEntry -LogValue "    Copying MSIX MPT Template file to VM ($($TargetMachine.Name))" -Severity 1 -WriteHost $false -Component $LoggingComponent -Path $WorkingDirectory
                     $Job = Copy-VMFile -Name $($TargetMachine.Name) -Force -SourcePath $($_templateFilePath) -DestinationPath $($_templateFilePath) -FileSource Host -CreateFullPath
 
                     ################# Creating / Copying Installer Folder #################
+                    New-LogEntry -LogValue "    Copying the Application installation media to the VM ($($TargetMachine.Name))" -Severity 1 -WriteHost $false -Component $LoggingComponent -Path $WorkingDirectory
                     Get-ChildItem -Recurse $($ConversionParameters.AppInstallerFolderPath) | ForEach-Object { Copy-VMFile -Name $($TargetMachine.Name) -Force -SourcePath $($_.FullName) -DestinationPath $($_.FullName.Replace($($ConversionParameters.AppInstallerFolderPath), $($ConversionParameters.InstallerFolderPath))) -FileSource Host -CreateFullPath -ErrorAction SilentlyContinue }
                     
                     ################# Converting App #################
