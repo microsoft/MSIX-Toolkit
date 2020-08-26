@@ -261,6 +261,7 @@ function RunConversionJobs
                     $ConversionJobName    = "Job($_JobID) - $($ConversionParam.PackageDisplayName)"
 
                     New-LogEntry -LogValue "Determining next job to run..." -Component $LoggingComponent
+                    New-LogEntry -LogValue "Dequeuing conversion job ($($_JobId)) for installer $($conversionParam.InstallerPath) on Remote Machine $($_.ComputerName)" -Component $LoggingComponent
                     
                     $FuncScriptBlock = $Function:NewMSIXConvertedApp
 
