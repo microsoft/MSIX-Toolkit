@@ -267,9 +267,9 @@ function RunConversionJobs
 
                     ## If sourced from ConfigMgr or Export then run Local if more than 1 file exists in root.
                     IF($($conversionParam.AppInstallerFolderPath) -and $($($(Get-ChildItem -Recurse -Path $conversionParam.AppInstallerFolderPath).count -gt 1) -or $($($conversionParam.AppInstallerFolderPath).StartsWith("\\"))))
-                        { $_.ConversionJob = Start-Job -Name $ConversionJobName -ScriptBlock $([scriptblock]::Create($FuncScriptBlock)) -ArgumentList ("RunLocal-RM", $_, $conversionParam, $_JobID, $WorkingDirectory, $PSScriptRoot, $WorkingDirectory) }
+                        { $_.ConversionJob = Start-Job -Name $ConversionJobName -ScriptBlock $([scriptblock]::Create($FuncScriptBlock)) -ArgumentList ("RunLocal-RM", $_, $conversionParam, $_JobID, $WorkingDirectory, $PSScriptRoot) }
                     ELSE 
-                        { $_.ConversionJob = Start-Job -Name $ConversionJobName -ScriptBlock $([scriptblock]::Create($FuncScriptBlock)) -ArgumentList ("RemoteMachine", $_, $conversionParam, $_JobID, $WorkingDirectory, $PSScriptRoot, $WorkingDirectory) }
+                        { $_.ConversionJob = Start-Job -Name $ConversionJobName -ScriptBlock $([scriptblock]::Create($FuncScriptBlock)) -ArgumentList ("RemoteMachine", $_, $conversionParam, $_JobID, $WorkingDirectory, $PSScriptRoot) }
 
                     #$_.ConversionJob = Start-Job -Name $ConversionJobName -ScriptBlock $([scriptblock]::Create($FuncScriptBlock)) -ArgumentList ("RemoteMachine", $_, $conversionParam, $_JobID, $WorkingDirectory, $PSScriptRoot)
 
@@ -317,9 +317,9 @@ function RunConversionJobs
 
                 ## If sourced from ConfigMgr or Export then run Local if more than 1 file exists in root.
                 IF($($conversionParam.AppInstallerFolderPath) -and $($($(Get-ChildItem -Recurse -Path $conversionParam.AppInstallerFolderPath).count -gt 1) -or $($($conversionParam.AppInstallerFolderPath).StartsWith("\\"))))
-                    { $VM.ConversionJob = Start-Job -Name $ConversionJobName -ScriptBlock $([scriptblock]::Create($FuncScriptBlock)) -ArgumentList ("RunLocal-VM", $VM, $conversionParam, $_JobID, $WorkingDirectory, $PSScriptRoot, $WorkingDirectory) }
+                    { $VM.ConversionJob = Start-Job -Name $ConversionJobName -ScriptBlock $([scriptblock]::Create($FuncScriptBlock)) -ArgumentList ("RunLocal-VM", $VM, $conversionParam, $_JobID, $WorkingDirectory, $PSScriptRoot) }
                 ELSE 
-                    { $VM.ConversionJob = Start-Job -Name $ConversionJobName -ScriptBlock $([scriptblock]::Create($FuncScriptBlock)) -ArgumentList ("VirtualMachine", $VM, $conversionParam, $_JobID, $WorkingDirectory, $PSScriptRoot, $WorkingDirectory) }
+                    { $VM.ConversionJob = Start-Job -Name $ConversionJobName -ScriptBlock $([scriptblock]::Create($FuncScriptBlock)) -ArgumentList ("VirtualMachine", $VM, $conversionParam, $_JobID, $WorkingDirectory, $PSScriptRoot) }
 
                 $ConversionJobs += $($VM.ConversionJob)
                 
