@@ -34,9 +34,9 @@ $CertPath       = "[Path to PFX Signing Cert]"
 
 ## Remote Machines to be used for converting applications to the MSIX Packaging format.
 [TargetMachine[]] $remoteMachines = @(
-    @{ Name = "[ComputerName]"; Credential = $credential }
-    @{ Name = "[ComputerName]"; Credential = $credential }
-    @{ Name = "[ComputerName]"; Credential = $credential }
+    @{ ComputerName = "[ComputerName]"; Credential = $credential }
+    @{ ComputerName = "[ComputerName]"; Credential = $credential }
+    @{ ComputerName = "[ComputerName]"; Credential = $credential }
 )
 
 #############################################################################
@@ -49,6 +49,7 @@ $CertPublisher  = $(Get-PfxData -FilePath $($CertPath) -Password $($(ConvertTo-S
     Password = $CertPassword; Path = $CertPath; Publisher = $CertPublisher
 }
 
+Write-Host "`n###########  Collecting Applications  ###########" -BackgroundColor Black
 [ConversionParam[]] $conversionsParameters = @()
 
 Switch ($PSCmdlet.ParameterSetName)
@@ -61,10 +62,14 @@ Switch ($PSCmdlet.ParameterSetName)
         { $conversionsParameters = Get-CMExportAppData -CMSiteCode $CMSiteCode -CMSiteServer $CMSiteServer -AppName $CMAppName -SigningCertificate $SigningCertificate }
 }
 
-## Converts the identified applications to MSIX Packaging Format.
-Write-Host "`n###########  Packaging Applications  ###########" -BackgroundColor Black
-RunConversionJobs -conversionsParameters $conversionsParameters -virtualMachines $virtualMachines -remoteMachines $remoteMachines $workingDirectory
+## Verifies that there are application conversion details to be converted.
+IF($conversionsParameters -ne "" -and $null -ne $conversionsParameters)
+{
+    ## Converts the identified applications to MSIX Packaging Format.
+    Write-Host "`n###########  Packaging Applications  ###########" -BackgroundColor Black
+    RunConversionJobs -conversionsParameters $conversionsParameters -virtualMachines $virtualMachines -remoteMachines $remoteMachines $workingDirectory
 
-## Signs the previously created MSIX Apps with provided certificate.
-Write-Host "`n############  Signing Applications  ############" -BackgroundColor Black
-Set-MSIXSignApp -conversionsParameters $conversionsParameters -WorkingDirectory $workingDirectory -CertificatePath $($SigningCertificate.Path) -CertificatePassword $($SigningCertificate.Password)
+    ## Signs the previously created MSIX Apps with provided certificate.
+    Write-Host "`n############  Signing Applications  ############" -BackgroundColor Black
+    Set-MSIXSignApp -conversionsParameters $conversionsParameters -WorkingDirectory $workingDirectory -CertificatePath $($SigningCertificate.Path) -CertificatePassword $($SigningCertificate.Password)
+}

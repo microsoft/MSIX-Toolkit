@@ -23,9 +23,9 @@ $CertPublisher = $(Get-PfxData -FilePath $($CertPath) -Password $($(ConvertTo-Se
 
 ## Remote Machines to be used for converting applications to the MSIX Packaging format.
 [TargetMachine[]] $remoteMachines = @(
-    @{ Name = "[ComputerName]"; Credential = $credential }
-    @{ Name = "[ComputerName]"; Credential = $credential }
-    @{ Name = "[ComputerName]"; Credential = $credential }
+    @{ ComputerName = "[ComputerName]"; Credential = $credential }
+    @{ ComputerName = "[ComputerName]"; Credential = $credential }
+    @{ ComputerName = "[ComputerName]"; Credential = $credential }
 )
 
 ## Applications to be converted.
