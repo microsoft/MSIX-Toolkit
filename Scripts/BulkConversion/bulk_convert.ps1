@@ -110,7 +110,8 @@ function CreateMPTTemplate
         $objPackageVersion       = $conversionParam.PackageVersion
 
         $saveFolder              = [System.IO.Path]::Combine($workingDirectory, "MSIX")
-        $workingDirectory        = [System.IO.Path]::Combine($workingDirectory, "MPT_Templates")
+        $MPTTemplate             = [System.IO.Path]::Combine($workingDirectory, "MPT_Templates")
+        #$workingDirectory        = [System.IO.Path]::Combine($workingDirectory, "MPT_Templates")
         $templateFilePath        = [System.IO.Path]::Combine($workingDirectory, "MsixPackagingToolTemplate_Job$($jobId).xml")
         $conversionMachine       = ""
 
@@ -131,11 +132,11 @@ function CreateMPTTemplate
 
         ## If the Save Template Path has been specified, use this directory otherwise use the default working directory.
         If($($conversionParam.SaveTemplatePath))
-            { $workingDirectory = [System.IO.Path]::Combine($($conversionParam.SaveTemplatePath), "MPT_Templates") }
+            { $MPTTemplate = [System.IO.Path]::Combine($($conversionParam.SaveTemplatePath), "MPT_Templates") }
 
         ## Detects if the MPT Template path exists, if not creates it.
-        IF(!$(Get-Item -Path $workingDirectory -ErrorAction SilentlyContinue))
-            { $Scratch = New-Item -Force -Type Directory $workingDirectory }
+        IF(!$(Get-Item -Path $MPTTemplate -ErrorAction SilentlyContinue))
+            { $Scratch = New-Item -Force -Type Directory $MPTTemplate }
         
         ## Determines the type of machine that will be connected to for conversion.
         switch ($PSCmdlet.ParameterSetName)
@@ -170,7 +171,7 @@ $conversionMachine
         $ConversionInfo | Add-Member -MemberType NoteProperty -Name "Content"      -Value $($xmlContent)
         $ConversionInfo | Add-Member -MemberType NoteProperty -Name "Path"         -Value $($templateFilePath)
         $ConversionInfo | Add-Member -MemberType NoteProperty -Name "SavePath"     -Value $($saveFolder)
-        $ConversionInfo | Add-Member -MemberType NoteProperty -Name "TemplatePath" -Value $($workingDirectory)
+        $ConversionInfo | Add-Member -MemberType NoteProperty -Name "TemplatePath" -Value $($MPTTemplate)
     }
 
     ## Returns the MPT Template Details.
