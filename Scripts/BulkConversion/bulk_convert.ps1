@@ -274,11 +274,9 @@ function RunConversionJobs
                     }
                     ELSE 
                     {
-                        New-LogEntry -LogValue "    Running Job on Remote Machine using the following parameters:`n`t - RemoteMachine`n`t - ConversionJob: $($_.ConversionJob)`n`t - Target Machine Name: $($_.ComputerName)`n`t - Working Directory: $WorkingDirectory`n`t - PS ScriptRoot: $PSScriptRoot`n`t - Conversion Params: $($conversionParam | foreach-object("$_`n`t`t") )" -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
-                        $_.ConversionJob = Start-Job -Name $ConversionJobName -ScriptBlock $([scriptblock]::Create($FuncScriptBlock)) -ArgumentList ("VirtualMachine", $_, $conversionParam, $_JobID, $WorkingDirectory, $PSScriptRoot)
+                        New-LogEntry -LogValue "    Running Job on Remote Machine using the following parameters:`n`t - RemoteMachine`n`t - ConversionJob: $($_.ConversionJob)`n`t - Target Machine Name: $($_.ComputerName)`n`t - Working Directory: $WorkingDirectory`n`t - PS ScriptRoot: $PSScriptRoot" -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
+                        $_.ConversionJob = Start-Job -Name $ConversionJobName -ScriptBlock $([scriptblock]::Create($FuncScriptBlock)) -ArgumentList ("RemoteMachine", $_, $conversionParam, $_JobID, $WorkingDirectory, $PSScriptRoot)
                     }
-
-                    #$_.ConversionJob = Start-Job -Name $ConversionJobName -ScriptBlock $([scriptblock]::Create($FuncScriptBlock)) -ArgumentList ("RemoteMachine", $_, $conversionParam, $_JobID, $WorkingDirectory, $PSScriptRoot)
 
                     $ConversionJobs += $($_.ConversionJob)
 
@@ -414,7 +412,7 @@ Function NewMSIXConvertedApp
     )
 
     ## Verifies provided paramters, and sets variables required by function.
-#    Begin {
+    Begin {
         . $ScriptRepository\SharedScriptLib.ps1
         . $ScriptRepository\Bulk_Convert.ps1
 
@@ -439,7 +437,7 @@ Function NewMSIXConvertedApp
         ELSE
         {
             $VMResult = $(Get-VM).Name -contains $($TargetMachine.Name)
-            $RMResult = [boolean]$(Test-Connection -ComputerName $TargetMachine.ComputerName -WorkingDirectory $WorkingDirectory)
+            $RMResult = [boolean]$(Test-Connection -ComputerName $TargetMachine.ComputerName)
             
             IF( -not $($VMResult -or $RMResult))
             {
@@ -512,10 +510,10 @@ Function NewMSIXConvertedApp
         #New-LogEntry -LogValue "    Converting Application ($($ConversionParameters.PackageDisplayName))`n        - Deployment Type:      $($ConversionParameters.DeploymentType)`n        - Installer Full Path:  $($ConversionParameters.InstallerPath)`n        - Installer Filename:   $($ConversionParameters.AppFileName)`n        - Installer Argument:   $($ConversionParameters.InstallerArguments)" -Severity $objSeverity -Component $LoggingComponent -Path $WorkingDirectory
         New-LogEntry -LogValue "    #### Converting Application: $($ConversionParameters.PackageDisplayName) ####" -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
         New-LogEntry -LogValue $AppConversionDetails -Severity 1 -WriteHost $False -Component $LoggingComponent -Path $WorkingDirectory
-#    }
+    }
 
     ## Created the MPT Template, and converts the application against the target machine.
-#    Process{
+    Process{
         Switch ($ConversionTarget)
         {
             "RemoteMachine"
@@ -717,13 +715,13 @@ Function NewMSIXConvertedApp
         {
             New-LogEntry -LogValue "    Application Conversion Results:`n$($Job | Receive-Job)" -Severity 1 -writeHost $true -Component $LoggingComponent -Path $WorkingDirectory
         }
-    #}
+    }
     
     ## Returns the results.
-    #End{
+    End{
         Return $Job
         #Return $ConversionJobs
-    #}
+    }
     
 }
 
