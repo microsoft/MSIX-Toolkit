@@ -760,7 +760,7 @@ Function Get-CMExportAppData
     [CmdletBinding(DefaultParameterSetName='CMServer')]
     param (
         [Parameter(Mandatory=$false)][ValidateNotNullOrEmpty()][CodeSigningCert] $SigningCertificate,
-        [Parameter(Mandatory=$false)][ValidateNotNullOrEmpty()][string]          $AppName="*",
+        [Parameter(Mandatory=$false)][string] $AppName="*",
         [Parameter(Mandatory=$True,ParameterSetName=$('CMExportPathTarget'),Position=0)][string] $CMAppContentPath,
         [Parameter(Mandatory=$True,ParameterSetName=$('CMExportPathTarget'),Position=1)][string] $CMAppMetaDataPath,
         [Parameter(Mandatory=$True,ParameterSetName=$('CMExportPathParent'),Position=0)][string] $CMAppParentPath,
@@ -796,7 +796,7 @@ Function Get-CMExportAppData
                 IF(-not $TestPath.Exists)
                 {
                     ## If Value does not resolve to a location fail, and exit
-                    New-LogEntry -LogValue "" -Severity 3 -WriteHost $True -Component $LoggingComponent -Path $WorkingDirectory
+                    New-LogEntry -LogValue "Failed to find target location CM AppContent Path`n`t - AppContent Path: $CMAppContentPath" -Severity 3 -WriteHost $True -Component $LoggingComponent -Path $WorkingDirectory
                     Return
                 }
 
@@ -806,7 +806,7 @@ Function Get-CMExportAppData
                 IF(-not $TestPath.Exists)
                 {
                     ## If Value does not resolve to a location fail, and exit
-                    New-LogEntry -LogValue "" -Severity 3 -WriteHost $True -Component $LoggingComponent -Path $WorkingDirectory
+                    New-LogEntry -LogValue "Failed to find target location CM AppMetaData Path`n`t - AppMeta Path: $CMAppMetaDataPath" -Severity 3 -WriteHost $True -Component $LoggingComponent -Path $WorkingDirectory
                     Return
                 }
             }
@@ -818,7 +818,7 @@ Function Get-CMExportAppData
                 IF(-not $TestPath.Exists)
                 {
                     ## If Value does not resolve to a location fail, and exit
-                    New-LogEntry -LogValue "" -Severity 3 -WriteHost $True -Component $LoggingComponent -Path $WorkingDirectory
+                    New-LogEntry -LogValue "Failed to find target location CM AppParent Path`n`t - CM App Parent Path: $CMAppParentPath" -Severity 3 -WriteHost $True -Component $LoggingComponent -Path $WorkingDirectory
                     Return
                 }
             }

@@ -209,7 +209,7 @@ function RunConversionJobs
     )
 
     ## Validates the paramters, and sets variables required by the function.
-    Begin{
+#    Begin{
         $FunctionName = Get-FunctionName
         $LoggingComponent = "JobID(-) - $FunctionName"
 
@@ -238,10 +238,10 @@ function RunConversionJobs
                 New-LogEntry -logValue "Warning, there are not enough Remote Machines ($($RemoteMachines.count)) to package all identified applications ($($ConversionsParameters.count))" -Severity 2 -Component $LoggingComponent -Path $WorkingDirectory
             }
         }
-    }
+#    }
 
     ## Triggers the newMSIXConvertedApp Function to convert the application for each app
-    Process{
+#    Process{
         ####################
         ## Remote Machine ##
         ####################
@@ -268,9 +268,15 @@ function RunConversionJobs
 
                     ## If sourced from ConfigMgr or Export then run Local if more than 1 file exists in root.
                     IF($($conversionParam.AppInstallerFolderPath) -and $($($(Get-ChildItem -Recurse -Path $conversionParam.AppInstallerFolderPath).count -gt 1) -or $($($conversionParam.AppInstallerFolderPath).StartsWith("\\"))))
-                        { $_.ConversionJob = Start-Job -Name $ConversionJobName -ScriptBlock $([scriptblock]::Create($FuncScriptBlock)) -ArgumentList ("RunLocal-RM", $_, $conversionParam, $_JobID, $WorkingDirectory, $PSScriptRoot) }
+                    {
+                        New-LogEntry -LogValue "    Running Job on Remote Machine using the following parameters:`n`t - RunLocal-RM`n`t - ConversionJob: $($_.ConversionJob)`n`t - Target Machine Name: $($_.ComputerName)`n`t - Working Directory: $WorkingDirectory`n`t - PS ScriptRoot: $PSScriptRoot" -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
+                        $_.ConversionJob = Start-Job -Name $ConversionJobName -ScriptBlock $([scriptblock]::Create($FuncScriptBlock)) -ArgumentList ("RunLocal-RM", $_, $conversionParam, $_JobID, $WorkingDirectory, $PSScriptRoot) 
+                    }
                     ELSE 
-                        { $_.ConversionJob = Start-Job -Name $ConversionJobName -ScriptBlock $([scriptblock]::Create($FuncScriptBlock)) -ArgumentList ("RemoteMachine", $_, $conversionParam, $_JobID, $WorkingDirectory, $PSScriptRoot) }
+                    {
+                        New-LogEntry -LogValue "    Running Job on Remote Machine using the following parameters:`n`t - RemoteMachine`n`t - ConversionJob: $($_.ConversionJob)`n`t - Target Machine Name: $($_.ComputerName)`n`t - Working Directory: $WorkingDirectory`n`t - PS ScriptRoot: $PSScriptRoot`n`t - Conversion Params: $($conversionParam | foreach-object("$_`n`t`t") )" -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
+                        $_.ConversionJob = Start-Job -Name $ConversionJobName -ScriptBlock $([scriptblock]::Create($FuncScriptBlock)) -ArgumentList ("VirtualMachine", $_, $conversionParam, $_JobID, $WorkingDirectory, $PSScriptRoot)
+                    }
 
                     #$_.ConversionJob = Start-Job -Name $ConversionJobName -ScriptBlock $([scriptblock]::Create($FuncScriptBlock)) -ArgumentList ("RemoteMachine", $_, $conversionParam, $_JobID, $WorkingDirectory, $PSScriptRoot)
 
@@ -352,10 +358,10 @@ function RunConversionJobs
             Start-Sleep(1)
             Set-JobProgress -ConversionJobs $ConversionJobs -TotalTasks $($conversionsParameters.count) -WorkingDirectory $WorkingDirectory
         }
-    }
+#    }
 
     ## Stops any failed or currently running jobs, and cleans up jobs
-    End{
+#    End{
 
         ##############
         ## Clean-up ##
@@ -370,7 +376,7 @@ function RunConversionJobs
 
         #Read-Host -Prompt 'Press any key to continue '
         New-LogEntry -LogValue "Finished running all jobs" -Component $LoggingComponent -Path $WorkingDirectory
-    }
+#    }
 }
 
 Function NewMSIXConvertedApp 
@@ -402,7 +408,7 @@ Function NewMSIXConvertedApp
         [Parameter(Mandatory=$True, Position=0)][ValidateSet ("RunLocal-RM", "RunLocal-VM", "RemoteMachine", "VirtualMachine")][String] $ConversionTarget,
         [Parameter(Mandatory=$True, Position=1)] $TargetMachine,
         [Parameter(Mandatory=$True, Position=2)] $ConversionParameters,
-        [Parameter(Mandatory=$False,Position=3)][string] $JobID="--",
+        [Parameter(Mandatory=$False,Position=3)][string] $JobID="-",
         [Parameter(Mandatory=$False,Position=4)][string] $WorkingDirectory="C:\Temp\MSIXBulkConversion",
         [Parameter(Mandatory=$False,Position=5)][string] $ScriptRepository=$PSScriptRoot
     )
@@ -548,7 +554,7 @@ Function NewMSIXConvertedApp
                 $_templateFilePath      = $ConversionInfo.Path
                 $RemoteTemplateFilePath = $([String]$($(Get-Item -Path $_templateFilePath).FullName))
 
-                #############################################
+                ###########################################
                 ## Transfers Application to Host Machine ##
                 New-LogEntry -LogValue "    Transferring Applications:" -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
 
