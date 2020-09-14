@@ -378,9 +378,9 @@ function Format-MSIXAppExportDetails
 
             ###########################
             ## Uninstall Information ##
-            $objUninstallerAction     = Get-MSIXConnectInstallInfo -DeploymentAction $($Deployment.Installer.UninstallAction) -InstallerTechnology $($Deployment.Installer.Technology) -WorkingDirectory $WorkingDirectory
-            $_UninstallerPath         = $objUninstallerAction.Filename
-            $_UninstallerArgument     = Format-MSIXPackageInfo -AppArgument $($objUninstallerAction.Argument) -ErrorAction SilentlyContinue -ErrorVariable Err -WorkingDirectory $WorkingDirectory
+#            $objUninstallerAction     = Get-MSIXConnectInstallInfo -DeploymentAction $($Deployment.Installer.UninstallAction) -InstallerTechnology $($Deployment.Installer.Technology) -WorkingDirectory $WorkingDirectory
+#            $_UninstallerPath         = $objUninstallerAction.Filename
+#            $_UninstallerArgument     = Format-MSIXPackageInfo -AppArgument $($objUninstallerAction.Argument) -ErrorAction SilentlyContinue -ErrorVariable Err -WorkingDirectory $WorkingDirectory
 
             Switch($PSCmdlet.ParameterSetName)
             {
@@ -514,14 +514,28 @@ Function Get-MSIXConnectInstallInfo
         #################################
 
         
-        $FunctionName             = Get-FunctionName
-        $LoggingComponent         = "Job($__JobID) - $FunctionName"
-        $objInstallerAction       = $DeploymentAction.Args.Arg.Where({$_.Name -eq "InstallCommandLine"}).'#text'
-        $objInstallerFileName     = $objInstallerAction
-        $objInstallerArgument     = ""
-        $objTempInstallerArgument = $objInstallerAction
-        $AppTypes                 = @( ".exe", ".msi" )
-        $objInstallerActions      = New-Object PSObject
+        $FunctionName                = Get-FunctionName
+        $LoggingComponent            = "Job($__JobID) - $FunctionName"
+        $objInstallerAction          = $DeploymentAction.Args.Arg.Where({$_.Name -eq "InstallCommandLine"}).'#text'
+        $objInstallerFileName        = $objInstallerAction
+        $objInstallerArgument        = ""
+        $objTempInstallerArgument    = $objInstallerAction
+        $objInstallerLengthIncrement = 0
+        $objInstallerActions         = New-Object PSObject
+#        $AppTypes                    = @( ".exe", ".msi" )
+
+        $AppTypes = @(
+            @{
+                Type   = ".exe"
+                Prefix = ""
+                Suffix = ""
+            }
+            @{
+                Type   = ".msi"
+                Prefix = "msiexec /i "
+                Suffix = ""
+            }
+        )
     }
 
     ## Identifies the Filename and Arguments used in the installation of the application
@@ -538,10 +552,26 @@ Function Get-MSIXConnectInstallInfo
         foreach($Extension in $AppTypes)
         {
             ## Confirms the installation media is of a supported installer type.
-            IF( $($objInstallerFileName.IndexOf($Extension)) -gt 0 )
-            { 
-                IF($($objInstallerFileName.Length) -gt $($objInstallerFileName.IndexOf($Extension) + 5))
-                    { $objInstallerFileName = $objInstallerFileName.Substring(0, $($objInstallerFileName.IndexOf($Extension) + 5)) }
+            IF( $($objInstallerFileName.IndexOf($Extension.Type)) -gt 0 )
+            {
+                IF($($objInstallerFileName.Length) -gt $($objInstallerFileName.IndexOf($Extension.Type) + 5))
+                { 
+                    $objInstallerFileName = $objInstallerFileName.Substring(0, $($objInstallerFileName.IndexOf($Extension.Type) + 5))
+                    
+                    ## If the install string matches with the standardized prefix of this particular extension type
+                    IF($objInstallerFileName -match $Extension.Prefix)
+                    { 
+                        $objInstallerFileName = $objInstallerFileName -replace "$($Extension.Prefix)", ""
+                        $objInstallerLengthIncrement += $($Extension.Prefix.Length)
+                    }
+
+                    ## If the install string matches with the standardized suffix of this particular extension type
+                    IF($objInstallerFileName -match $Extension.Suffix)
+                    {
+                        $objInstallerFileName = $objInstallerFileName -replace "$($Extension.Suffix)", ""
+                        $objInstallerLengthIncrement += $($Extension.Suffix.Length)
+                    }
+                }
             }
         }
 
@@ -554,15 +584,23 @@ Function Get-MSIXConnectInstallInfo
         {
             ## Determines if the installer contains any install arguments
             IF($($objTempInstallerArgument.Length) -gt $($objInstallerFileName.Length))
-                { $objInstallerArgument = $objTempInstallerArgument.Substring($($objInstallerFileName.Length), $($objTempInstallerArgument.Length)-$($objInstallerFileName.Length)) }
+                { $objInstallerArgument = $objTempInstallerArgument.Substring($($objInstallerFileName.Length + $objInstallerLengthIncrement), $($objTempInstallerArgument.Length)-$($objInstallerFileName.Length + $objInstallerLengthIncrement)) }
             else 
                 { $objInstallerArgument = "" }
         }
 
         ## Removes the double quotes from the string
         $objInstallerFileName = $objInstallerFileName -replace '"', ''
-        $objInstallerFileName = $objInstallerFileName -replace ' ', ''
+#        $objInstallerFileName = $objInstallerFileName -replace ' ', ''
         $objInstallerArgument = $objInstallerArgument -replace '"', ''''
+
+        ## Removes spaces at the end of the Installer Argument
+        IF($objInstallerArgument.EndsWith(" "))
+            { $objInstallerArgument = $objInstallerArgument.Substring(0, $($objInstallerArgument.Length - 1)) }
+
+        ## Removes spaces at the start of the Installer Argument
+        IF($objInstallerArgument.StartsWith(" "))
+            { $objInstallerArgument = $objInstallerArgument.Substring(1, $($objInstallerArgument.Length - 1)) }
 
         ## Creates and populates the custom object with the Filename and Arugments.
         $objInstallerActions | Add-Member -MemberType NoteProperty -Name "FileName" -Value $($objInstallerFileName)
