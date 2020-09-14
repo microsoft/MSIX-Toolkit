@@ -269,12 +269,12 @@ function RunConversionJobs
                     ## If sourced from ConfigMgr or Export then run Local if more than 1 file exists in root.
                     IF($($conversionParam.AppInstallerFolderPath) -and $($($(Get-ChildItem -Recurse -Path $conversionParam.AppInstallerFolderPath).count -gt 1) -or $($($conversionParam.AppInstallerFolderPath).StartsWith("\\"))))
                     {
-                        New-LogEntry -LogValue "    Running Job on Remote Machine using the following parameters:`n`t - RunLocal-RM`n`t - ConversionJob: $($_.ConversionJob)`n`t - Target Machine Name: $($_.ComputerName)`n`t - Working Directory: $WorkingDirectory`n`t - PS ScriptRoot: $PSScriptRoot" -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
+                        New-LogEntry -LogValue "    Running Job on Remote Machine using the following parameters:`n`t - RunLocal-RM`n`t - ConversionJob: $($_.ConversionJob)`n`t - Target Machine Name: $($_.ComputerName)`n`t - Working Directory: $WorkingDirectory`n`t - PS ScriptRoot: $PSScriptRoot" -Severity 1 -WriteHost $False -Component $LoggingComponent -Path $WorkingDirectory
                         $_.ConversionJob = Start-Job -Name $ConversionJobName -ScriptBlock $([scriptblock]::Create($FuncScriptBlock)) -ArgumentList ("RunLocal-RM", $_, $conversionParam, $_JobID, $WorkingDirectory, $PSScriptRoot) 
                     }
                     ELSE 
                     {
-                        New-LogEntry -LogValue "    Running Job on Remote Machine using the following parameters:`n`t - RemoteMachine`n`t - ConversionJob: $($_.ConversionJob)`n`t - Target Machine Name: $($_.ComputerName)`n`t - Working Directory: $WorkingDirectory`n`t - PS ScriptRoot: $PSScriptRoot" -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
+                        New-LogEntry -LogValue "    Running Job on Remote Machine using the following parameters:`n`t - RemoteMachine`n`t - ConversionJob: $($_.ConversionJob)`n`t - Target Machine Name: $($_.ComputerName)`n`t - Working Directory: $WorkingDirectory`n`t - PS ScriptRoot: $PSScriptRoot" -Severity 1 -WriteHost $False -Component $LoggingComponent -Path $WorkingDirectory
                         $_.ConversionJob = Start-Job -Name $ConversionJobName -ScriptBlock $([scriptblock]::Create($FuncScriptBlock)) -ArgumentList ("RemoteMachine", $_, $conversionParam, $_JobID, $WorkingDirectory, $PSScriptRoot)
                     }
 
