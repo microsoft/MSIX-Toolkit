@@ -353,7 +353,7 @@ function RunConversionJobs
                 New-LogEntry -LogValue "Waiting for applications to complete conversion..." -Component $LoggingComponent -Path $WorkingDirectory
                 $OnceThrough = $false
             }
-            Start-Sleep(1)
+            Start-Sleep -Seconds 1
             Set-JobProgress -ConversionJobs $ConversionJobs -TotalTasks $($conversionsParameters.count) -WorkingDirectory $WorkingDirectory
         }
 #    }
@@ -452,7 +452,6 @@ Function NewMSIXConvertedApp
         #################################
         $scratch = New-Item -Force -Type Directory ([System.IO.Path]::Combine($workingDirectory, "MPT_Templates"))
         $scratch = New-Item -Force -Type Directory ([System.IO.Path]::Combine($workingDirectory, "MSIX"))
-        $scratch = New-Item -Force -Type Directory ([System.IO.Path]::Combine($workingDirectory, "ErrorLogs"))
         $objTimerSeconds     = 900    ## 600 = 10 minutes
         $FunctionName        = "NewMSIXConvertedApp"
         $LoggingComponent    = "JobID($JobID) - $FunctionName"
@@ -554,11 +553,11 @@ Function NewMSIXConvertedApp
 
                 ###########################################
                 ## Transfers Application to Host Machine ##
-                New-LogEntry -LogValue "    Transferring Applications:" -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
+                New-LogEntry -LogValue "    Transferring Applications:" -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory -WriteHost $True
 
                 ## Creates the destination folder and copies the Application Content local to the Remote Machine for conversion
                 $objScriptBlock = "New-Item -Path ""$($ConversionParameters.InstallerFolderPath)"" -ItemType Directory -Force"
-                New-LogEntry -LogValue "        Creating Application Content parent folder on Host Machine: $($TargetMachine.ComputerName)`n`t - Running Cmd: $objScriptBlock" -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
+                New-LogEntry -LogValue "        Creating Application Content parent folder on Host Machine: $($TargetMachine.ComputerName)`n`t - Running Cmd: $objScriptBlock" -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory -WriteHost $True
                 Invoke-Command -ScriptBlock $([Scriptblock]::Create($objScriptBlock))
 
                 $AppInstallerFiles = Get-ChildItem -Recurse -Path $($ConversionParameters.CMInstallerFolderPath)

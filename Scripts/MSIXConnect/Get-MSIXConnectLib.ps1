@@ -864,7 +864,7 @@ Function Get-CMExportAppData
             {
                 #################################
                 #### PowerShell Architecture ####
-                IF("x86" -ne $(Test-PSArchitecture -Architecture "x86"))
+                IF("x86" -ne $(Test-PSArchitecture -Architecture "x86" -workingDirectory $workingDirectory))
                 {
                     ## If PowerShell window executing script is not x86 fail and exit.
                     New-LogEntry -LogValue "Executing PowerShell Window is not x86 architecture, please launch Administrative PowerShell (x86) and re-run script." -Severity 3 -WriteHost $true -Component "JobID(-) - Get-CMExportAppData" -Path $WorkingDirectory
