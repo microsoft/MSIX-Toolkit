@@ -305,6 +305,8 @@ function Format-MSIXAppExportDetails
         #################################
         ## Set Initial Variable Values ##
         #################################
+        [ConversionParam[]]$AppDetails = @()        ## The application details that are returned by function.
+        $AppName = ""                               ## The Name of the application
 
         ##################
         #### $AppName ####
@@ -354,6 +356,13 @@ function Format-MSIXAppExportDetails
             $__JobID ++
             New-LogEntry -LogValue "  Parsing the Application (""$AppName""), currently recording information from Deployment Type:  ""$($Deployment.Title.'#text')""" -Component $LoggingComponent -Path $WorkingDirectory -WriteHost $true -textcolor "Cyan"
 
+            IF($SupportedInstallerType -notcontains $($Deployment.Installer.Technology))
+            {
+                New-LogEntry -LogValue "    This Deployment Type ($($Deployment.Installer.Technology))) is not supported by this script. Skipping Deployment Type." -Severity 3 -Component $LoggingComponent -Path $WorkingDirectory -WriteHost $true
+                Break;
+            }
+
+
             $MSIXAppDetails           = [ConversionParam]::New()
             $InstallerArgument        = ""
             $objContentPath           = ""
@@ -371,7 +380,8 @@ function Format-MSIXAppExportDetails
             ## Install Information ##
             $objInstallerAction       = Get-MSIXConnectInstallInfo -DeploymentAction $($Deployment.Installer.InstallAction) -InstallerTechnology $($Deployment.Installer.Technology) -WorkingDirectory $WorkingDirectory
             $_AppFileName             = $objInstallerAction.Filename
-            $_InstallerArgument       = Format-MSIXPackageInfo -AppArgument $($objInstallerAction.Argument) -ErrorAction SilentlyContinue -ErrorVariable Err -WorkingDirectory $WorkingDirectory
+            $AppFileExtension         = $_AppFileName.Split(".")[$($($_AppFileName.Split(".")).Length -1)]
+            $_InstallerArgument       = Format-MSIXPackageInfo -AppArgument $($objInstallerAction.Argument) -AppFileExtension $AppFileExtension -ErrorAction SilentlyContinue -ErrorVariable Err -WorkingDirectory $WorkingDirectory
             
             New-LogEntry -LogValue "    $($("Install String:").PadRight(22))  $($Deployment.Installer.InstallAction.Args.Arg.Where({$_.Name -eq "InstallCommandLine"}).'#text')" -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
             New-LogEntry -LogValue "    $($("Install Filename:").PadRight(22))  |$_AppFileName| |$_InstallerArgument|" -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
@@ -388,7 +398,7 @@ function Format-MSIXAppExportDetails
                 {
                     $_PackageName            = $($(Format-MSIXPackageInfo -AppName "$($Application.Instance.Property.Where({$_.Name -eq "LocalizedDisplayName" }).Value)-$($_ContentID.Substring($_ContentID.Length-6, 6))" -WorkingDirectory $WorkingDirectory ))
                     $_PackageDisplayName     = $Application.Instance.Property.Where({$_.Name -eq "LocalizedDisplayName"}).Value
-                    $_PublisherDisplayname   = $Application.Instance.Property.Where({$_.Name -eq "Manufacturer"}).Value
+                    $_PublisherDisplayname   = Format-MSIXPackageInfo -AppPublisherDisplayName $($Application.Instance.Property.Where({$_.Name -eq "Manufacturer"}).Value) -CertPublisher $SigningCertificate.Publisher -workingDirectory $WorkingDirectory
                     $_ApplicationDescription = $Application.Instance.Property.Where({$_.Name -eq "LocalizedDescription"}).Value
                     $_CMAppPackageID         = $Application.Instance.Property.Where({$_.Name -eq "PackageID"}).Value
                     $_ContentParentRoot      = $($CMAppPath.Directory.Parent.Parent.Name)
@@ -400,9 +410,9 @@ function Format-MSIXAppExportDetails
                 }
                 "CMServer"
                 {
-                    $_PackageName            = $($(Format-MSIXPackageInfo -AppName "$($Application.LocalizedDisplayName)-$($_ContentID.Substring($_ContentID.Length-6, 6))" -WorkingDirectory $WorkingDirectory ))
+                    $_PackageName            = Format-MSIXPackageInfo -AppName "$($Application.LocalizedDisplayName)-$($_ContentID.Substring($_ContentID.Length-6, 6))" -WorkingDirectory $WorkingDirectory
                     $_PackageDisplayName     = $Application.LocalizedDisplayName
-                    $_PublisherDisplayname   = $Application.Manufacturer
+                    $_PublisherDisplayname   = Format-MSIXPackageInfo -AppPublisherDisplayName $Application.Manufacturer -CertPublisher $SigningCertificate.Publisher -workingDirectory $WorkingDirectory
                     $_ApplicationDescription = $Application.LocalizedDescription
                     $_CMAppPackageID         = $Application.PackageID
                     $_AppInstallerFolderPath = $(Get-Item -Path $($Deployment.Installer.Contents.Content.Location)).FullName
@@ -643,10 +653,13 @@ Function Format-MSIXPackageInfo
     #>
     [CmdletBinding(DefaultParameterSetName='PackageName')]
     Param(
-        [Parameter(Mandatory=$True, ParameterSetName=$('PackageVersion'), Position=0)][AllowEmptyString()][AllowNull()][string] $AppVersion,
-        [Parameter(Mandatory=$True, ParameterSetName=$('PackageArgument'),Position=0)][AllowEmptyString()][AllowNull()][string] $AppArgument,
-        [Parameter(Mandatory=$True, ParameterSetName=$('PackageName'),    Position=0)][AllowEmptyString()][AllowNull()][string] $AppName,
-        [Parameter(Mandatory=$False,Position=1)][string] $JobID="-",
+        [Parameter(Mandatory=$True, ParameterSetName=$('PackageVersion'),  Position=0)][AllowEmptyString()][AllowNull()][string] $AppVersion,
+        [Parameter(Mandatory=$True, ParameterSetName=$('PackageArgument'), Position=0)][AllowEmptyString()][AllowNull()][string] $AppArgument,
+        [Parameter(Mandatory=$True, ParameterSetName=$('PackageArgument'), Position=1)][AllowEmptyString()][AllowNull()][string] $AppFileExtension,
+        [Parameter(Mandatory=$True, ParameterSetName=$('PackageName'),     Position=0)][AllowEmptyString()][AllowNull()][string] $AppName,
+        [Parameter(Mandatory=$True, ParameterSetName=$('PackagePublisher'),Position=0)][AllowEmptyString()][AllowNull()][string] $AppPublisherDisplayName,
+        [Parameter(Mandatory=$True, ParameterSetName=$('PackagePublisher'),Position=1)][AllowEmptyString()][AllowNull()][string] $CertPublisher,
+        [Parameter(Mandatory=$False)][string] $JobID="-",
         [Parameter(Mandatory=$False)] $workingDirectory
     )
     
@@ -655,6 +668,7 @@ Function Format-MSIXPackageInfo
         $FunctionName = Get-FunctionName
         $LoggingComponent = "JobID($JobID) - $FunctionName"
         $LoggingWriteHost = $($ErrorActionPreference -ne "SilentlyContinue")
+        $ReturnResults = ""
 
         ###############################
         ## Variable input Validation ##
@@ -663,38 +677,59 @@ Function Format-MSIXPackageInfo
         ## Validate Parameter Set Values
         switch ($PSCmdlet.ParameterSetName) 
         {
-            "PackageName"     
+            "PackageName"
             {
-                IF($null -eq $AppName -or "" -eq $AppName)
+                IF($AppName -eq "" -or $null -eq $AppName)
                 {
                     $ErrorMessage = "    The application name can not be null or empty. Please provide a value, and try again."
                     New-LogEntry -LogValue $ErrorMessage -Severity 3 -Component $LoggingComponent -Path $WorkingDirectory -WriteHost $LoggingWriteHost
                     Return
                 }
             }
-            "PackageArgument" 
+            "PackageArgument"
             {
                 ## Variable Validation - Error if null or empty
-                IF($null -eq $AppArgument -or "" -eq $AppArgument)
+                IF($($AppArgument -eq "" -or $null -eq $AppArgument) -and $AppFileExtension -eq "exe")
                 { 
                     $ErrorMessage = "    The application argument can not be null or empty. Please provide a value, and try again."
                     New-LogEntry -LogValue $ErrorMessage -Severity 3 -Component $LoggingComponent -Path $WorkingDirectory -WriteHost $LoggingWriteHost
                     Return
                 }
-            }
-            "PackageVersion"  
-            {
-                ## Variable Validation - Error if null or empty
-                IF($null -eq $AppVersion -or "" -eq $AppVersion)
+                ElseIF($AppFileExtension -eq "msi")
+                {
+                    New-LogEntry -LogValue "Application installation media is an ""$AppFileExtension""." -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory -WriteHost $False
+                    Return
+                }
+                IF($AppFileExtension -eq "" -or $null -eq $AppFileExtension)
                 { 
-                    $ErrorMessage = "    The application version can not be null or empty. Please provide a value, and try again."
+                    $ErrorMessage = "    The application extension can not be null or empty. Please provide a value, and try again."
                     New-LogEntry -LogValue $ErrorMessage -Severity 3 -Component $LoggingComponent -Path $WorkingDirectory -WriteHost $LoggingWriteHost
                     Return
                 }
             }
+            "PackageVersion"
+            {
+                ## Variable Validation - Error if null or empty
+                IF($AppVersion -eq "" -or $null -eq $AppVersion)
+                { 
+                    $ErrorMessage = "    The application version can not be null or empty. Application version will be assigned a new value."
+                    New-LogEntry -LogValue $ErrorMessage -Severity 2 -Component $LoggingComponent -Path $WorkingDirectory -WriteHost $LoggingWriteHost
+                }
+            }
+            "PackagePublisher"
+            {
+                ## Variable Validation - Error if null or empty
+                IF($AppPublisherDisplayName -eq "" -or $null -eq $AppPublisherDisplayName)
+                {
+                    IF($CertPublisher -eq "" -or $null -eq $CertPublisher)
+                    { 
+                        $ErrorMessage = "    The application code signing certificate publisher can not be empty. Please provide a value, and try again."
+                        New-LogEntry -LogValue $ErrorMessage -Severity 3 -Component $LoggingComponent -Path $WorkingDirectory -WriteHost $LoggingWriteHost
+                        Return
+                    }
+                }
+            }
         }
-        
-        $ReturnResults = ""
     }
 
     ## Ensures that the information provided aligns with MSIX Packaging Tool requirements
@@ -716,7 +751,7 @@ Function Format-MSIXPackageInfo
             "PackageArgument" 
             {
                 IF($AppArgument.StartsWith(" "))
-                    { $AppArgument = Format-MSIXPackageInfo -AppArgument $AppArgument.Substring(1, $AppArgument.Length -1) -ErrorAction SilentlyContinue -WorkingDirectory $WorkingDirectory }
+                    { $AppArgument = $AppArgument.TrimStart("") }
     
                 $ReturnResults = $AppArgument
             }
@@ -758,6 +793,18 @@ Function Format-MSIXPackageInfo
             
                 ## Returns the newly updated version octet adhereing to the specified requirements.
                 $ReturnResults = $NewPackageVersion
+            }
+            "PackagePublisher"
+            {
+                $ReturnResults = $AppPublisherDisplayName
+
+                IF($AppPublisherDisplayName -eq "" -or $null -eq $AppPublisherDisplayName)
+                { 
+                    $ReturnResults = $($($CertPublisher.Split(",").Where({$_ -like "*O=*"})).TrimStart("")).Replace("O=", "")
+
+                    $ErrorMessage = "    The application publisher name can not be null or empty. Application publisher will be set as: ""$ReturnResults"""
+                    New-LogEntry -LogValue $ErrorMessage -Severity 2 -Component $LoggingComponent -Path $WorkingDirectory -WriteHost $LoggingWriteHost
+                }
             }
             Default {}
         }
@@ -957,7 +1004,7 @@ Function Get-CMExportAppData
             {
                 ## App Content was sourced from ConfigMgr Server.
                 $CMAppDeploymentType = [xml]($CMApp.SDMPackageXML)
-                $AppDetails += Format-MSIXAppExportDetails -Application $CMApp -ApplicationDeploymentType $CMAppDeploymentType -SigningCertificate $SigningCertificate -CMServer -WorkingDirectory $WorkingDirectory
+                $AppDetails = Format-MSIXAppExportDetails -Application $CMApp -ApplicationDeploymentType $CMAppDeploymentType -SigningCertificate $SigningCertificate -CMServer -WorkingDirectory $WorkingDirectory
             }
         }
     }

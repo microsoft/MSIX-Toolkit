@@ -526,7 +526,7 @@ Function NewMSIXConvertedApp
                 $RemoteTemplateFilePath = $([String]$($(Get-Item -Path $_templateFilePath).FullName))
                
                 $ConvertScriptBlock = "MsixPackagingTool.exe create-package --template $RemoteTemplateFilePath --machinePassword ""$_password"""
-                New-LogEntry -LogValue $ConvertScriptBlock -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
+                New-LogEntry -LogValue "    $($ConvertScriptBlock.Replace($_password, "XXXXXXXXXX"))" -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
 
                 $Job = Start-Job -ScriptBlock $([scriptblock]::Create($ConvertScriptBlock))
 #                $Job = Invoke-Command -AsJob -Credential $TargetMachine.Credential -ScriptBlock $([scriptblock]::Create($ConvertScriptBlock))
@@ -567,7 +567,7 @@ Function NewMSIXConvertedApp
                 ## Converts the App on the Remote Machine ##
                 New-LogEntry -LogValue "    Converting Application:" -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
                 $ConvertScriptBlock = "MsixPackagingTool.exe create-package --template ""$RemoteTemplateFilePath"" --machinePassword ""$_password"""
-                New-LogEntry -LogValue "        $ConvertScriptBlock" -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
+                New-LogEntry -LogValue "        $($ConvertScriptBlock.Replace($_password, "XXXXXXXXXX"))" -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
 
                 $Job = Start-Job -ScriptBlock $([scriptblock]::Create($ConvertScriptBlock))
                 #$Job = Invoke-Command -Session $Session -AsJob -ScriptBlock $([scriptblock]::Create($ConvertScriptBlock))
@@ -592,7 +592,7 @@ Function NewMSIXConvertedApp
                 
                 New-LogEntry -LogEntry "    App Conversion Inputs: `n`t - Remote Template File Path: $RemoteTemplateFilePath `n`t - Password: $_password" -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
                 $ConvertScriptBlock = "MsixPackagingTool.exe create-package --template ""$RemoteTemplateFilePath"" --machinePassword ""$_password"""
-                New-LogEntry -LogValue "    $ConvertScriptBlock" -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
+                New-LogEntry -LogValue "    $($ConvertScriptBlock.Replace($_password, "XXXXXXXXXX"))" -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
                 $Job = Start-Job -ScriptBlock $([scriptblock]::Create($ConvertScriptBlock))
                 #$Job = Invoke-Command -AsJob -Credential $TargetMachine.Credential -ScriptBlock $([scriptblock]::Create($ConvertScriptBlock))
                 #$Job = Invoke-Command -vmName $($TargetMachine.name) -AsJob -Credential $TargetMachine.Credential -ScriptBlock $([scriptblock]::Create($ConvertScriptBlock))
