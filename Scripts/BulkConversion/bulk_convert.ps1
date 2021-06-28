@@ -419,6 +419,7 @@ Function NewMSIXConvertedApp
         ###############################
         ## Variable input Validation ##
         ###############################
+        $LoggingComponent = "JobID(-) - $FunctionName"
 
         ########################
         #### $TargetMachine ####
@@ -436,8 +437,11 @@ Function NewMSIXConvertedApp
         }
         ELSE
         {
-            $VMResult = $(Get-VM).Name -contains $($TargetMachine.Name)
-            $RMResult = [boolean]$(Test-Connection -ComputerName $TargetMachine.ComputerName)
+            ## Validates inputs against the machine conversion type.
+            IF($ConversionTarget -eq "RunLocal-RM" -or $ConversionTarget -eq "RemoteMachine")
+                { $RMResult = [boolean]$(Test-Connection -ComputerName $TargetMachine.ComputerName) }
+            else 
+                { $VMResult = $(Get-VM).Name -contains $($TargetMachine.Name) }
             
             IF( -not $($VMResult -or $RMResult))
             {
@@ -460,23 +464,24 @@ Function NewMSIXConvertedApp
         $initialSnapshotName = "Pre-MSIX Conversion"
         
         ## Sets the Conversion Machine Details for use in the function.
-        [TargetMachine]$_ConversionMachine = @()
-
         ## Maps the variable values to the same child values.
         IF($TargetMachine.Name -eq "" -or $null -eq $TargetMachine.Name)
         {
             ## Target Machine was identified as a Remote Machine Target.
-            $_ConversionMachine.Name        = $TargetMachine.ComputerName
-            $_ConversionMachine.Credentials = $TargetMachine.Credentials
+            [TargetMachine]$_ConversionMachine = @{
+                Name        = $TargetMachine.ComputerName;
+                Credentials = $TargetMachine.Credentials
+            }
         }
         Else
         {
             ## Target Machine was identified as a Virtual Machine Target.
-            $_ConversionMachine = $TargetMachine
+            [TargetMachine]$_ConversionMachine = $TargetMachine
         }
 
         ## Outputs the Application Conversion information to the log file for reference.
         $AppConversionDetails =  "    Application Conversion for $($ConversionParameters.PackageDisplayName) contains the following information:`n"
+        $AppConversionDetails += "`t - The Conversion Target:`t$ConversionTarget`n"
         $AppConversionDetails += "`t - Package Display Name:`t $($ConversionParameters.PackageDisplayName)`n"
         $AppConversionDetails += "`t - Publisher Display Name:`t $($ConversionParameters.PublisherDisplayName)`n"
         $AppConversionDetails += "`t - Package Name:`t`t $($ConversionParameters.PackageName)`n"
@@ -633,13 +638,23 @@ Function NewMSIXConvertedApp
                     $objSavePath       = $objConversionInfo.SavePath
                     $objTemplatePath   = $objConversionInfo.TemplatePath
 
+                    New-LogEntry -LogValue "    Creating PS Remoting Session." -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
+                    $Session = New-PSSession -VMName $($TargetMachine.Name) -Credential $($TargetMachine.Credential)
+
                     ## Enables Guest Service on VM
                     Enable-VMIntegrationService -Name "Guest Service Interface" -VMName $($TargetMachine.Name) -ErrorAction SilentlyContinue
                     Start-Sleep -Seconds 5
 
                     ################# Creating / Copying Script Folder #################
                     New-LogEntry -LogValue "    Copying MSIX Toolkit Scripts folder to VM ($($TargetMachine.Name))" -Severity 1 -WriteHost $false -Component $LoggingComponent -Path $WorkingDirectory
-                    Get-ChildItem -Recurse $ScriptRepository | ForEach-Object { Copy-VMFile -Name $($TargetMachine.Name) -Force -SourcePath $($_.FullName) -DestinationPath $($_.FullName) -FileSource Host -CreateFullPath }
+                    #Get-ChildItem -File -Recurse $ScriptRepository | ForEach-Object { Copy-VMFile -Name $($TargetMachine.Name) -Force -SourcePath $($_.FullName) -DestinationPath $($_.Directory.FullName) -FileSource Host -CreateFullPath }
+                    Foreach ($File in $(Get-ChildItem -File -Recurse $ScriptRepository))
+                    {
+                        ## Tests if the folder does not exist
+                        IF($(Invoke-Command -Session $Session -ScriptBlock $([scriptblock]::Create("$(Test-Path $($File.directory.FullName))"))) -eq $False)
+                            { Invoke-Command -Session $Session -ScriptBlock $([scriptblock]::Create("New-Item -ItemType Directory -Path $($File.directory.FullName)")) }
+                        Copy-VMFile -Name $($TargetMachine.Name) -Force -SourcePath $($File.FullName) -DestinationPath $($File.Directory.FullName) -FileSource Host -CreateFullPath   
+                    }
                     
                     ################# Creating / Copying Template Folder #################
                     New-LogEntry -LogValue "    Copying MSIX MPT Template file to VM ($($TargetMachine.Name))" -Severity 1 -WriteHost $false -Component $LoggingComponent -Path $WorkingDirectory
@@ -647,7 +662,14 @@ Function NewMSIXConvertedApp
 
                     ################# Creating / Copying Installer Folder #################
                     New-LogEntry -LogValue "    Copying the Application installation media to the VM ($($TargetMachine.Name))" -Severity 1 -WriteHost $false -Component $LoggingComponent -Path $WorkingDirectory
-                    Get-ChildItem -Recurse $($ConversionParameters.AppInstallerFolderPath) | ForEach-Object { Copy-VMFile -Name $($TargetMachine.Name) -Force -SourcePath $($_.FullName) -DestinationPath $($_.FullName.Replace($($ConversionParameters.AppInstallerFolderPath), $($ConversionParameters.InstallerFolderPath))) -FileSource Host -CreateFullPath -ErrorAction SilentlyContinue }
+#                    Get-ChildItem -File -Recurse $($ConversionParameters.AppInstallerFolderPath) | ForEach-Object { Copy-VMFile -Name $($TargetMachine.Name) -Force -SourcePath $($_.FullName) -DestinationPath $($_.Directory.FullName.Replace($($ConversionParameters.AppInstallerFolderPath), $($ConversionParameters.InstallerFolderPath))) -FileSource Host -CreateFullPath -ErrorAction SilentlyContinue }
+                    Foreach ($File in $(Get-ChildItem -File -Recurse $($ConversionParameters.AppInstallerFolderPath)))
+                    {
+                        ## Tests if the folder does not exist
+                        IF($(Invoke-Command -Session $Session -ScriptBlock $([scriptblock]::Create("$(Test-Path $($File.directory.FullName))"))) -eq $False)
+                            { Invoke-Command -Session $Session -ScriptBlock $([scriptblock]::Create("New-Item -ItemType Directory -Path $($File.directory.FullName)")) }
+                        Copy-VMFile -Name $($TargetMachine.Name) -Force -SourcePath $($File.FullName) -DestinationPath $($File.Directory.FullName.Replace($($ConversionParameters.AppInstallerFolderPath), $($ConversionParameters.InstallerFolderPath))) -FileSource Host -CreateFullPath -ErrorAction SilentlyContinue
+                    }
                     
                     ################# Converting App #################
                     $RemoteTemplateParentDir = $([String]$($(Get-Item -Path $_templateFilePath).Directory))
@@ -672,9 +694,6 @@ Function NewMSIXConvertedApp
                     IF($($objTimerSeconds -gt 0) -and $($objJobStatus -eq "Completed"))
                     {
                         ################# Exporting Converted App #################
-                        New-LogEntry -LogValue "    Creating PS Remoting Session." -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
-                        $Session = New-PSSession -VMName $($TargetMachine.Name) -Credential $($TargetMachine.Credential)
-
                         New-LogEntry -LogValue "    Creating the export folder." -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
                         New-Item -Path $objSavePath -Force -ErrorAction SilentlyContinue
 
@@ -691,7 +710,7 @@ Function NewMSIXConvertedApp
                     Start-Sleep -Seconds 5
 
                     New-LogEntry -LogValue "    Reverting VM ($($TargetMachine.Name)" -Severity 1 -Component $LoggingComponent -Path $WorkingDirectory
-                    Restore-InitialSnapshot -SnapshotName $initialSnapshotName -VMName $($TargetMachine.Name) -jobId "" -WorkingDirectory $WorkingDirectory
+                    #Restore-InitialSnapshot -SnapshotName $initialSnapshotName -VMName $($TargetMachine.Name) -jobId "" -WorkingDirectory $WorkingDirectory
                 }
             }
         }
