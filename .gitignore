@@ -24,7 +24,7 @@ bld/
 [Oo]bj/
 [Ll]og/
 
-# Personal Adjustments
+# Personsonal Exclusions:
 test*
 *.msix
 
