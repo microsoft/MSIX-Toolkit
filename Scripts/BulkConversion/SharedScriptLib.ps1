@@ -5,7 +5,7 @@ Class ConversionParam{
     [ValidateNotNullOrEmpty()][String] $PublisherName           ## MSIX Canonical Publisher Name.
     [ValidateNotNullOrEmpty()][String] $PackageVersion          ## MSIX App Package Version (#.#.#.#).
     [ValidateNotNullOrEmpty()][String] $InstallerPath           ## Path to App Installer used for Conversion.
-    [String]$InstallerFolderPath        ## Used with ConfigMgr sourced app conversions, points to the install folder used for conversion on remote machine
+    [String]$InstallerFolderPath        ## Points to the install folder used for conversion on remote machine or virtual machines when the conversion is done locally
     [String]$UninstallerPath            ## Used with ConfigMgr sourced app conversions, points to the uninstall folder. (Used only when installing with compression)
     [String]$UninstallerArgument        ## Used with ConfigMgr sourced app conversions, arguments to silently uninstall app.
     [String]$CMInstallerPath            ## Used with ConfigMgr Path to App Installer in ConfigMgr used for Conversion.
@@ -14,7 +14,7 @@ Class ConversionParam{
     [String]$CMAppPackageID             ## Used with ConfigMgr sourced app conversions, identifies the ConfigMgr Application Package ID.
     [String]$RequiresUserInteraction    ## Used with ConfigMgr sourced app conversions, identifies if the app installer is silent or interactive.
     [String]$AppFolderPath              ## Used with ConfigMgr sourced app conversions, identifies the UNC path to the ConfigMgr Application installer.
-    [String]$AppInstallerFolderPath     ## Used with ConfigMgr sourced app conversions, identifies the app installer UNC folder path
+    [String]$AppInstallerFolderPath     ## Identifies the app installer UNC folder path
     [String]$AppFileName                ## Used with ConfigMgr sourced app conversions, identifies the app file name.
     [String]$AppIntallerType            ## Used with ConfigMgr sourced app conversions, identifies the type of installation media used for app install.
     [String]$ContentID                  ## Used with ConfigMgr sourced app conversions, identifies which child folder (exported apps only) the app install exists.
