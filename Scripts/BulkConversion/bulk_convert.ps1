@@ -691,7 +691,7 @@ Function NewMSIXConvertedApp
 
 
                     $ConvertScriptBlock = "MsixPackagingTool.exe create-package --template ""$RemoteTemplateFilePath"" --machinePassword ""$_password"""
-                    $Job = Start-Job -ScriptBlock $([scriptblock]::Create($ConvertScriptBlock))
+                    $Job = Start-Job -ScriptBlock $([scriptblock]::Create($ConvertScriptBlock)) 
                     
                     ##$ConvertScriptBlock = "MsixPackagingTool.exe create-package --template $RemoteTemplateFilePath"
                                         
