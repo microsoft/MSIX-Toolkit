@@ -699,7 +699,7 @@ Function NewMSIXConvertedApp
                     ##$Job = Invoke-Command -Session $Session -AsJob -ScriptBlock $([scriptblock]::Create($ConvertScriptBlock))
 
 
-
+ 
                     ## Sets a timeout for the installer.
                     $objJobStatus = ""
                     do {
