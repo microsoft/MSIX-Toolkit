@@ -632,7 +632,8 @@ Function NewMSIXConvertedApp
                 IF($($($ConversionParameters.InstallerArguments) -ne ""))
                 {
                     New-LogEntry -LogValue "Creating the MPT Template" -Severity 1 -WriteHost $false -Component $LoggingComponent -Path $WorkingDirectory
-                    $objConversionInfo = CreateMPTTemplate -VMLocal $ConversionParameters $JobID $workingDirectory
+                    $objConversionInfo = CreateMPTTemplate -virtualMachine $TargetMachine $ConversionParameters $JobID $workingDirectory
+                    #$objConversionInfo = CreateMPTTemplate -VMLocal $TargetMachine $ConversionParameters $JobID $workingDirectory
                     $_templateFilePath = $objConversionInfo.Path
                     $objXMLContent     = $($objConversionInfo.Content).Replace("'", "")
                     $objSavePath       = $objConversionInfo.SavePath
@@ -650,10 +651,14 @@ Function NewMSIXConvertedApp
                     #Get-ChildItem -File -Recurse $ScriptRepository | ForEach-Object { Copy-VMFile -Name $($TargetMachine.Name) -Force -SourcePath $($_.FullName) -DestinationPath $($_.Directory.FullName) -FileSource Host -CreateFullPath }
                     Foreach ($File in $(Get-ChildItem -File -Recurse $ScriptRepository))
                     {
+                        $SrcFilePath            = $File.FullName
+                        $DestFilePath           = $File.FullName
+                        $DestFileDirectoryPath  = $File.DirectoryName
+
                         ## Tests if the folder does not exist
-                        IF($(Invoke-Command -Session $Session -ScriptBlock $([scriptblock]::Create("$(Test-Path $($File.directory.FullName))"))) -eq $False)
-                            { Invoke-Command -Session $Session -ScriptBlock $([scriptblock]::Create("New-Item -ItemType Directory -Path $($File.directory.FullName)")) }
-                        Copy-VMFile -Name $($TargetMachine.Name) -Force -SourcePath $($File.FullName) -DestinationPath $($File.Directory.FullName) -FileSource Host -CreateFullPath   
+                        IF($(Invoke-Command -Session $Session -ScriptBlock $([scriptblock]::Create("Test-Path $DestFileDirectoryPath"))) -eq $False)
+                            { $Result = Invoke-Command -Session $Session -ScriptBlock $([scriptblock]::Create("New-Item -ItemType Directory -Path $DestFileDirectoryPath")) }
+                        Copy-VMFile -Name $($TargetMachine.Name) -Force -SourcePath $SrcFilePath -DestinationPath $DestFilePath -FileSource Host -CreateFullPath   
                     }
                     
                     ################# Creating / Copying Template Folder #################
@@ -665,10 +670,14 @@ Function NewMSIXConvertedApp
 #                    Get-ChildItem -File -Recurse $($ConversionParameters.AppInstallerFolderPath) | ForEach-Object { Copy-VMFile -Name $($TargetMachine.Name) -Force -SourcePath $($_.FullName) -DestinationPath $($_.Directory.FullName.Replace($($ConversionParameters.AppInstallerFolderPath), $($ConversionParameters.InstallerFolderPath))) -FileSource Host -CreateFullPath -ErrorAction SilentlyContinue }
                     Foreach ($File in $(Get-ChildItem -File -Recurse $($ConversionParameters.AppInstallerFolderPath)))
                     {
+                        $SrcFilePath            = $File.FullName
+                        $DestFilePath           = $File.FullName.Replace($($ConversionParameters.AppInstallerFolderPath), $($ConversionParameters.InstallerFolderPath))
+                        $DestFileDirectoryPath  = $File.DirectoryName.Replace($($ConversionParameters.AppInstallerFolderPath), $($ConversionParameters.InstallerFolderPath))
+
                         ## Tests if the folder does not exist
-                        IF($(Invoke-Command -Session $Session -ScriptBlock $([scriptblock]::Create("$(Test-Path $($File.directory.FullName))"))) -eq $False)
-                            { Invoke-Command -Session $Session -ScriptBlock $([scriptblock]::Create("New-Item -ItemType Directory -Path $($File.directory.FullName)")) }
-                        Copy-VMFile -Name $($TargetMachine.Name) -Force -SourcePath $($File.FullName) -DestinationPath $($File.Directory.FullName.Replace($($ConversionParameters.AppInstallerFolderPath), $($ConversionParameters.InstallerFolderPath))) -FileSource Host -CreateFullPath -ErrorAction SilentlyContinue
+                        IF($(Invoke-Command -Session $Session -ScriptBlock $([scriptblock]::Create("Test-Path $DestFileDirectoryPath"))) -eq $False)
+                            { $Result = Invoke-Command -Session $Session -ScriptBlock $([scriptblock]::Create("New-Item -ItemType Directory -Path $DestFileDirectoryPath")) }
+                        Copy-VMFile -Name $($TargetMachine.Name) -Force -SourcePath $SrcFilePath -DestinationPath $DestFilePath -FileSource Host -CreateFullPath -ErrorAction SilentlyContinue
                     }
                     
                     ################# Converting App #################
@@ -678,9 +687,19 @@ Function NewMSIXConvertedApp
 
                     New-LogEntry -LogValue "        - Remote Template Parent Dir: $RemoteTemplateParentDir`n        - Remote Template File Path:  $RemoteTemplateFilePath`n        - PS Scriptroot:              $RemoteScriptRoot" -Severity 1 -WriteHost $false -Component $LoggingComponent -Path $WorkingDirectory
                     
-                    $ConvertScriptBlock = "MsixPackagingTool.exe create-package --template $RemoteTemplateFilePath"
-                    $Job = Invoke-Command -vmName $($TargetMachine.name) -AsJob -Credential $TargetMachine.Credential -ScriptBlock $([scriptblock]::Create($ConvertScriptBlock))
 
+
+
+                    $ConvertScriptBlock = "MsixPackagingTool.exe create-package --template ""$RemoteTemplateFilePath"" --machinePassword ""$_password"""
+                    $Job = Start-Job -ScriptBlock $([scriptblock]::Create($ConvertScriptBlock))
+                    
+                    ##$ConvertScriptBlock = "MsixPackagingTool.exe create-package --template $RemoteTemplateFilePath"
+                                        
+                    #$Job = Invoke-Command -vmName $($TargetMachine.name) -AsJob -Credential $TargetMachine.Credential -ScriptBlock $([scriptblock]::Create($ConvertScriptBlock))
+                    ##$Job = Invoke-Command -Session $Session -AsJob -ScriptBlock $([scriptblock]::Create($ConvertScriptBlock))
+
+
+ 
                     ## Sets a timeout for the installer.
                     $objJobStatus = ""
                     do {
